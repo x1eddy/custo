@@ -54,7 +54,9 @@ import app.custo.feature.home.ShizukuSetupScreen
 import app.custo.feature.overlays.OverlaysScreen
 import app.custo.feature.systemui.QsEditorScreen
 import app.custo.feature.systemui.SystemUiScreen
+import app.custo.feature.themes.LiveWallpaperScreen
 import app.custo.feature.themes.ThemesScreen
+import app.custo.feature.themes.WallScheduleScreen
 import app.custo.feature.widgets.WidgetEditorScreen
 import app.custo.feature.widgets.WidgetsScreen
 import app.custo.ui.components.LocalSnackbar
@@ -106,6 +108,8 @@ fun CustoNavHost(initialRoute: Route? = null) {
                     Route.QsEditor -> QsEditorScreen(onBack = { nav.pop() })
                     Route.Backup -> BackupScreen(onBack = { nav.pop() })
                     is Route.WidgetEditor -> WidgetEditorScreen(target.appWidgetId, onBack = { nav.pop() })
+                    Route.LiveWallpaper -> LiveWallpaperScreen(onBack = { nav.pop() })
+                    Route.WallSchedule -> WallScheduleScreen(onBack = { nav.pop() })
                     else -> Unit
                 }
             }

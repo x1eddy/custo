@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -28,7 +27,9 @@ import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.Casino
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Remove
+import androidx.compose.material.icons.rounded.Animation
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
@@ -39,9 +40,9 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -61,6 +62,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.custo.container
 import app.custo.feature.systemui.MonetStyle
 import app.custo.nav.Navigator
+import app.custo.nav.Route
 import app.custo.shizuku.ShizukuState
 import app.custo.ui.components.ColorPicker
 import app.custo.ui.components.Hint
@@ -70,7 +72,9 @@ import app.custo.ui.components.SectionLabel
 import app.custo.ui.components.SwitchRow
 import app.custo.ui.components.rememberActionRunner
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import kotlin.math.roundToInt
 import kotlin.random.Random
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -110,16 +114,20 @@ fun ThemesScreen(nav: Navigator) {
             SectionCard {
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     WallPreview(spec, Modifier.width(132.dp))
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Style", style = MaterialTheme.typography.labelLarge)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            WallStyle.entries.forEach { s -> FilterChip(selected = spec.style == s, onClick = { spec = spec.copy(style = s) }, label = { Text(s.label) }) }
-                        }
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        SmallSlider("Grain", spec.grain) { spec = spec.copy(grain = it) }
+                        SmallSlider("Softness", spec.blur) { spec = spec.copy(blur = it) }
+                        SmallSlider("Detail", spec.complexity) { spec = spec.copy(complexity = it) }
+                        SmallSlider("Angle", spec.angle / 360f) { spec = spec.copy(angle = (it * 360f).roundToInt().toFloat()) }
                         FilledTonalButton(onClick = {
                             val r = Random(System.nanoTime())
-                            spec = spec.copy(colors = WallpaperStudio.randomPalette(r), seed = r.nextInt(), angle = r.nextFloat() * 360f)
+                            spec = spec.copy(colors = WallpaperStudio.randomPalette(r), seed = r.nextInt(), angle = (r.nextFloat() * 360f).roundToInt().toFloat())
                         }) { Icon(Icons.Rounded.Casino, null); Text("  Shuffle") }
                     }
+                }
+                Text("Style", style = MaterialTheme.typography.labelLarge)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    WallStyle.entries.forEach { s -> FilterChip(selected = spec.style == s, onClick = { spec = spec.copy(style = s) }, label = { Text(s.label) }) }
                 }
                 Text("Colors", style = MaterialTheme.typography.labelLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -147,7 +155,7 @@ fun ThemesScreen(nav: Navigator) {
                     matchSystem && shizuku == ShizukuState.READY,
                     enabled = shizuku == ShizukuState.READY,
                 ) { matchSystem = it }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = {
                         runner.run("Wallpaper set") {
                             c.wallpapers.apply(spec, target)
@@ -162,15 +170,36 @@ fun ThemesScreen(nav: Navigator) {
                             c.looks.save(Look("My look $n", spec, spec.colors.getOrElse(1) { spec.colors[0] }))
                         }
                     }) { Icon(Icons.Rounded.Bookmark, null); Text("  Save look") }
+                    OutlinedButton(onClick = {
+                        runner.run {
+                            c.prefs.set(ThemeKeys.liveSpec, spec.encode())
+                            nav.push(Route.LiveWallpaper)
+                        }
+                    }) { Icon(Icons.Rounded.Animation, null); Text("  Make it live") }
                 }
             }
+        }
+
+        item { SectionLabel("More") }
+        item {
+            SectionCard("Live wallpaper", Icons.Rounded.Animation, "Your wallpaper, slowly moving. Easy on battery.", onClick = { nav.push(Route.LiveWallpaper) })
+        }
+        item {
+            SectionCard("Day & night", Icons.Rounded.Schedule, "Switch looks at set times.", onClick = { nav.push(Route.WallSchedule) })
         }
     }
 }
 
 @Composable
+private fun SmallSlider(label: String, value: Float, onChange: (Float) -> Unit) {
+    Text(label, style = MaterialTheme.typography.labelMedium)
+    Slider(value, onChange, Modifier.padding(bottom = 0.dp))
+}
+
+@Composable
 fun WallPreview(spec: WallSpec, modifier: Modifier = Modifier) {
     val bmp by produceState<Bitmap?>(null, spec) {
+        delay(40) // let slider drags settle before rendering
         value = withContext(Dispatchers.Default) { WallpaperStudio.render(spec, 270, 585) }
     }
     Box(modifier.aspectRatio(9f / 19.5f).clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.surfaceVariant)) {
@@ -186,10 +215,15 @@ fun WallPreview(spec: WallSpec, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun LookCard(look: Look, onClick: () -> Unit, onDelete: (() -> Unit)?) {
+internal fun LookCard(look: Look, onClick: () -> Unit, onDelete: (() -> Unit)? = null, selected: Boolean = false) {
     Column(Modifier.width(104.dp).clip(MaterialTheme.shapes.medium).clickable(onClick = onClick), horizontalAlignment = Alignment.CenterHorizontally) {
         Box {
-            WallPreview(look.wall, Modifier.fillMaxWidth())
+            WallPreview(
+                look.wall,
+                Modifier.fillMaxWidth().then(
+                    if (selected) Modifier.border(3.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.medium) else Modifier,
+                ),
+            )
             if (onDelete != null) IconButton(onClick = onDelete, modifier = Modifier.align(Alignment.TopEnd).size(32.dp)) {
                 Icon(Icons.Rounded.Close, "Delete", tint = Color.White)
             }
