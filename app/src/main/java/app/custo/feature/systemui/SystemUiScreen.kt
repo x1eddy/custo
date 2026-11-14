@@ -59,6 +59,7 @@ import app.custo.ui.components.ColorStrip
 import app.custo.ui.components.Hint
 import app.custo.ui.components.ScreenScaffold
 import app.custo.ui.components.SectionCard
+import app.custo.ui.components.HubTile
 import app.custo.ui.components.SectionLabel
 import app.custo.ui.components.SupportBadge
 import app.custo.ui.components.SwitchRow
@@ -143,7 +144,7 @@ fun SystemUiScreen(nav: Navigator) {
             item(key = "hub_" + pair.first().title) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     pair.forEach { e ->
-                        Box(Modifier.weight(1f)) { SectionCard(e.title, e.icon, onClick = { nav.push(e.route) }) }
+                        HubTile(e.title, e.icon, Modifier.weight(1f)) { nav.push(e.route) }
                     }
                 }
             }

@@ -50,6 +50,7 @@ private data class ScreenState(
     val dimLevel: Int,
     val nightTemp: Int,
     val nightRange: IntRange,
+    val nightKelvin: Boolean = true,
     val grayscale: Boolean,
     val physical: ScreenSize?,
     val override: ScreenSize?,
@@ -85,11 +86,15 @@ fun ScreenTweaksScreen(nav: Navigator) {
         val peak = t.read(Namespace.SYSTEM, "peak_refresh_rate")
         val min = t.read(Namespace.SYSTEM, "min_refresh_rate")
         val rates = displayRates(ctx)
+        val nightRaw = t.read(Namespace.SECURE, "night_display_color_temperature")?.toIntOrNull()
+        val nightOem = nightRaw != null && nightRaw < 1000
         ScreenState(
             toggles = toggles,
             dimLevel = t.read(Namespace.SECURE, "reduce_bright_colors_level")?.toFloatOrNull()?.roundToInt() ?: 50,
-            nightTemp = t.read(Namespace.SECURE, "night_display_color_temperature")?.toIntOrNull() ?: def,
-            nightRange = minOf(lo, hi)..maxOf(lo, hi),
+            nightTemp = nightRaw ?: def,
+            // Some OEM builds (e.g. Unisoc) store a 0–255 level here instead of Kelvin.
+            nightRange = if (nightOem) 0..255 else minOf(lo, hi)..maxOf(lo, hi),
+            nightKelvin = !nightOem,
             grayscale = t.read(Namespace.SECURE, "accessibility_display_daltonizer_enabled") == "1" &&
                 t.read(Namespace.SECURE, "accessibility_display_daltonizer") == "0",
             physical = phys,
@@ -127,7 +132,7 @@ fun ScreenTweaksScreen(nav: Navigator) {
                 val ts = st.toggles[NIGHT_LIGHT.id]
                 if (ts == null || !ts.supported) NotOnPhoneRow("Night light") else {
                     SwitchRow("Night light", null, ts.on) { on -> act { c.tweaks.setToggle(NIGHT_LIGHT, on) } }
-                    Text("Warmth · ${temp.roundToInt()} K", style = MaterialTheme.typography.labelMedium)
+                    Text(if (st.nightKelvin) "Warmth · ${temp.roundToInt()} K" else "Warmth · ${temp.roundToInt()}", style = MaterialTheme.typography.labelMedium)
                     Slider(temp, { temp = it }, valueRange = st.nightRange.first.toFloat()..st.nightRange.last.toFloat(), onValueChangeFinished = {
                         act { c.tweaks.write(Namespace.SECURE, "night_display_color_temperature", temp.roundToInt().toString()) }
                     })

@@ -163,6 +163,31 @@ fun SectionCard(
     }
 }
 
+/** Compact grid tile for hub screens: icon above a label that has the full width to itself. */
+@Composable
+fun HubTile(title: String, icon: ImageVector, modifier: Modifier = Modifier, badge: (@Composable () -> Unit)? = null, onClick: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val s by animateFloatAsState(if (pressed) 0.95f else 1f, spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessMedium), label = "hub")
+    Column(
+        modifier.scale(s).clip(MaterialTheme.shapes.large)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .clickable(interaction, null, onClick = onClick)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier.size(38.dp).clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center,
+            ) { Icon(icon, null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(20.dp)) }
+            Spacer(Modifier.weight(1f))
+            badge?.invoke()
+        }
+        Text(title, style = MaterialTheme.typography.titleMedium, maxLines = 2)
+    }
+}
+
 @Composable
 fun SwitchRow(title: String, subtitle: String? = null, checked: Boolean, enabled: Boolean = true, onChange: (Boolean) -> Unit) {
     val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
