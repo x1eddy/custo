@@ -6,6 +6,10 @@
     <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
     <uses-permission android:name="android.permission.SET_WALLPAPER" />
     <uses-permission android:name="android.permission.SET_WALLPAPER_HINTS" />
+    <!-- Re-apply status bar flags after a reboot. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Default ringtone pickers; granted through Shizuku (appops), never asked from the user. -->
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" tools:ignore="ProtectedPermissions" />
     <!-- Lets Custo find the Shizuku app to show setup status. -->
     <queries>
         <package android:name="moe.shizuku.privileged.api" />
@@ -82,5 +86,48 @@
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_note" />
         </receiver>
+
+        <!-- System UI extras -->
+        <receiver android:name=".feature.systemui.BootReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+        <service android:name=".feature.systemui.CaffeineTile" android:exported="true"
+            android:label="@string/tile_caffeine" android:icon="@drawable/ic_tile_coffee"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter><action android:name="android.service.quicksettings.action.QS_TILE" /></intent-filter>
+            <meta-data android:name="android.service.quicksettings.TOGGLEABLE_TILE" android:value="true" />
+        </service>
+        <service android:name=".feature.systemui.ExtraDimTile" android:exported="true"
+            android:label="@string/tile_extra_dim" android:icon="@drawable/ic_tile_dim"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter><action android:name="android.service.quicksettings.action.QS_TILE" /></intent-filter>
+            <meta-data android:name="android.service.quicksettings.TOGGLEABLE_TILE" android:value="true" />
+        </service>
+        <service android:name=".feature.systemui.HeadsUpTile" android:exported="true"
+            android:label="@string/tile_heads_up" android:icon="@drawable/ic_tile_popup"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter><action android:name="android.service.quicksettings.action.QS_TILE" /></intent-filter>
+            <meta-data android:name="android.service.quicksettings.TOGGLEABLE_TILE" android:value="true" />
+        </service>
+        <service android:name=".feature.systemui.ScreenshotModeTile" android:exported="true"
+            android:label="@string/tile_screenshot" android:icon="@drawable/ic_tile_screenshot"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter><action android:name="android.service.quicksettings.action.QS_TILE" /></intent-filter>
+            <meta-data android:name="android.service.quicksettings.TOGGLEABLE_TILE" android:value="true" />
+        </service>
+        <service android:name=".feature.systemui.PrivateDnsTile" android:exported="true"
+            android:label="@string/tile_private_dns" android:icon="@drawable/ic_tile_dns"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter><action android:name="android.service.quicksettings.action.QS_TILE" /></intent-filter>
+        </service>
+        <service android:name=".feature.systemui.WirelessDebuggingTile" android:exported="true"
+            android:label="@string/tile_wireless_debugging" android:icon="@drawable/ic_tile_adb"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter><action android:name="android.service.quicksettings.action.QS_TILE" /></intent-filter>
+            <meta-data android:name="android.service.quicksettings.TOGGLEABLE_TILE" android:value="true" />
+        </service>
     </application>
 </manifest>

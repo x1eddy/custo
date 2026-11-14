@@ -22,4 +22,14 @@ sealed interface Route {
     data object QsEditor : Route
     data object Backup : Route
     data class WidgetEditor(val appWidgetId: Int) : Route
+
+    // System UI hub sub-screens
+    data object StatusBarExtras : Route
+    data object ScreenTweaks : Route
+    data object LockScreen : Route
+    data object Notifications : Route
+    data object Gestures : Route
+    data object SoundHaptics : Route
+    data object TilePack : Route
+    data object AdvancedSettings : Route
 }

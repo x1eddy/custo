@@ -7,9 +7,13 @@ import app.custo.data.originalsStore
 import app.custo.feature.backup.BackupManager
 import app.custo.feature.themes.LooksRepository
 import app.custo.feature.themes.WallpaperStudio
+import app.custo.feature.systemui.StatusBarKeeper
 import app.custo.feature.systemui.SystemTweaks
 import app.custo.shizuku.OriginalsStore
 import app.custo.shizuku.ShizukuManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 /** Manual dependency container: one instance per process, created by [CustoApp]. */
 class AppContainer(context: Context) {
@@ -21,4 +25,8 @@ class AppContainer(context: Context) {
     val wallpapers = WallpaperStudio(app)
     val looks = LooksRepository(prefs)
     val backup = BackupManager(app, prefs, originals)
+
+    /** Process-wide scope for fire-and-forget work (boot re-apply, tiles). */
+    val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    val statusBarKeeper = StatusBarKeeper(prefs, tweaks, shizuku)
 }

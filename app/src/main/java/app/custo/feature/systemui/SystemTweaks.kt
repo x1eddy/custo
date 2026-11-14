@@ -72,6 +72,10 @@ class SystemTweaks(private val shell: Shell, private val originals: OriginalsSto
         write(Namespace.SECURE, MonetJson.SETTING, json)
     }
 
+    suspend fun applyWallpaperColors(source: MonetJson.ColorSource) {
+        write(Namespace.SECURE, MonetJson.SETTING, MonetJson.withWallpaperSource(monetJson(), source, System.currentTimeMillis()))
+    }
+
     // ---- Status bar ---------------------------------------------------------------------------
 
     suspend fun hiddenIcons(): Set<String> =
@@ -182,6 +186,93 @@ class SystemTweaks(private val shell: Shell, private val originals: OriginalsSto
         runOk("cmd notification allow_listener ${ShellCommands.quote(component)}")
     }
 
+    // ---- Extras: generic helpers -------------------------------------------------------------
+
+    /** Raw command output, for capability probes only. Never change state with it (no undo). */
+    suspend fun probe(cmd: String): String = run(cmd).output
+
+    /** Records a setting's current value for undo when Custo changes it through some other API. */
+    suspend fun rememberOriginal(ns: Namespace, key: String) = originals.rememberIfAbsent(ns, key, read(ns, key))
+
+    suspend fun isRecorded(ns: Namespace, key: String): Boolean = originals.all().containsKey(ns to key)
+
+    suspend fun settingsList(ns: Namespace): List<Pair<String, String>> =
+        SysCmd.parseSettingsList(runOk(SysCmd.settingsList(ns.id)).output)
+
+    // ---- Extras: status bar disable flags (lost on reboot; re-applied by StatusBarKeeper) ------
+
+    suspend fun supportsDisableFlags(): Boolean = run(SysCmd.STATUSBAR_HELP).output.contains("send-disable-flag")
+
+    suspend fun setDisableFlags(flags: Set<DisableFlag>) {
+        originals.rememberIfAbsent(Namespace.CUSTO, STATUSBAR_FLAGS_KEY, "")
+        runOk(SysCmd.sendDisableFlag(flags))
+    }
+
+    // ---- Extras: screen resolution ------------------------------------------------------------
+
+    suspend fun screenSize(): Pair<ScreenSize?, ScreenSize?> = SysCmd.parseWmSize(run(SysCmd.WM_SIZE_GET).output)
+
+    /** Changes resolution and scales density with it so things keep their size. null = stock. */
+    suspend fun setScreenSize(size: ScreenSize?) {
+        val (physical, override) = screenSize()
+        val from = override ?: physical ?: error("Could not read screen size")
+        val to = size ?: physical ?: from
+        originals.rememberIfAbsent(Namespace.CUSTO, WM_SIZE_KEY, override?.toString())
+        val (physDpi, overDpi) = density()
+        val dpi = overDpi ?: physDpi
+        runOk(SysCmd.wmSize(size))
+        if (dpi > 0 && from != to) {
+            val scaled = SysCmd.scaledDensity(dpi, from, to)
+            // Back at stock size and the scaled dpi is (about) stock too: drop the override entirely.
+            setDensity(if (size == null && kotlin.math.abs(scaled - physDpi) <= 2) null else scaled)
+        }
+    }
+
+    // ---- Extras: display cutout ("Hide camera notch") -----------------------------------------
+
+    /** (available, hidden) */
+    suspend fun cutoutState(): Pair<Boolean, Boolean> {
+        val list = run(ShellCommands.OVERLAY_LIST).output
+        return SysCmd.hasOverlay(list, SysCmd.NO_CUTOUT) to (SysCmd.enabledCutout(list) == SysCmd.NO_CUTOUT)
+    }
+
+    suspend fun setHideCutout(hide: Boolean) {
+        val current = SysCmd.enabledCutout(run(ShellCommands.OVERLAY_LIST).output)
+        originals.rememberIfAbsent(Namespace.CUSTO, CUTOUT_KEY, current)
+        if (hide) {
+            runOk(SysCmd.overlayEnableExclusive(SysCmd.NO_CUTOUT))
+        } else {
+            val original = originals.all()[Namespace.CUSTO to CUTOUT_KEY]?.takeUnless { it == SysCmd.NO_CUTOUT }
+            val r = restoreCutout(original)
+            if (!r.ok) error(r.error)
+        }
+    }
+
+    private suspend fun restoreCutout(original: String?): ShellResult =
+        if (original == null) run(SysCmd.overlayDisable(SysCmd.NO_CUTOUT)) else run(SysCmd.overlayEnableExclusive(original))
+
+    // ---- Extras: Do Not Disturb -----------------------------------------------------------------
+
+    suspend fun supportsDnd(): Boolean = run(SysCmd.NOTIFICATION_HELP).output.contains("set_dnd")
+
+    suspend fun dndMode(): DndMode = DndMode.ofZen(read(Namespace.GLOBAL, "zen_mode"))
+
+    suspend fun setDnd(mode: DndMode) {
+        originals.rememberIfAbsent(Namespace.CUSTO, ZEN_KEY, dndMode().zen.toString())
+        runOk(SysCmd.setDnd(mode))
+    }
+
+    // ---- Extras: Quick Settings tile add, write-settings grant -----------------------------------
+
+    suspend fun addTile(component: String) {
+        rememberOriginal(Namespace.SECURE, "sysui_qs_tiles")
+        runOk(SysCmd.addTile(component))
+    }
+
+    suspend fun grantWriteSettings(pkg: String) {
+        runOk(SysCmd.grantWriteSettings(pkg))
+    }
+
     // ---- Undo everything ----------------------------------------------------------------------
 
     /**
@@ -197,6 +288,10 @@ class SystemTweaks(private val shell: Shell, private val originals: OriginalsSto
                 ns == Namespace.SECURE && key == DENSITY_KEY -> run(ShellCommands.wmDensity(value?.toIntOrNull()))
                 ns == Namespace.CUSTO && key == NAV_KEY ->
                     value?.let { run(ShellCommands.overlayEnableExclusiveInCategory(it)) } ?: ShellResult(0, "")
+                ns == Namespace.CUSTO && key == STATUSBAR_FLAGS_KEY -> run(SysCmd.sendDisableFlag(emptySet()))
+                ns == Namespace.CUSTO && key == WM_SIZE_KEY -> run(SysCmd.wmSize(ScreenSize.parse(value)))
+                ns == Namespace.CUSTO && key == CUTOUT_KEY -> restoreCutout(value)
+                ns == Namespace.CUSTO && key == ZEN_KEY -> run(SysCmd.setDnd(DndMode.ofZen(value)))
                 ns == Namespace.CUSTO -> ShellResult(0, "")
                 value == null -> run(ShellCommands.settingsDelete(ns, key))
                 else -> run(ShellCommands.settingsPut(ns, key, value))
@@ -218,5 +313,11 @@ class SystemTweaks(private val shell: Shell, private val originals: OriginalsSto
         /** Pseudo key; not written via `settings`, restored with `wm density`. */
         const val DENSITY_KEY = "custo_density_override"
         const val NAV_KEY = "nav_overlay"
+
+        /** Pseudo keys for non-`settings` state, restored specially in [restoreAll]. */
+        const val STATUSBAR_FLAGS_KEY = "statusbar_disable_flags"
+        const val WM_SIZE_KEY = "wm_size_override"
+        const val CUTOUT_KEY = "cutout_overlay"
+        const val ZEN_KEY = "zen_mode"
     }
 }

@@ -49,4 +49,28 @@ class MonetJsonTest {
         val lights = Tonal.SHADES.map { Tonal.toHsl(ramp[it]!!).third }
         assertEquals(lights.sortedDescending(), lights)
     }
+
+    @Test fun wallpaperSourceDropsSeedButKeepsStyle() {
+        val preset = MonetJson.build("""{"${p}font":"x"}""", 0xFF123456.toInt(), MonetStyle.VIBRANT, 1)
+        val s = MonetJson.withWallpaperSource(preset, MonetJson.ColorSource.LOCK, 2)
+        val o = Json.parseToJsonElement(s).jsonObject
+        assertEquals("lock_wallpaper", o["${p}color_source"]!!.jsonPrimitive.content)
+        assertFalse(o.containsKey("${p}system_palette"))
+        assertFalse(o.containsKey("${p}accent_color"))
+        assertEquals("VIBRANT", o["${p}theme_style"]!!.jsonPrimitive.content)
+        assertEquals("x", o["${p}font"]!!.jsonPrimitive.content)
+        assertEquals(MonetJson.ColorSource.LOCK, MonetJson.sourceOf(s))
+        assertEquals(null, MonetJson.seedOf(s))
+    }
+
+    @Test fun sourceRoundTrips() {
+        assertEquals(MonetJson.ColorSource.PRESET, MonetJson.sourceOf(MonetJson.build(null, 0xFF000000.toInt(), null, 1)))
+        assertEquals(MonetJson.ColorSource.HOME, MonetJson.sourceOf(MonetJson.withWallpaperSource(null, MonetJson.ColorSource.HOME, 1)))
+        assertEquals(null, MonetJson.sourceOf(null))
+        assertEquals(null, MonetJson.sourceOf("garbage"))
+    }
+
+    @Test(expected = IllegalArgumentException::class) fun presetNeedsBuild() {
+        MonetJson.withWallpaperSource(null, MonetJson.ColorSource.PRESET, 1)
+    }
 }

@@ -11,6 +11,7 @@ class CustoApp : Application() {
         super.onCreate()
         container = AppContainer(this)
         container.shizuku.start()
+        container.statusBarKeeper.watch(container.appScope)
     }
 }
 

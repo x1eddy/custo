@@ -9,6 +9,17 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Animation
+import androidx.compose.material.icons.rounded.Apps
+import androidx.compose.material.icons.rounded.CleaningServices
+import androidx.compose.material.icons.rounded.Code
+import androidx.compose.material.icons.rounded.Contrast
+import androidx.compose.material.icons.rounded.Gesture
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.Smartphone
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
+import androidx.compose.foundation.layout.Box
+import app.custo.shizuku.ShellCommands.Namespace
 import androidx.compose.material.icons.rounded.ColorLens
 import androidx.compose.material.icons.rounded.FormatSize
 import androidx.compose.material.icons.rounded.GridView
@@ -67,6 +78,22 @@ private data class SysState(
     val overrideDpi: Int?,
     val fontScale: Float,
     val exactAccentOn: Boolean,
+    val colorSource: MonetJson.ColorSource?,
+    /** null = not on this phone (Android 14+ only). */
+    val contrast: Float?,
+)
+
+private data class HubEntry(val title: String, val icon: androidx.compose.ui.graphics.vector.ImageVector, val route: Route)
+
+private val HUB = listOf(
+    HubEntry("Status bar", Icons.Rounded.CleaningServices, Route.StatusBarExtras),
+    HubEntry("Screen", Icons.Rounded.Smartphone, Route.ScreenTweaks),
+    HubEntry("Lock screen", Icons.Rounded.Lock, Route.LockScreen),
+    HubEntry("Notifications", Icons.Rounded.Notifications, Route.Notifications),
+    HubEntry("Gestures", Icons.Rounded.Gesture, Route.Gestures),
+    HubEntry("Sound", Icons.AutoMirrored.Rounded.VolumeUp, Route.SoundHaptics),
+    HubEntry("Custo tiles", Icons.Rounded.Apps, Route.TilePack),
+    HubEntry("Advanced", Icons.Rounded.Code, Route.AdvancedSettings),
 )
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -98,15 +125,28 @@ fun SystemUiScreen(nav: Navigator) {
                 overrideDpi = over,
                 fontScale = t.fontScale(),
                 exactAccentOn = t.custoOverlays().any { it.second },
+                colorSource = MonetJson.sourceOf(json),
+                contrast = t.read(Namespace.SECURE, "contrast_level")?.toFloatOrNull()
+                    ?: if (android.os.Build.VERSION.SDK_INT >= 34) 0f else null,
             )
         }.onSuccess { s = it }.onFailure { runner.message(it.message ?: "Could not read system settings") }
     }
 
     fun act(msg: String? = null, block: suspend () -> Unit) = runner.run(msg) { block(); reload++ }
 
+    RevertDialog(c.appScope)
     ScreenScaffold(title = "System UI") {
         if (!ready) item {
             SectionCard("Locked", Icons.Rounded.SignalCellularAlt, "These change the real system UI. Set up Shizuku once to unlock them.", onClick = { nav.push(Route.ShizukuSetup) })
+        }
+        HUB.chunked(2).forEach { pair ->
+            item(key = "hub_" + pair.first().title) {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    pair.forEach { e ->
+                        Box(Modifier.weight(1f)) { SectionCard(e.title, e.icon, onClick = { nav.push(e.route) }) }
+                    }
+                }
+            }
         }
         val st = s
         if (ready && st == null) item { Hint("Reading your system…") }
@@ -129,6 +169,19 @@ fun SystemUiScreen(nav: Navigator) {
                         MonetStyle.entries.forEach { m -> FilterChip(selected = style == m, onClick = { style = m }, label = { Text(m.label) }) }
                     }
                 }
+                Text("Take colors from", style = MaterialTheme.typography.labelLarge)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    MonetJson.ColorSource.entries.forEach { src ->
+                        FilterChip(
+                            selected = (st.colorSource ?: MonetJson.ColorSource.HOME) == src,
+                            onClick = {
+                                if (src == MonetJson.ColorSource.PRESET) act("System colors applied") { c.tweaks.applyMonet(color.toArgb(), if (st.caps.monetStyles) style else null) }
+                                else act("Colors follow your ${src.label.lowercase()}") { c.tweaks.applyWallpaperColors(src) }
+                            },
+                            label = { Text(src.label) },
+                        )
+                    }
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = { act("System colors applied") { c.tweaks.applyMonet(color.toArgb(), if (st.caps.monetStyles) style else null) } }) { Text("Apply") }
                     OutlinedButton(onClick = {
@@ -139,6 +192,15 @@ fun SystemUiScreen(nav: Navigator) {
                         Text(" From wallpaper")
                     }
                 }
+            }
+        }
+        item {
+            var contrast by remember(st.contrast) { mutableStateOf(st.contrast ?: 0f) }
+            SectionCard("Contrast", Icons.Rounded.Contrast, if (st.contrast == null) null else "%.2f".format(contrast)) {
+                if (st.contrast == null) NotOnPhoneRow("Contrast")
+                else Slider(contrast, { contrast = (it * 4).roundToInt() / 4f }, valueRange = -1f..1f, steps = 7, onValueChangeFinished = {
+                    act { c.tweaks.write(Namespace.SECURE, "contrast_level", contrast.toString()) }
+                })
             }
         }
         item {

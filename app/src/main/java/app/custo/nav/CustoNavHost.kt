@@ -106,6 +106,14 @@ fun CustoNavHost(initialRoute: Route? = null) {
                     Route.QsEditor -> QsEditorScreen(onBack = { nav.pop() })
                     Route.Backup -> BackupScreen(onBack = { nav.pop() })
                     is Route.WidgetEditor -> WidgetEditorScreen(target.appWidgetId, onBack = { nav.pop() })
+                    Route.StatusBarExtras -> app.custo.feature.systemui.StatusBarExtrasScreen(nav)
+                    Route.ScreenTweaks -> app.custo.feature.systemui.ScreenTweaksScreen(nav)
+                    Route.LockScreen -> app.custo.feature.systemui.LockScreenScreen(nav)
+                    Route.Notifications -> app.custo.feature.systemui.NotificationsScreen(nav)
+                    Route.Gestures -> app.custo.feature.systemui.GesturesScreen(nav)
+                    Route.SoundHaptics -> app.custo.feature.systemui.SoundScreen(nav)
+                    Route.TilePack -> app.custo.feature.systemui.TilePackScreen(nav)
+                    Route.AdvancedSettings -> app.custo.feature.systemui.AdvancedScreen(nav)
                     else -> Unit
                 }
             }
