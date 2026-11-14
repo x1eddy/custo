@@ -45,4 +45,6 @@ sealed interface Route {
     data object OverlayButtons : Route
     data object OverlayGestures : Route
     data object OverlaySidebar : Route
+    data object LiveWallpaper : Route
+    data object WallSchedule : Route
 }

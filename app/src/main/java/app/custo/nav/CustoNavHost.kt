@@ -65,7 +65,9 @@ import app.custo.feature.overlays.SidebarScreen
 import app.custo.feature.overlays.VolumePanelScreen
 import app.custo.feature.systemui.QsEditorScreen
 import app.custo.feature.systemui.SystemUiScreen
+import app.custo.feature.themes.LiveWallpaperScreen
 import app.custo.feature.themes.ThemesScreen
+import app.custo.feature.themes.WallScheduleScreen
 import app.custo.feature.widgets.WidgetEditorScreen
 import app.custo.feature.widgets.WidgetsScreen
 import app.custo.ui.components.LocalSnackbar
@@ -138,6 +140,8 @@ fun CustoNavHost(initialRoute: Route? = null) {
                     Route.OverlayButtons -> ButtonsScreen(onBack = { nav.pop() })
                     Route.OverlayGestures -> EdgeGesturesScreen(onBack = { nav.pop() })
                     Route.OverlaySidebar -> SidebarScreen(onBack = { nav.pop() })
+                    Route.LiveWallpaper -> LiveWallpaperScreen(onBack = { nav.pop() })
+                    Route.WallSchedule -> WallScheduleScreen(onBack = { nav.pop() })
                     else -> Unit
                 }
             }

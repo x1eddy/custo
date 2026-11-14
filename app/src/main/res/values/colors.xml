@@ -2,4 +2,5 @@
 <resources>
     <color name="widget_fg">@android:color/system_accent1_900</color>
     <color name="custo_ink">#FFF7F6FA</color>
+    <color name="widget_accent">@android:color/system_accent3_600</color>
 </resources>

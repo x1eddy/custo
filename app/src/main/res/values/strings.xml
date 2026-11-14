@@ -2,9 +2,25 @@
 <resources>
     <string name="app_name">Custo</string>
     <string name="widget_clock_desc">Clock with date</string>
+    <string name="widget_analog_desc">Analog clock</string>
+    <string name="widget_hour_desc">Big hour clock</string>
+    <string name="widget_world_desc">Time in other cities</string>
+    <string name="widget_stopwatch_desc">Stopwatch</string>
+    <string name="widget_date_desc">Today and year progress</string>
+    <string name="widget_calendar_desc">This month</string>
+    <string name="widget_countdown_desc">Days left until a date</string>
     <string name="widget_battery_desc">Battery level</string>
+    <string name="widget_battery_ring_desc">Battery level as a ring</string>
+    <string name="widget_alarm_desc">Your next alarm</string>
+    <string name="widget_storage_desc">Storage used</string>
     <string name="widget_media_desc">Now playing with controls</string>
+    <string name="widget_photo_desc">A photo you pick</string>
     <string name="widget_note_desc">Sticky note</string>
-    <string name="a11y_description">Custo draws its overlays (edge lighting, battery bar, island, gestures and more) and can take over the volume keys for its own panel and button actions. It does not read your screen content.</string>
+    <string name="a11y_description">Custo draws its overlays (edge lighting, battery bar, island, gestures and more) and can take over the volume keys for its own panel and button actions. It also notices which app is open, for per-app profiles. It does not read your screen content.</string>
+    <string name="widget_apps_desc">Your favorite apps</string>
+    <string name="widget_toggles_desc">Torch, internet, Bluetooth, sound</string>
+    <string name="widget_quote_desc">A quote a day</string>
     <string name="listener_label">Custo edge lighting &amp; media</string>
+    <string name="live_wallpaper_label">Custo live</string>
+    <string name="live_wallpaper_desc">Your Custo wallpaper, slowly moving</string>
 </resources>

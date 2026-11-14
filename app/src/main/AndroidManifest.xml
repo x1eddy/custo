@@ -6,10 +6,11 @@
     <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
     <uses-permission android:name="android.permission.SET_WALLPAPER" />
     <uses-permission android:name="android.permission.SET_WALLPAPER_HINTS" />
-    <!-- Re-apply status bar flags after a reboot. -->
+    <!-- Re-apply status bar flags and re-arm the day/night wallpaper switch after a reboot. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- Default ringtone pickers; granted through Shizuku (appops), never asked from the user. -->
     <uses-permission android:name="android.permission.WRITE_SETTINGS" tools:ignore="ProtectedPermissions" />
+    <uses-feature android:name="android.software.live_wallpaper" android:required="false" />
     <!-- Lets Custo find the Shizuku app to show setup status. -->
     <queries>
         <package android:name="moe.shizuku.privileged.api" />
@@ -71,16 +72,60 @@
         </service>
 
         <receiver android:name=".feature.widgets.ClockReceiver" android:exported="false" android:label="Custo clock">
-            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /><action android:name="android.intent.action.LOCALE_CHANGED" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_clock" />
+        </receiver>
+        <receiver android:name=".feature.widgets.AnalogReceiver" android:exported="false" android:label="Custo analog clock">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_analog" />
+        </receiver>
+        <receiver android:name=".feature.widgets.HourReceiver" android:exported="false" android:label="Custo big hour">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /><action android:name="android.intent.action.LOCALE_CHANGED" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_hour" />
+        </receiver>
+        <receiver android:name=".feature.widgets.WorldReceiver" android:exported="false" android:label="Custo world clock">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /><action android:name="android.intent.action.LOCALE_CHANGED" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_world" />
+        </receiver>
+        <receiver android:name=".feature.widgets.StopwatchReceiver" android:exported="false" android:label="Custo stopwatch">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_stopwatch" />
+        </receiver>
+        <receiver android:name=".feature.widgets.DateReceiver" android:exported="false" android:label="Custo date">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /><action android:name="android.intent.action.TIME_SET" /><action android:name="android.intent.action.TIMEZONE_CHANGED" /><action android:name="android.intent.action.LOCALE_CHANGED" /><action android:name="android.intent.action.DATE_CHANGED" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_date" />
+        </receiver>
+        <receiver android:name=".feature.widgets.CalendarReceiver" android:exported="false" android:label="Custo calendar">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /><action android:name="android.intent.action.TIME_SET" /><action android:name="android.intent.action.TIMEZONE_CHANGED" /><action android:name="android.intent.action.LOCALE_CHANGED" /><action android:name="android.intent.action.DATE_CHANGED" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_calendar" />
+        </receiver>
+        <receiver android:name=".feature.widgets.CountdownReceiver" android:exported="false" android:label="Custo countdown">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /><action android:name="android.intent.action.TIME_SET" /><action android:name="android.intent.action.TIMEZONE_CHANGED" /><action android:name="android.intent.action.LOCALE_CHANGED" /><action android:name="android.intent.action.DATE_CHANGED" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_countdown" />
         </receiver>
         <receiver android:name=".feature.widgets.BatteryReceiver" android:exported="false" android:label="Custo battery">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_battery" />
         </receiver>
+        <receiver android:name=".feature.widgets.BatteryRingReceiver" android:exported="false" android:label="Custo battery ring">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_battery_ring" />
+        </receiver>
+        <receiver android:name=".feature.widgets.AlarmReceiver" android:exported="false" android:label="Custo next alarm">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /><action android:name="android.app.action.NEXT_ALARM_CLOCK_CHANGED" /><action android:name="android.intent.action.TIME_SET" /><action android:name="android.intent.action.TIMEZONE_CHANGED" /><action android:name="android.intent.action.LOCALE_CHANGED" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_alarm" />
+        </receiver>
+        <receiver android:name=".feature.widgets.StorageReceiver" android:exported="false" android:label="Custo storage">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_storage" />
+        </receiver>
         <receiver android:name=".feature.widgets.MediaReceiver" android:exported="false" android:label="Custo now playing">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_media" />
+        </receiver>
+        <receiver android:name=".feature.widgets.PhotoReceiver" android:exported="false" android:label="Custo photo">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_photo" />
         </receiver>
         <receiver android:name=".feature.widgets.NoteReceiver" android:exported="false" android:label="Custo note">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
@@ -129,5 +174,34 @@
             <intent-filter><action android:name="android.service.quicksettings.action.QS_TILE" /></intent-filter>
             <meta-data android:name="android.service.quicksettings.TOGGLEABLE_TILE" android:value="true" />
         </service>
+        <receiver android:name=".feature.widgets.AppsReceiver" android:exported="false" android:label="Custo app shortcuts">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_apps" />
+        </receiver>
+        <receiver android:name=".feature.widgets.TogglesReceiver" android:exported="false" android:label="Custo quick toggles">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_toggles" />
+        </receiver>
+        <receiver android:name=".feature.widgets.QuoteReceiver" android:exported="false" android:label="Custo daily quote">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /><action android:name="android.intent.action.TIME_SET" /><action android:name="android.intent.action.TIMEZONE_CHANGED" /><action android:name="android.intent.action.LOCALE_CHANGED" /><action android:name="android.intent.action.DATE_CHANGED" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_quote" />
+        </receiver>
+
+        <service
+            android:name=".feature.themes.LiveWallpaperService"
+            android:exported="true"
+            android:label="@string/live_wallpaper_label"
+            android:permission="android.permission.BIND_WALLPAPER">
+            <intent-filter><action android:name="android.service.wallpaper.WallpaperService" /></intent-filter>
+            <meta-data android:name="android.service.wallpaper" android:resource="@xml/live_wallpaper" />
+        </service>
+        <receiver android:name=".feature.themes.WallScheduleReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>
