@@ -51,6 +51,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.LinearGradientShader
 import androidx.compose.ui.graphics.Shader
@@ -106,7 +108,7 @@ private fun HAlign.bias() = when (this) { HAlign.START -> -1f; HAlign.CENTER -> 
 private fun VAlign.bias() = when (this) { VAlign.TOP -> -1f; VAlign.CENTER -> 0f; VAlign.BOTTOM -> 1f }
 
 /** Resolved colors and text helpers for one preview. */
-private class P(val s: WidgetStyle, val fg: Color, val bg: Color) {
+internal class P(val s: WidgetStyle, val fg: Color, val bg: Color) {
     val font = s.font.compose()
 
     @Composable
@@ -117,6 +119,7 @@ private class P(val s: WidgetStyle, val fg: Color, val bg: Color) {
             fontStyle = if (italic) FontStyle.Italic else FontStyle.Normal,
             fontSize = (size * s.textScale).sp, lineHeight = (size * s.textScale * 1.15f).sp,
             textAlign = align, maxLines = 4, overflow = TextOverflow.Ellipsis,
+            style = if (s.textShadow) TextStyle(shadow = Shadow(Color(s.shadowColor), Offset(2f, 2f), 3f)) else TextStyle.Default,
         )
     }
 }
@@ -135,7 +138,7 @@ fun WidgetPreview(kind: WidgetKind, style: WidgetStyle, modifier: Modifier = Mod
     } else androidx.compose.ui.graphics.SolidColor(bg.copy(alpha = style.alpha))
     var m = modifier.clip(shape).background(background)
     if (style.borderWidth > 0) m = m.border(style.borderWidth.dp, Color(style.borderColor), shape)
-    val padded = !(kind == WidgetKind.PHOTO && style.photoUri != null)
+    val padded = !((kind == WidgetKind.PHOTO && style.photoUri != null) || (kind == WidgetKind.CAROUSEL && style.photos.isNotEmpty()))
     Box(
         m.padding(if (padded) style.padding.dp else style.borderWidth.dp),
         contentAlignment = BiasAlignment(style.hAlign.bias(), style.vAlign.bias()),
@@ -339,6 +342,9 @@ private fun P.Body(kind: WidgetKind) {
                 }
             }
         }
+        WidgetKind.WORK, WidgetKind.WEEK, WidgetKind.WATER, WidgetKind.MOOD, WidgetKind.TODO, WidgetKind.STEPS,
+        WidgetKind.SCREEN_TIME, WidgetKind.MOON, WidgetKind.PRAYER, WidgetKind.FISH, WidgetKind.BUBBLES,
+        WidgetKind.SWITCH, WidgetKind.COUPLE, WidgetKind.CAROUSEL -> NewBody(kind)
         WidgetKind.QUOTE -> Column(wide, horizontalAlignment = ha) {
             val (q, a) = WidgetLogic.QUOTES[WidgetLogic.quoteIndex(LocalDate.now(), 0, WidgetLogic.QUOTES.size)]
             T("“$q”", 17f, italic = true, modifier = wide)
@@ -351,7 +357,7 @@ private fun P.Body(kind: WidgetKind) {
 }
 
 @Composable
-private fun P.Bar(fraction: Float) {
+internal fun P.Bar(fraction: Float) {
     LinearProgressIndicator(
         progress = { fraction.coerceIn(0f, 1f) },
         modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),

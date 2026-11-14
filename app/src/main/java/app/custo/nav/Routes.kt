@@ -22,6 +22,7 @@ sealed interface Route {
     data object QsEditor : Route
     data object Backup : Route
     data class WidgetEditor(val appWidgetId: Int) : Route
+    data object WidgetTrackers : Route
     data object Profiles : Route
     data class ProfileEditor(val profileId: String?) : Route
 

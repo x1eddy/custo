@@ -48,14 +48,68 @@ data class WidgetStyle(
     val showLabels: Boolean = true,
     val showAuthor: Boolean = true,
     val showPercent: Boolean = true,
+    // Added in 0.3
+    val textShadow: Boolean = false,
+    val shadowColor: Int = 0x99000000.toInt(),
+    val drink: Drink = Drink.WATER,
+    val moodFaces: Boolean = false,
+    /** Work hours as minutes after midnight, and ISO workdays (1 = Monday). */
+    val workStart: Int = 9 * 60,
+    val workEnd: Int = 17 * 60,
+    val workDays: List<Int> = listOf(1, 2, 3, 4, 5),
+    /** ISO weekday to count down to; 6 means the weekend. */
+    val weekDay: Int = 5,
+    val name1: String = "",
+    val name2: String = "",
+    val photoUri2: String? = null,
+    /** Day the couple got together, as days since 1970-01-01. 0 = not set. */
+    val sinceDay: Long = 0,
+    val photos: List<String> = emptyList(),
+    val rotateMinutes: Int = 30,
+    /** A city from [CITIES], or blank for the custom coordinates below. */
+    val city: String = "London",
+    val lat: Double = 51.5074,
+    val lon: Double = -0.1278,
+    val zone: String = "",
+    val prayerMethod: PrayerMethod = PrayerMethod.MWL,
+    val hanafi: Boolean = false,
+    val stepGoal: Int = 8000,
+    val showSun: Boolean = true,
 ) {
     fun encode(): String = json.encodeToString(this)
 
     /** True when the background can't be a flat Glance color and needs a drawn bitmap. */
     val needsBitmapBg: Boolean get() = (gradient && !themed) || borderWidth > 0
 
+    fun place(): Place = findCity(city) ?: Place("Custom", lat.coerceIn(-90.0, 90.0), lon.coerceIn(-180.0, 180.0), zone)
+
+    /** This widget's content with [other]'s look (colors, shape, text, alignment). */
+    fun withLookOf(other: WidgetStyle): WidgetStyle = copy(
+        themed = other.themed, bg = other.bg, fg = other.fg, alpha = other.alpha, corner = other.corner, font = other.font,
+        gradient = other.gradient, bg2 = other.bg2, gradientAngle = other.gradientAngle, borderWidth = other.borderWidth,
+        borderColor = other.borderColor, padding = other.padding, hAlign = other.hAlign, vAlign = other.vAlign,
+        textScale = other.textScale, textShadow = other.textShadow, shadowColor = other.shadowColor,
+    )
+
     companion object {
         private val json = Json { ignoreUnknownKeys = true; coerceInputValues = true }
+        private val presetJson = Json { ignoreUnknownKeys = true; coerceInputValues = true; prettyPrint = true; encodeDefaults = true }
+
         fun decode(s: String?): WidgetStyle = s?.let { runCatching { json.decodeFromString<WidgetStyle>(it) }.getOrNull() } ?: WidgetStyle()
+
+        /** A shareable preset file: only the look, never notes, photos or app lists. */
+        fun exportPreset(style: WidgetStyle, kind: String): String =
+            presetJson.encodeToString(WidgetPreset(kind = kind, style = WidgetStyle().withLookOf(style)))
+
+        /** Reads a preset file (or a bare style JSON). Null if it isn't one. */
+        fun importPreset(text: String): WidgetStyle? = runCatching {
+            val el = presetJson.parseToJsonElement(text)
+            val obj = el as? kotlinx.serialization.json.JsonObject ?: return null
+            if (obj["format"] != null) presetJson.decodeFromJsonElement(WidgetPreset.serializer(), obj).style
+            else presetJson.decodeFromJsonElement(serializer(), obj)
+        }.getOrNull()
     }
 }
+
+@Serializable
+data class WidgetPreset(val format: String = "custo-widget-style", val version: Int = 1, val kind: String = "", val style: WidgetStyle = WidgetStyle())

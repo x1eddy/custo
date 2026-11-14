@@ -34,7 +34,6 @@ import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.size
 import androidx.glance.layout.width
-import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import app.custo.R
 import java.text.DateFormat
@@ -68,13 +67,13 @@ class DateWidget : CustoWidget() {
         val calendar = Intent(Intent.ACTION_VIEW, CalendarContract.CONTENT_URI.buildUpon().appendPath("time").build())
         Frame(style, actionStartActivity(calendar)) {
             Column(GlanceModifier.fillMaxWidth(), horizontalAlignment = style.hAlign.glance()) {
-                Text(today.dayOfWeek.getDisplayName(TextStyle.FULL, loc), style = style.text(15f, alpha = 0.8f), modifier = GlanceModifier.fillMaxWidth())
-                Text("${today.dayOfMonth}", style = style.text(54f, bold = true), modifier = GlanceModifier.fillMaxWidth())
-                Text(today.format(DateTimeFormatter.ofPattern("MMMM yyyy", loc)), style = style.text(15f), modifier = GlanceModifier.fillMaxWidth())
+                WText(today.dayOfWeek.getDisplayName(TextStyle.FULL, loc), style = style.text(15f, alpha = 0.8f), modifier = GlanceModifier.fillMaxWidth())
+                WText("${today.dayOfMonth}", style = style.text(54f, bold = true), modifier = GlanceModifier.fillMaxWidth())
+                WText(today.format(DateTimeFormatter.ofPattern("MMMM yyyy", loc)), style = style.text(15f), modifier = GlanceModifier.fillMaxWidth())
                 if (style.yearProgress) {
                     Spacer(GlanceModifier.height(8.dp))
                     val pct = (WidgetLogic.yearProgress(today) * 100).roundToInt()
-                    Text("Day ${today.dayOfYear} · $pct% of the year", style = style.text(12f, alpha = 0.75f), modifier = GlanceModifier.fillMaxWidth())
+                    WText("Day ${today.dayOfYear} · $pct% of the year", style = style.text(12f, alpha = 0.75f), modifier = GlanceModifier.fillMaxWidth())
                     Spacer(GlanceModifier.height(4.dp))
                     Bar(style, WidgetLogic.yearProgress(today))
                 }
@@ -98,11 +97,11 @@ class CalendarWidget : CustoWidget() {
         val calendar = Intent(Intent.ACTION_VIEW, CalendarContract.CONTENT_URI.buildUpon().appendPath("time").build())
         Frame(style, actionStartActivity(calendar)) {
             Column(GlanceModifier.fillMaxWidth()) {
-                Text(today.format(DateTimeFormatter.ofPattern("MMMM yyyy", loc)), style = style.text(16f, bold = true), modifier = GlanceModifier.fillMaxWidth())
+                WText(today.format(DateTimeFormatter.ofPattern("MMMM yyyy", loc)), style = style.text(16f, bold = true), modifier = GlanceModifier.fillMaxWidth())
                 Spacer(GlanceModifier.height(6.dp))
                 Row(GlanceModifier.fillMaxWidth()) {
                     WidgetLogic.weekdayInitials(style.mondayFirst, loc).forEach {
-                        Text(it, style = cell.copy(color = fgProvider(style, 0.6f)), modifier = GlanceModifier.defaultWeight())
+                        WText(it, style = cell.copy(color = fgProvider(style, 0.6f)), modifier = GlanceModifier.defaultWeight())
                     }
                 }
                 rows.forEach { week ->
@@ -113,9 +112,9 @@ class CalendarWidget : CustoWidget() {
                                     Box(
                                         GlanceModifier.size((22 * style.textScale).dp).cornerRadius((11 * style.textScale).dp).background(fgProvider(style)),
                                         contentAlignment = Alignment.Center,
-                                    ) { Text("$d", style = cell.copy(color = bgProvider(style, 1f))) }
+                                    ) { WText("$d", style = cell.copy(color = bgProvider(style, 1f))) }
                                 } else {
-                                    Text(if (d == 0) "" else "$d", style = cell)
+                                    WText(if (d == 0) "" else "$d", style = cell)
                                 }
                             }
                         }
@@ -139,14 +138,14 @@ class CountdownWidget : CustoWidget() {
         val days = WidgetLogic.daysUntil(target, today)
         Frame(style, actionStartActivity(editIntent(context, id))) {
             Column(GlanceModifier.fillMaxWidth(), horizontalAlignment = style.hAlign.glance()) {
-                Text(style.countdownTitle.ifBlank { "Countdown" }, maxLines = 1, style = style.text(15f, alpha = 0.8f), modifier = GlanceModifier.fillMaxWidth())
+                WText(style.countdownTitle.ifBlank { "Countdown" }, maxLines = 1, style = style.text(15f, alpha = 0.8f), modifier = GlanceModifier.fillMaxWidth())
                 if (days > 1) {
-                    Text("$days", style = style.text(48f, bold = true), modifier = GlanceModifier.fillMaxWidth())
-                    Text("days left", style = style.text(14f), modifier = GlanceModifier.fillMaxWidth())
+                    WText("$days", style = style.text(48f, bold = true), modifier = GlanceModifier.fillMaxWidth())
+                    WText("days left", style = style.text(14f), modifier = GlanceModifier.fillMaxWidth())
                 } else {
-                    Text(WidgetLogic.countdownText(days), style = style.text(32f, bold = true), modifier = GlanceModifier.fillMaxWidth())
+                    WText(WidgetLogic.countdownText(days), style = style.text(32f, bold = true), modifier = GlanceModifier.fillMaxWidth())
                 }
-                Text(
+                WText(
                     target.format(DateTimeFormatter.ofPattern("EEE d MMM yyyy", context.resources.configuration.locales[0])),
                     style = style.text(12f, alpha = 0.7f), modifier = GlanceModifier.fillMaxWidth(),
                 )
@@ -176,7 +175,7 @@ class BatteryWidget : CustoWidget() {
         Frame(style, actionStartActivity(Intent(Intent.ACTION_POWER_USAGE_SUMMARY))) {
             Column(GlanceModifier.fillMaxWidth(), horizontalAlignment = style.hAlign.glance()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("${b.level}%", style = style.text(30f, bold = true))
+                    WText("${b.level}%", style = style.text(30f, bold = true))
                     if (b.charging) {
                         Spacer(GlanceModifier.width(4.dp))
                         Image(ImageProvider(R.drawable.ic_bolt), "Charging", GlanceModifier.size((22 * style.textScale).dp), colorFilter = ColorFilter.tint(fgProvider(style)))
@@ -204,7 +203,7 @@ class BatteryRingWidget : CustoWidget() {
                 Image(ImageProvider(ring), "Battery ${b.level}%", GlanceModifier.size(side.dp), colorFilter = ColorFilter.tint(fgProvider(style)))
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     if (b.charging) Image(ImageProvider(R.drawable.ic_bolt), "Charging", GlanceModifier.size((18 * style.textScale).dp), colorFilter = ColorFilter.tint(fgProvider(style)))
-                    if (style.showPercent) Text("${b.level}%", style = style.text(min(26f, side / 4.2f), bold = true).copy(textAlign = TextAlign.Center))
+                    if (style.showPercent) WText("${b.level}%", style = style.text(min(26f, side / 4.2f), bold = true).copy(textAlign = TextAlign.Center))
                 }
             }
         }
@@ -226,11 +225,11 @@ class AlarmWidget : CustoWidget() {
                 Spacer(GlanceModifier.width(12.dp))
                 Column {
                     if (next == null) {
-                        Text("No alarm set", style = style.text(18f, bold = true))
+                        WText("No alarm set", style = style.text(18f, bold = true))
                     } else {
                         val d = Date(next)
-                        Text(android.text.format.DateFormat.getTimeFormat(context).format(d), style = style.text(28f, bold = true))
-                        Text(alarmDay(next), style = style.text(13f, alpha = 0.8f))
+                        WText(android.text.format.DateFormat.getTimeFormat(context).format(d), style = style.text(28f, bold = true))
+                        WText(alarmDay(next), style = style.text(13f, alpha = 0.8f))
                     }
                 }
             }
@@ -269,10 +268,10 @@ class StorageWidget : CustoWidget() {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Image(ImageProvider(R.drawable.ic_storage), null, GlanceModifier.size((18 * style.textScale).dp), colorFilter = ColorFilter.tint(fgProvider(style)))
                     Spacer(GlanceModifier.width(6.dp))
-                    Text("Storage", style = style.text(14f, alpha = 0.8f))
+                    WText("Storage", style = style.text(14f, alpha = 0.8f))
                 }
-                Text("${WidgetLogic.bytesText(s.used)} used", style = style.text(22f, bold = true), modifier = GlanceModifier.fillMaxWidth())
-                Text("of ${WidgetLogic.bytesText(s.total)}", style = style.text(12f, alpha = 0.7f), modifier = GlanceModifier.fillMaxWidth())
+                WText("${WidgetLogic.bytesText(s.used)} used", style = style.text(22f, bold = true), modifier = GlanceModifier.fillMaxWidth())
+                WText("of ${WidgetLogic.bytesText(s.total)}", style = style.text(12f, alpha = 0.7f), modifier = GlanceModifier.fillMaxWidth())
                 Spacer(GlanceModifier.height(6.dp))
                 Bar(style, s.used.toFloat() / s.total.coerceAtLeast(1))
             }

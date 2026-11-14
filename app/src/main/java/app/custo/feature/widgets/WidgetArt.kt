@@ -10,6 +10,7 @@ import android.graphics.RectF
 import android.graphics.Shader
 import androidx.core.net.toUri
 import androidx.core.graphics.createBitmap
+import androidx.core.graphics.withRotation
 import androidx.core.graphics.drawable.toBitmap
 import kotlin.math.PI
 import kotlin.math.cos
@@ -92,4 +93,121 @@ object WidgetArt {
         val pm = ctx.packageManager
         pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()
     }.getOrDefault(pkg)
+
+    /** The moon at phase [fraction] (0 new, 0.5 full), lit from the right while waxing. */
+    fun moon(fraction: Double, sizePx: Int = 240): Bitmap {
+        val bmp = createBitmap(sizePx, sizePx)
+        val c = Canvas(bmp)
+        val r = sizePx / 2f - 2
+        val cx = sizePx / 2f; val cy = sizePx / 2f
+        val p = Paint(Paint.ANTI_ALIAS_FLAG)
+        p.color = 0xFF2E3440.toInt()
+        c.drawCircle(cx, cy, r, p)
+        val f = ((fraction % 1) + 1) % 1
+        val waxing = f < 0.5
+        val q = if (waxing) f * 2 else (1 - f) * 2 // 0 new .. 1 full
+        if (q > 0.01) {
+            if (!waxing) c.scale(-1f, 1f, cx, cy)
+            val k = r * kotlin.math.abs(cos(q * PI)).toFloat()
+            val path = android.graphics.Path().apply {
+                moveTo(cx, cy - r)
+                arcTo(RectF(cx - r, cy - r, cx + r, cy + r), -90f, 180f)
+                arcTo(RectF(cx - k, cy - r, cx + k, cy + r), 90f, if (q < 0.5) -180f else 180f)
+                close()
+            }
+            p.color = 0xFFF4F1DE.toInt()
+            c.drawPath(path, p)
+            if (!waxing) c.scale(-1f, 1f, cx, cy)
+        }
+        // A few soft craters over the whole disk.
+        p.color = 0x18000000
+        listOf(Triple(-0.3f, -0.25f, 0.16f), Triple(0.25f, 0.1f, 0.12f), Triple(-0.05f, 0.4f, 0.09f), Triple(0.35f, -0.4f, 0.07f)).forEach { (x, y, rr) ->
+            c.drawCircle(cx + x * r, cy + y * r, rr * r, p)
+        }
+        return bmp
+    }
+
+    /** A wooden fish with its mallet, raised or striking. */
+    fun woodenFish(struck: Boolean, w: Int = 260, h: Int = 220): Bitmap {
+        val bmp = createBitmap(w, h)
+        val c = Canvas(bmp)
+        val p = Paint(Paint.ANTI_ALIAS_FLAG)
+        val body = RectF(w * 0.08f, h * 0.30f, w * 0.80f, h * 0.95f)
+        p.shader = android.graphics.RadialGradient(body.centerX() - body.width() * 0.2f, body.top + body.height() * 0.3f, body.width() * 0.7f,
+            0xFFC98A4B.toInt(), 0xFF7A4520.toInt(), Shader.TileMode.CLAMP)
+        c.drawOval(body, p)
+        p.shader = null
+        // Mouth slit and a little eye.
+        p.style = Paint.Style.STROKE; p.strokeCap = Paint.Cap.ROUND
+        p.strokeWidth = h * 0.045f; p.color = 0xFF3E2210.toInt()
+        c.drawArc(RectF(body.left + body.width() * 0.12f, body.top + body.height() * 0.35f, body.right - body.width() * 0.12f, body.bottom - body.height() * 0.12f), 20f, 140f, false, p)
+        p.style = Paint.Style.FILL
+        c.drawCircle(body.left + body.width() * 0.28f, body.top + body.height() * 0.38f, h * 0.035f, p)
+        // Highlight.
+        p.color = 0x33FFFFFF
+        c.drawOval(RectF(body.left + body.width() * 0.25f, body.top + body.height() * 0.08f, body.left + body.width() * 0.6f, body.top + body.height() * 0.25f), p)
+        // Mallet: stick and head, pivoting at the right edge.
+        c.withRotation(if (struck) -8f else -38f, w * 0.95f, h * 0.55f) {
+            p.color = 0xFF8D5A2B.toInt()
+            p.style = Paint.Style.STROKE; p.strokeWidth = h * 0.05f
+            drawLine(w * 0.95f, h * 0.55f, w * 0.62f, h * 0.20f, p)
+            p.style = Paint.Style.FILL; p.color = 0xFFB07A45.toInt()
+            drawOval(RectF(w * 0.50f, h * 0.06f, w * 0.70f, h * 0.30f), p)
+        }
+        if (struck) {
+            p.color = 0xCCFFD54F.toInt(); p.style = Paint.Style.STROKE; p.strokeWidth = h * 0.025f
+            listOf(-60f, -30f, 0f).forEach { a ->
+                val rad = a * PI.toFloat() / 180f
+                c.drawLine(w * 0.55f + cos(rad) * h * 0.12f, h * 0.28f + sin(rad) * h * 0.12f, w * 0.55f + cos(rad) * h * 0.2f, h * 0.28f + sin(rad) * h * 0.2f, p)
+            }
+        }
+        return bmp
+    }
+
+    /** A drawn face for [mood]: a colored disk with simple eyes and mouth. */
+    fun moodFace(mood: Mood, sizePx: Int = 96): Bitmap {
+        val bmp = createBitmap(sizePx, sizePx)
+        val c = Canvas(bmp)
+        val s = sizePx.toFloat()
+        val p = Paint(Paint.ANTI_ALIAS_FLAG)
+        p.color = mood.color
+        c.drawCircle(s / 2, s / 2, s / 2 - 1, p)
+        p.color = 0xFF2B2B2B.toInt()
+        val eyeY = s * 0.40f
+        val closed = mood == Mood.CALM || mood == Mood.TIRED
+        if (closed) {
+            p.style = Paint.Style.STROKE; p.strokeWidth = s * 0.05f; p.strokeCap = Paint.Cap.ROUND
+            c.drawArc(RectF(s * 0.27f, eyeY - s * 0.05f, s * 0.41f, eyeY + s * 0.07f), 0f, 180f, false, p)
+            c.drawArc(RectF(s * 0.59f, eyeY - s * 0.05f, s * 0.73f, eyeY + s * 0.07f), 0f, 180f, false, p)
+            p.style = Paint.Style.FILL
+        } else {
+            c.drawCircle(s * 0.34f, eyeY, s * 0.055f, p)
+            c.drawCircle(s * 0.66f, eyeY, s * 0.055f, p)
+        }
+        p.style = Paint.Style.STROKE; p.strokeWidth = s * 0.055f; p.strokeCap = Paint.Cap.ROUND
+        if (mood == Mood.ANGRY) {
+            c.drawLine(s * 0.24f, s * 0.26f, s * 0.42f, s * 0.32f, p)
+            c.drawLine(s * 0.76f, s * 0.26f, s * 0.58f, s * 0.32f, p)
+        }
+        if (mood == Mood.ANXIOUS) {
+            c.drawLine(s * 0.26f, s * 0.30f, s * 0.42f, s * 0.25f, p)
+            c.drawLine(s * 0.74f, s * 0.30f, s * 0.58f, s * 0.25f, p)
+        }
+        val curve = when (mood) {
+            Mood.GREAT -> 0.16f; Mood.HAPPY -> 0.10f; Mood.CALM -> 0.06f; Mood.OKAY, Mood.SICK, Mood.TIRED -> 0f
+            Mood.SAD -> -0.10f; Mood.ANXIOUS -> -0.05f; Mood.ANGRY -> -0.08f
+        }
+        val my = s * 0.66f
+        val path = android.graphics.Path().apply {
+            moveTo(s * 0.32f, my)
+            quadTo(s * 0.5f, my + curve * s * 2, s * 0.68f, my)
+        }
+        if (mood == Mood.GREAT) { p.style = Paint.Style.FILL_AND_STROKE; path.close() }
+        c.drawPath(path, p)
+        if (mood == Mood.SICK) {
+            p.style = Paint.Style.FILL; p.color = 0x55FFFFFF
+            c.drawCircle(s * 0.5f, s * 0.82f, s * 0.07f, p)
+        }
+        return bmp
+    }
 }

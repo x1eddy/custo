@@ -68,7 +68,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
-private enum class ColorSlot(val label: String) { BG("Background"), BG2("Gradient end"), FG("Text"), BORDER("Border") }
+private enum class ColorSlot(val label: String) { BG("Background"), BG2("Gradient end"), FG("Text"), BORDER("Border"), SHADOW("Shadow") }
 
 @Composable
 private fun LabeledSlider(label: String, value: Float, range: ClosedFloatingPointRange<Float>, steps: Int = 0, onChange: (Float) -> Unit) {
@@ -77,7 +77,7 @@ private fun LabeledSlider(label: String, value: Float, range: ClosedFloatingPoin
 }
 
 @Composable
-private fun <T> Segments(options: List<T>, selected: T, label: (T) -> String, onSelect: (T) -> Unit) {
+internal fun <T> Segments(options: List<T>, selected: T, label: (T) -> String, onSelect: (T) -> Unit) {
     SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
         options.forEachIndexed { i, o ->
             SegmentedButton(selected == o, { onSelect(o) }, SegmentedButtonDefaults.itemShape(i, options.size)) { Text(label(o), maxLines = 1) }
@@ -116,7 +116,7 @@ fun WidgetEditorScreen(appWidgetId: Int, onBack: () -> Unit) {
         if (w == null) return@ScreenScaffold
         item { WidgetPreview(w.kind, style, Modifier.fillMaxWidth().height(w.kind.previewHeight.dp)) }
 
-        item { KindOptions(w.kind, style) { style = it } }
+        item { Column(verticalArrangement = Arrangement.spacedBy(10.dp)) { KindOptions(w.kind, style) { style = it } } }
 
         item {
             SectionCard("Text") {
@@ -124,6 +124,7 @@ fun WidgetEditorScreen(appWidgetId: Int, onBack: () -> Unit) {
                     WidgetFont.entries.forEach { f -> FilterChip(style.font == f, { style = style.copy(font = f) }, { Text(f.label) }) }
                 }
                 LabeledSlider("Size · ${(style.textScale * 100).roundToInt()}%", style.textScale, 0.6f..1.8f) { style = style.copy(textScale = (it * 20).roundToInt() / 20f) }
+                SwitchRow("Text shadow", "Easier to read on busy wallpapers", style.textShadow) { style = style.copy(textShadow = it) }
             }
         }
         item {
@@ -140,6 +141,7 @@ fun WidgetEditorScreen(appWidgetId: Int, onBack: () -> Unit) {
                         ColorSlot.BG, ColorSlot.FG -> !style.themed
                         ColorSlot.BG2 -> !style.themed && style.gradient
                         ColorSlot.BORDER -> style.borderWidth > 0
+                        ColorSlot.SHADOW -> style.textShadow
                     }
                 }
                 if (slots.isNotEmpty()) {
@@ -147,7 +149,7 @@ fun WidgetEditorScreen(appWidgetId: Int, onBack: () -> Unit) {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         slots.forEach { s -> FilterChip(current == s, { slot = s }, { Text(s.label) }) }
                     }
-                    val value = when (current) { ColorSlot.BG -> style.bg; ColorSlot.BG2 -> style.bg2; ColorSlot.FG -> style.fg; ColorSlot.BORDER -> style.borderColor }
+                    val value = when (current) { ColorSlot.BG -> style.bg; ColorSlot.BG2 -> style.bg2; ColorSlot.FG -> style.fg; ColorSlot.BORDER -> style.borderColor; ColorSlot.SHADOW -> style.shadowColor }
                     ColorPicker(Color(value), { c ->
                         val v = c.toArgb()
                         style = when (current) {
@@ -155,6 +157,7 @@ fun WidgetEditorScreen(appWidgetId: Int, onBack: () -> Unit) {
                             ColorSlot.BG2 -> style.copy(bg2 = v)
                             ColorSlot.FG -> style.copy(fg = v)
                             ColorSlot.BORDER -> style.copy(borderColor = v)
+                            ColorSlot.SHADOW -> style.copy(shadowColor = v)
                         }
                     })
                 }
@@ -172,6 +175,30 @@ fun WidgetEditorScreen(appWidgetId: Int, onBack: () -> Unit) {
             SectionCard("Alignment") {
                 Segments(HAlign.entries, style.hAlign, { it.label }) { style = style.copy(hAlign = it) }
                 Segments(VAlign.entries, style.vAlign, { it.label }) { style = style.copy(vAlign = it) }
+            }
+        }
+        item {
+            val export = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+                if (uri != null) runner.run("Style saved") {
+                    withContext(Dispatchers.IO) {
+                        ctx.contentResolver.openOutputStream(uri)?.use { it.write(WidgetStyle.exportPreset(style, w.kind.name).toByteArray()) }
+                            ?: error("Couldn't write that file")
+                    }
+                }
+            }
+            val import = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+                if (uri != null) runner.run {
+                    val text = withContext(Dispatchers.IO) { ctx.contentResolver.openInputStream(uri)?.use { it.readBytes().decodeToString() } }
+                    val preset = text?.let { WidgetStyle.importPreset(it) }
+                    if (preset == null) runner.message("That file isn't a Custo widget style")
+                    else { style = style.withLookOf(preset); runner.message("Style applied. Tap ✓ to keep it") }
+                }
+            }
+            SectionCard("Share the look", subtitle = "Colors, shape and text as a small file. Notes and photos stay here.") {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilledTonalButton(onClick = { export.launch("custo-${w.kind.name.lowercase()}-style.json") }) { Text("Export") }
+                    FilledTonalButton(onClick = { import.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) }) { Text("Import") }
+                }
             }
         }
     }
@@ -259,6 +286,7 @@ private fun KindOptions(kind: WidgetKind, style: WidgetStyle, onChange: (WidgetS
             SwitchRow("Show author", null, style.showAuthor) { onChange(style.copy(showAuthor = it)) }
         }
         WidgetKind.STOPWATCH, WidgetKind.BATTERY, WidgetKind.ALARM, WidgetKind.STORAGE, WidgetKind.MEDIA, WidgetKind.TOGGLES -> Unit
+        else -> NewKindOptions(kind, style, onChange)
     }
 }
 
