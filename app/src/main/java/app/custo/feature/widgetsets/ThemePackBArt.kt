@@ -846,7 +846,7 @@ internal object PackBFrames {
         c.withTranslation(2f * d, 3f * d) { drawPath(sheet, P.paint(0x40000000)) }
         c.drawPath(sheet, P.paint(p.background))
         c.withClip(sheet) {
-            val burn = P.paint(0).apply {
+            val burn = P.paint(0xFF000000.toInt()).apply {
                 shader = android.graphics.RadialGradient(card.centerX(), card.centerY(), kotlin.math.hypot(card.width(), card.height()) * 0.55f,
                     intArrayOf(0x00000000, 0x00000000, P.alpha(0xFF8A5A2B.toInt(), 0.45f)), floatArrayOf(0f, 0.6f, 1f), Shader.TileMode.CLAMP)
             }
@@ -873,7 +873,7 @@ internal object PackBFrames {
     /** Brushstroke frame with an energy glow. */
     val brush = FramePainter { c, t, card, r, d, seed ->
         val p = t.palette
-        c.drawRoundRect(card, r, r, P.paint(0).apply {
+        c.drawRoundRect(card, r, r, P.paint(0xFF000000.toInt()).apply {
             shader = LinearGradient(card.left, card.top, card.right, card.bottom, p.background, blend(p.background, p.accent, 0.22f), Shader.TileMode.CLAMP)
         })
         c.drawRoundRect(card, r, r, P.paint(P.alpha(p.accent, 0.22f), Paint.Style.STROKE, 7f * d))
@@ -913,7 +913,7 @@ internal object PackBFrames {
     val leather = FramePainter { c, t, card, r, d, _ ->
         val p = t.palette
         shadow(c, card, r, 0f, 3f * d, 0x66000000)
-        c.drawRoundRect(card, r, r, P.paint(0).apply {
+        c.drawRoundRect(card, r, r, P.paint(0xFF000000.toInt()).apply {
             shader = LinearGradient(card.left, card.top, card.left, card.bottom, 0xFF2A2A2D.toInt(), p.background, Shader.TileMode.CLAMP)
         })
         c.drawRoundRect(card, r, r, P.paint(P.alpha(p.secondary, 0.55f), Paint.Style.STROKE, 1.4f * d))
@@ -937,7 +937,7 @@ internal object PackBFrames {
     val sleeve = FramePainter { c, t, card, r, d, seed ->
         val p = t.palette
         shadow(c, card, r, 0f, 3f * d, 0x22000000)
-        c.drawRoundRect(card, r, r, P.paint(0).apply {
+        c.drawRoundRect(card, r, r, P.paint(0xFF000000.toInt()).apply {
             shader = LinearGradient(card.left, card.top, card.right, card.bottom, p.background, blend(p.background, p.secondary, 0.25f), Shader.TileMode.CLAMP)
         })
         c.withClip(P.roundPath(card, r)) {
@@ -956,7 +956,7 @@ internal object PackBFrames {
     val starry = FramePainter { c, t, card, r, d, seed ->
         val p = t.palette
         c.drawRoundRect(RectF(card).apply { inset(-3f * d, -3f * d) }, r + 3f * d, r + 3f * d, P.paint(P.alpha(p.secondary, 0.18f)))
-        c.drawRoundRect(card, r, r, P.paint(0).apply {
+        c.drawRoundRect(card, r, r, P.paint(0xFF000000.toInt()).apply {
             shader = LinearGradient(card.left, card.top, card.right, card.bottom, p.background, 0xFF35206B.toInt(), Shader.TileMode.CLAMP)
         })
         val rnd = Random(seed * 11 + 3)
@@ -966,7 +966,7 @@ internal object PackBFrames {
                 val dot = P.paint(P.alpha(0xFFFFFFFF.toInt(), 0.3f + rnd.nextFloat() * 0.6f))
                 drawCircle(card.left + rnd.nextFloat() * card.width(), card.top + rnd.nextFloat() * card.height(), (0.4f + rnd.nextFloat() * 0.9f) * d, dot)
             }
-            drawCircle(card.right, card.top, min(card.width(), card.height()) * 0.5f, P.paint(0).apply {
+            drawCircle(card.right, card.top, min(card.width(), card.height()) * 0.5f, P.paint(0xFF000000.toInt()).apply {
                 shader = android.graphics.RadialGradient(card.right, card.top, min(card.width(), card.height()) * 0.5f, P.alpha(0xFFB36BFF.toInt(), 0.35f), 0x00B36BFF, Shader.TileMode.CLAMP)
             })
         }
@@ -978,7 +978,7 @@ internal object PackBFrames {
     val tide = FramePainter { c, t, card, r, d, seed ->
         val p = t.palette
         shadow(c, card, r, 0f, 3f * d, 0x2A0D3B4A)
-        c.drawRoundRect(card, r, r, P.paint(0).apply {
+        c.drawRoundRect(card, r, r, P.paint(0xFF000000.toInt()).apply {
             shader = LinearGradient(card.left, card.top, card.left, card.bottom, p.background, blend(p.background, p.secondary, 0.3f), Shader.TileMode.CLAMP)
         })
         c.withClip(P.roundPath(card, r)) {

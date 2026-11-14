@@ -21,11 +21,11 @@ internal object PackBWalls {
     private fun fill(color: Int) = P.paint(color)
 
     private fun vertical(c: Canvas, w: Float, h: Float, colors: IntArray, stops: FloatArray? = null) {
-        c.drawRect(0f, 0f, w, h, fill(0).apply { shader = LinearGradient(0f, 0f, 0f, h, colors, stops, Shader.TileMode.CLAMP) })
+        c.drawRect(0f, 0f, w, h, fill(0xFF000000.toInt()).apply { shader = LinearGradient(0f, 0f, 0f, h, colors, stops, Shader.TileMode.CLAMP) })
     }
 
     private fun glow(c: Canvas, x: Float, y: Float, r: Float, color: Int) {
-        c.drawCircle(x, y, r, fill(0).apply { shader = RadialGradient(x, y, r, color, color and 0x00FFFFFF, Shader.TileMode.CLAMP) })
+        c.drawCircle(x, y, r, fill(0xFF000000.toInt()).apply { shader = RadialGradient(x, y, r, color, color and 0x00FFFFFF, Shader.TileMode.CLAMP) })
     }
 
     private fun art(c: Canvas, a: StickerArt, x: Float, y: Float, size: Float, ink: StickerInk, rot: Float = 0f) =
@@ -61,7 +61,7 @@ internal object PackBWalls {
     }
 
     private fun vignette(c: Canvas, w: Float, h: Float, a: Int = 0x44000000) {
-        c.drawRect(0f, 0f, w, h, fill(0).apply { shader = RadialGradient(w / 2, h / 2, h * 0.75f, 0x00000000, a, Shader.TileMode.CLAMP) })
+        c.drawRect(0f, 0f, w, h, fill(0xFF000000.toInt()).apply { shader = RadialGradient(w / 2, h / 2, h * 0.75f, 0x00000000, a, Shader.TileMode.CLAMP) })
     }
 
     // ---------- Comic hero ----------
@@ -139,7 +139,7 @@ internal object PackBWalls {
 
     val pirate = WallPainter { c, w, h ->
         val horizon = h * 0.52f
-        c.drawRect(0f, 0f, w, horizon, fill(0).apply {
+        c.drawRect(0f, 0f, w, horizon, fill(0xFF000000.toInt()).apply {
             shader = LinearGradient(0f, 0f, 0f, horizon, intArrayOf(0xFF6EC6F0.toInt(), 0xFFBFE9FF.toInt(), 0xFFFFE8B8.toInt()), floatArrayOf(0f, 0.7f, 1f), Shader.TileMode.CLAMP)
         })
         glow(c, w * 0.78f, h * 0.16f, w * 0.26f, 0x88FFF3C4.toInt())
@@ -152,7 +152,7 @@ internal object PackBWalls {
         }
         cloud(w * 0.08f, h * 0.12f, 1f); cloud(w * 0.5f, h * 0.27f, 0.7f)
         // Sea.
-        c.drawRect(0f, horizon, w, h, fill(0).apply {
+        c.drawRect(0f, horizon, w, h, fill(0xFF000000.toInt()).apply {
             shader = LinearGradient(0f, horizon, 0f, h, intArrayOf(0xFF3A8DDE.toInt(), 0xFF1F5FA8.toInt(), 0xFF153F78.toInt()), null, Shader.TileMode.CLAMP)
         })
         val foam = P.paint(0xCCFFFFFF.toInt(), Paint.Style.STROKE, w * 0.006f)
@@ -331,7 +331,7 @@ internal object PackBWalls {
         val rnd = Random(4)
         repeat(10) { art(c, A.twinkle, rnd.nextFloat() * w, rnd.nextFloat() * h, w * (0.03f + rnd.nextFloat() * 0.03f), ink) }
         // Shooting star.
-        c.drawLine(w * 0.55f, h * 0.08f, w * 0.85f, h * 0.02f, P.paint(0).apply {
+        c.drawLine(w * 0.55f, h * 0.08f, w * 0.85f, h * 0.02f, P.paint(0xFF000000.toInt()).apply {
             strokeWidth = w * 0.006f; strokeCap = Paint.Cap.ROUND
             shader = LinearGradient(w * 0.55f, h * 0.08f, w * 0.85f, h * 0.02f, 0x00FFFFFF, 0xFFFFFFFF.toInt(), Shader.TileMode.CLAMP)
         })
@@ -425,7 +425,7 @@ internal object PackBWalls {
         repeat(6) { i ->
             val x0 = w * (0.05f + i * 0.18f + rnd.nextFloat() * 0.05f)
             val ray = Path().apply { moveTo(x0, 0f); lineTo(x0 + w * 0.08f, 0f); lineTo(x0 + w * 0.22f, h * 0.7f); lineTo(x0 + w * 0.06f, h * 0.7f); close() }
-            c.drawPath(ray, fill(0).apply { shader = LinearGradient(0f, 0f, 0f, h * 0.7f, 0x33FFFFFF, 0x00FFFFFF, Shader.TileMode.CLAMP) })
+            c.drawPath(ray, fill(0xFF000000.toInt()).apply { shader = LinearGradient(0f, 0f, 0f, h * 0.7f, 0x33FFFFFF, 0x00FFFFFF, Shader.TileMode.CLAMP) })
         }
         // Sand.
         val sand = Path().apply {

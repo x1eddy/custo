@@ -19,10 +19,10 @@ internal object PackCWalls {
     private fun fill(color: Int) = A.pp(color)
 
     private fun vgrad(c: Canvas, w: Float, h: Float, colors: IntArray, pos: FloatArray? = null) =
-        c.drawRect(0f, 0f, w, h, fill(0).apply { shader = LinearGradient(0f, 0f, 0f, h, colors, pos, Shader.TileMode.CLAMP) })
+        c.drawRect(0f, 0f, w, h, fill(0xFF000000.toInt()).apply { shader = LinearGradient(0f, 0f, 0f, h, colors, pos, Shader.TileMode.CLAMP) })
 
     private fun vignette(c: Canvas, w: Float, h: Float, edge: Int) =
-        c.drawRect(0f, 0f, w, h, fill(0).apply { shader = RadialGradient(w / 2, h / 2, h * 0.75f, 0x00000000, edge, Shader.TileMode.CLAMP) })
+        c.drawRect(0f, 0f, w, h, fill(0xFF000000.toInt()).apply { shader = RadialGradient(w / 2, h / 2, h * 0.75f, 0x00000000, edge, Shader.TileMode.CLAMP) })
 
     private fun art(c: Canvas, a: StickerArt, x: Float, y: Float, size: Float, ink: StickerInk, rot: Float = 0f) =
         ThemeArt.drawSticker(c, Sticker.STAR, x, y, size, ink, rot, a)
@@ -63,7 +63,7 @@ internal object PackCWalls {
             c.drawPath(p, fill(if (i % 2 == 0) a else b))
             c.drawPath(p, A.pp(line, Paint.Style.STROKE, w * 0.004f))
         }
-        c.drawRect(0f, depth - h * 0.004f, w, depth + sc, fill(0).apply {
+        c.drawRect(0f, depth - h * 0.004f, w, depth + sc, fill(0xFF000000.toInt()).apply {
             shader = LinearGradient(0f, depth, 0f, depth + sc * 1.6f, 0x22000000, 0x00000000, Shader.TileMode.CLAMP)
         })
     }
@@ -104,7 +104,7 @@ internal object PackCWalls {
                     val by = (1 - t) * (1 - t) * y0 + 2 * (1 - t) * t * (y0 + sag * 2) + t * t * y0
                     val col = bulbs[rnd.nextInt(bulbs.size)]
                     val gr = w * 0.06f
-                    c.drawCircle(bx, by + w * 0.03f, gr, fill(0).apply { shader = RadialGradient(bx, by + w * 0.03f, gr, (col and 0x00FFFFFF) or 0x77000000, col and 0x00FFFFFF, Shader.TileMode.CLAMP) })
+                    c.drawCircle(bx, by + w * 0.03f, gr, fill(0xFF000000.toInt()).apply { shader = RadialGradient(bx, by + w * 0.03f, gr, (col and 0x00FFFFFF) or 0x77000000, col and 0x00FFFFFF, Shader.TileMode.CLAMP) })
                     c.drawRect(bx - w * 0.008f, by - w * 0.004f, bx + w * 0.008f, by + w * 0.012f, fill(0xFF3A3A3A.toInt()))
                     c.drawOval(RectF(bx - w * 0.014f, by + w * 0.01f, bx + w * 0.014f, by + w * 0.05f), fill(col))
                     c.drawOval(RectF(bx - w * 0.008f, by + w * 0.016f, bx - w * 0.001f, by + w * 0.03f), fill(0x99FFFFFF.toInt()))
@@ -172,7 +172,7 @@ internal object PackCWalls {
         repeat(22) {
             val x = rnd.nextFloat() * w; val y = rnd.nextFloat() * h
             val r = w * (0.03f + rnd.nextFloat() * 0.09f)
-            c.drawCircle(x, y, r, fill(0).apply { shader = RadialGradient(x, y, r, 0x66FFFFFF, 0x00FFFFFF, Shader.TileMode.CLAMP) })
+            c.drawCircle(x, y, r, fill(0xFF000000.toInt()).apply { shader = RadialGradient(x, y, r, 0x66FFFFFF, 0x00FFFFFF, Shader.TileMode.CLAMP) })
         }
         val ink = colorInk(0xFFC23B74.toInt(), 0xFFFF7FB0.toInt(), 0xFFFFC1D8.toInt(), 0xFFFFE3EE.toInt())
         scatter(c, w, h, 52, listOf(A.GLOSSY_HEART, A.RIBBON, A.PEARLS, A.PERFUME, A.TIARA, A.GLOSSY_HEART), ink, cols = 3, minSize = 0.12f, maxSize = 0.16f, skip = 0.4f, tilt = 30f)
@@ -325,7 +325,7 @@ internal object PackCWalls {
         val sparkle = colorInk(0xFF0E1A3A.toInt(), 0xFFFFD54F.toInt(), 0xFFFFD54F.toInt(), 0xFF0E1A3A.toInt())
         repeat(6) { art(c, SPARKLE4, rnd.nextFloat() * w, rnd.nextFloat() * h * 0.45f, w * (0.025f + rnd.nextFloat() * 0.02f), sparkle) }
         // Moon.
-        c.drawCircle(w * 0.76f, h * 0.13f, w * 0.16f, fill(0).apply { shader = RadialGradient(w * 0.76f, h * 0.13f, w * 0.16f, 0x44FFF3C4, 0x00FFF3C4, Shader.TileMode.CLAMP) })
+        c.drawCircle(w * 0.76f, h * 0.13f, w * 0.16f, fill(0xFF000000.toInt()).apply { shader = RadialGradient(w * 0.76f, h * 0.13f, w * 0.16f, 0x44FFF3C4, 0x00FFF3C4, Shader.TileMode.CLAMP) })
         c.drawCircle(w * 0.76f, h * 0.13f, w * 0.07f, fill(0xFFFFF3C4.toInt()))
         c.drawCircle(w * 0.79f, h * 0.12f, w * 0.06f, fill(0xFF14224A.toInt()))
         // Mountains.
@@ -359,7 +359,7 @@ internal object PackCWalls {
         c.drawRect(0f, h * 0.8f, w, h, fill(0xFF1C2A3E.toInt()))
         c.drawPath(Path().apply { moveTo(0f, h * 0.84f); quadTo(w * 0.5f, h * 0.81f, w, h * 0.85f); lineTo(w, h); lineTo(0f, h); close() }, fill(0xFF2B3A2E.toInt()))
         // Campfire glow, tent, fire.
-        c.drawCircle(w * 0.66f, h * 0.88f, w * 0.35f, fill(0).apply { shader = RadialGradient(w * 0.66f, h * 0.88f, w * 0.35f, 0x66FF9A3D, 0x00FF9A3D, Shader.TileMode.CLAMP) })
+        c.drawCircle(w * 0.66f, h * 0.88f, w * 0.35f, fill(0xFF000000.toInt()).apply { shader = RadialGradient(w * 0.66f, h * 0.88f, w * 0.35f, 0x66FF9A3D, 0x00FF9A3D, Shader.TileMode.CLAMP) })
         val ink = colorInk(0xFF2B1A10.toInt(), 0xFFF2994A.toInt(), 0xFFC98E52.toInt(), 0xFFE3B57D.toInt())
         art(c, A.TENT_ART, w * 0.3f, h * 0.855f, w * 0.34f, ink)
         art(c, A.CAMPFIRE, w * 0.66f, h * 0.865f, w * 0.2f, ink)

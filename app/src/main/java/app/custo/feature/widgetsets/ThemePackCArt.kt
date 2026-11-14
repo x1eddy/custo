@@ -1141,10 +1141,10 @@ internal object PackCArt {
         val p = t.palette
         val body = rr(card, r)
         shadow(c, body, 0f, 2.5f * d, fade(p.line, 0.22f))
-        c.drawPath(body, pp(0).apply { shader = LinearGradient(0f, card.top, 0f, card.bottom, p.background, p.secondary, Shader.TileMode.CLAMP) })
+        c.drawPath(body, pp(0xFF000000.toInt()).apply { shader = LinearGradient(0f, card.top, 0f, card.bottom, p.background, p.secondary, Shader.TileMode.CLAMP) })
         val gl = RectF(card.left + 3f * d, card.top + 3f * d, card.right - 3f * d, card.top + max(8f * d, card.height() * 0.42f))
         val gr = max(0f, r - 3f * d)
-        c.drawRoundRect(gl, gr, gr, pp(0).apply { shader = LinearGradient(0f, gl.top, 0f, gl.bottom, 0x77FFFFFF, 0x00FFFFFF, Shader.TileMode.CLAMP) })
+        c.drawRoundRect(gl, gr, gr, pp(0xFF000000.toInt()).apply { shader = LinearGradient(0f, gl.top, 0f, gl.bottom, 0x77FFFFFF, 0x00FFFFFF, Shader.TileMode.CLAMP) })
         val i = 1.6f * d
         c.drawRoundRect(inset(card, i), max(0f, r - i), max(0f, r - i), pp(0xE6FFFFFF.toInt(), Paint.Style.STROKE, 1.8f * d))
         c.drawPath(body, pp(p.accent, Paint.Style.STROKE, 1.4f * d))
@@ -1173,7 +1173,7 @@ internal object PackCArt {
         }
         shadow(c, body, 0f, 3f * d, fade(p.line, 0.16f))
         val rad = max(card.width(), card.height()) * 0.62f
-        c.drawPath(body, pp(0).apply { shader = RadialGradient(cx, cy - card.height() * 0.1f, rad, intArrayOf(p.background, p.background, p.secondary), floatArrayOf(0f, 0.55f, 1f), Shader.TileMode.CLAMP) })
+        c.drawPath(body, pp(0xFF000000.toInt()).apply { shader = RadialGradient(cx, cy - card.height() * 0.1f, rad, intArrayOf(p.background, p.background, p.secondary), floatArrayOf(0f, 0.55f, 1f), Shader.TileMode.CLAMP) })
         c.withSave {
             clipPath(body)
             for (i in 0..4) drawPath(body, pp(fade(p.secondary, 0.14f), Paint.Style.STROKE, (12f - i * 2.4f) * d))
@@ -1226,7 +1226,7 @@ internal object PackCArt {
         c.drawPath(body, pp(p.background))
         c.withSave {
             clipPath(body)
-            drawRect(card, pp(0).apply { shader = LinearGradient(0f, card.top + card.height() * 0.4f, 0f, card.bottom, fade(p.accent, 0f), fade(p.accent, 0.32f), Shader.TileMode.CLAMP) })
+            drawRect(card, pp(0xFF000000.toInt()).apply { shader = LinearGradient(0f, card.top + card.height() * 0.4f, 0f, card.bottom, fade(p.accent, 0f), fade(p.accent, 0.32f), Shader.TileMode.CLAMP) })
         }
         val brush = pp(fade(p.line, 0.88f))
         val x0 = card.left - 1f * d; val x1 = card.left + card.width() * 0.42f; val y0 = card.top + 1f * d

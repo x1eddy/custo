@@ -1081,7 +1081,7 @@ internal object PackAFrames {
         val pal = theme.palette
         val o = 4f * d
         c.drawRoundRect(RectF(card.left + o, card.top + o, card.right + o, card.bottom + o), r, r, paint(pal.line))
-        c.drawRoundRect(card, r, r, paint(0).apply {
+        c.drawRoundRect(card, r, r, paint(0xFF000000.toInt()).apply {
             shader = LinearGradient(0f, card.top, 0f, card.bottom, PackAKit.shade(pal.background, 1.18f), PackAKit.shade(pal.background, 0.7f), Shader.TileMode.CLAMP)
         })
         c.withSave {
@@ -1101,7 +1101,7 @@ internal object PackAFrames {
         c.drawRoundRect(card, r, r, paint(theme.palette.background))
         c.withSave {
             clipPath(Path().apply { addRoundRect(card, r, r, Path.Direction.CW) })
-            drawRect(card.left, card.top, card.right, card.bottom, paint(0).apply {
+            drawRect(card.left, card.top, card.right, card.bottom, paint(0xFF000000.toInt()).apply {
                 shader = LinearGradient(0f, card.top, 0f, card.bottom, 0x14FFFFFF, 0x00FFFFFF, Shader.TileMode.CLAMP)
             })
         }
@@ -1117,7 +1117,7 @@ internal object PackAFrames {
     val synth = FramePainter { c, theme, card, r, d, _ ->
         val pal = theme.palette
         val body = Path().apply { addRoundRect(card, r, r, Path.Direction.CW) }
-        c.drawPath(body, paint(0).apply {
+        c.drawPath(body, paint(0xFF000000.toInt()).apply {
             shader = LinearGradient(0f, card.top, 0f, card.bottom, pal.background, PackAKit.shade(pal.secondary, 0.55f), Shader.TileMode.CLAMP)
         })
         c.withSave {

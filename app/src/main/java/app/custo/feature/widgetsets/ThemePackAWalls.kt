@@ -21,11 +21,11 @@ internal object PackAWalls {
     private fun alpha(color: Int, a: Float) = PackAKit.alpha(color, a)
 
     private fun vGradient(c: Canvas, top: Float, bottom: Float, w: Float, colors: IntArray, stops: FloatArray? = null) {
-        c.drawRect(0f, top, w, bottom, fill(0).apply { shader = LinearGradient(0f, top, 0f, bottom, colors, stops, Shader.TileMode.CLAMP) })
+        c.drawRect(0f, top, w, bottom, fill(0xFF000000.toInt()).apply { shader = LinearGradient(0f, top, 0f, bottom, colors, stops, Shader.TileMode.CLAMP) })
     }
 
     private fun vignette(c: Canvas, w: Float, h: Float, strength: Int = 0x55) {
-        c.drawRect(0f, 0f, w, h, fill(0).apply {
+        c.drawRect(0f, 0f, w, h, fill(0xFF000000.toInt()).apply {
             shader = RadialGradient(w / 2, h / 2, h * 0.75f, 0x00000000, strength shl 24, Shader.TileMode.CLAMP)
         })
     }
@@ -174,7 +174,7 @@ internal object PackAWalls {
     /** Bright beach: sky, big sun, sea with wave lines, sand with palms, a ball, a board and two cube-head friends. */
     val beach = WallPainter { c, w, h ->
         vGradient(c, 0f, h * 0.56f, w, intArrayOf(0xFF3FB6F2.toInt(), 0xFF8ED8FA.toInt(), 0xFFD6F2FF.toInt()), floatArrayOf(0f, 0.7f, 1f))
-        c.drawCircle(w * 0.78f, h * 0.12f, w * 0.2f, fill(0).apply { shader = RadialGradient(w * 0.78f, h * 0.12f, w * 0.2f, 0x88FFF2A8.toInt(), 0x00FFF2A8, Shader.TileMode.CLAMP) })
+        c.drawCircle(w * 0.78f, h * 0.12f, w * 0.2f, fill(0xFF000000.toInt()).apply { shader = RadialGradient(w * 0.78f, h * 0.12f, w * 0.2f, 0x88FFF2A8.toInt(), 0x00FFF2A8, Shader.TileMode.CLAMP) })
         c.drawCircle(w * 0.78f, h * 0.12f, w * 0.09f, fill(0xFFFFE15A.toInt()))
         puff(c, w * 0.2f, h * 0.1f, w * 0.12f, 0xF2FFFFFF.toInt())
         puff(c, w * 0.55f, h * 0.24f, w * 0.09f, 0xE6FFFFFF.toInt())
@@ -406,8 +406,8 @@ internal object PackAWalls {
         }
         val sunR = w * 0.3f
         val sunY = horizon - sunR * 0.45f
-        c.drawCircle(w / 2, sunY, sunR * 1.5f, fill(0).apply { shader = RadialGradient(w / 2, sunY, sunR * 1.5f, 0x66FF3EA5, 0x00FF3EA5, Shader.TileMode.CLAMP) })
-        c.drawPath(PackAArt.stripedSun(w / 2, sunY, sunR), fill(0).apply {
+        c.drawCircle(w / 2, sunY, sunR * 1.5f, fill(0xFF000000.toInt()).apply { shader = RadialGradient(w / 2, sunY, sunR * 1.5f, 0x66FF3EA5, 0x00FF3EA5, Shader.TileMode.CLAMP) })
+        c.drawPath(PackAArt.stripedSun(w / 2, sunY, sunR), fill(0xFF000000.toInt()).apply {
             shader = LinearGradient(0f, sunY - sunR, 0f, sunY + sunR, 0xFFFFD319.toInt(), 0xFFFF3EA5.toInt(), Shader.TileMode.CLAMP)
         })
         fun mountains(color: Int, rim: Int, peaks: FloatArray, seed: Int) {
@@ -480,7 +480,7 @@ internal object PackAWalls {
             }
         }
         layer(0xFF1A1030.toInt(), 0.35f, 0.62f, 0.1f, 0.2f, 0.12f, false)
-        c.drawRect(0f, h * 0.3f, w, street, fill(0).apply { shader = LinearGradient(0f, h * 0.3f, 0f, street, 0x00FF2E97, 0x33FF2E97, Shader.TileMode.CLAMP) })
+        c.drawRect(0f, h * 0.3f, w, street, fill(0xFF000000.toInt()).apply { shader = LinearGradient(0f, h * 0.3f, 0f, street, 0x00FF2E97, 0x33FF2E97, Shader.TileMode.CLAMP) })
         layer(0xFF0B0716.toInt(), 0.18f, 0.42f, 0.14f, 0.26f, 0.22f, true)
         // Wet street with smeared reflections.
         c.drawRect(0f, street, w, h, fill(0xFF0A0614.toInt()))
@@ -538,7 +538,7 @@ internal object PackAWalls {
         c.drawArc(RectF(field.left - cr, field.bottom - cr, field.left + cr, field.bottom + cr), 270f, 90f, false, lp)
         c.drawArc(RectF(field.right - cr, field.bottom - cr, field.right + cr, field.bottom + cr), 180f, 90f, false, lp)
         // Floodlight glow from the top corners.
-        for (x in floatArrayOf(0f, w)) c.drawCircle(x, 0f, w * 0.7f, fill(0).apply { shader = RadialGradient(x, 0f, w * 0.7f, 0x33FFFFF0, 0x00FFFFF0, Shader.TileMode.CLAMP) })
+        for (x in floatArrayOf(0f, w)) c.drawCircle(x, 0f, w * 0.7f, fill(0xFF000000.toInt()).apply { shader = RadialGradient(x, 0f, w * 0.7f, 0x33FFFFF0, 0x00FFFFF0, Shader.TileMode.CLAMP) })
         PackAKit.sticker(c, PackAArt.ball, w * 0.5f, h * 0.5f, w * 0.07f, 0xFF05090C.toInt(), 20f)
         vignette(c, w, h, 0x55)
     }
