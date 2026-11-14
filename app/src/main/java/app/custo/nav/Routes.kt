@@ -24,4 +24,14 @@ sealed interface Route {
     data class WidgetEditor(val appWidgetId: Int) : Route
     data object Profiles : Route
     data class ProfileEditor(val profileId: String?) : Route
+
+    // System UI hub sub-screens
+    data object StatusBarExtras : Route
+    data object ScreenTweaks : Route
+    data object LockScreen : Route
+    data object Notifications : Route
+    data object Gestures : Route
+    data object SoundHaptics : Route
+    data object TilePack : Route
+    data object AdvancedSettings : Route
 }

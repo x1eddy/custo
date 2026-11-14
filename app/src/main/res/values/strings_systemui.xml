@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tile_caffeine">Caffeine</string>
+    <string name="tile_extra_dim">Extra dim</string>
+    <string name="tile_heads_up">Pop-ups</string>
+    <string name="tile_screenshot">Screenshot mode</string>
+    <string name="tile_private_dns">Private DNS</string>
+    <string name="tile_wireless_debugging">Wireless debugging</string>
+</resources>

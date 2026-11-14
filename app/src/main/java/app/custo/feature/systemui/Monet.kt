@@ -50,6 +50,43 @@ object MonetJson {
         return hex.removePrefix("#").takeLast(6).toLongOrNull(16)?.toInt()?.or(0xFF000000.toInt())
     }
 
+    /** Where SystemUI takes the palette from. */
+    enum class ColorSource(val id: String, val label: String) {
+        HOME("home_wallpaper", "Home wallpaper"),
+        LOCK("lock_wallpaper", "Lock wallpaper"),
+        PRESET("preset", "My color");
+
+        companion object {
+            fun of(id: String?) = entries.firstOrNull { it.id == id }
+        }
+    }
+
+    /**
+     * Switches to a wallpaper-based palette ([ColorSource.HOME] / [ColorSource.LOCK]): drops the fixed
+     * seed so SystemUI recomputes from the wallpaper, keeps the style and everything else.
+     * [ColorSource.PRESET] needs a seed, so use [build] for it.
+     */
+    fun withWallpaperSource(existing: String?, source: ColorSource, timestamp: Long): String {
+        require(source != ColorSource.PRESET) { "Use build() for a preset color" }
+        val base: Map<String, kotlinx.serialization.json.JsonElement> = existing
+            ?.let { runCatching { Json.parseToJsonElement(it).jsonObject }.getOrNull() }
+            ?: emptyMap()
+        val out = base.toMutableMap()
+        out["${P}color_source"] = JsonPrimitive(source.id)
+        out.remove("${P}system_palette")
+        out.remove("${P}accent_color")
+        out.remove("${P}color_index")
+        out.remove("${P}color_both")
+        out["_applied_timestamp"] = JsonPrimitive(timestamp)
+        return JsonObject(out).toString()
+    }
+
+    /** Null when the setting is empty: SystemUI then follows the home wallpaper. */
+    fun sourceOf(json: String?): ColorSource? {
+        val obj = json?.let { runCatching { Json.parseToJsonElement(it).jsonObject }.getOrNull() } ?: return null
+        return ColorSource.of((obj["${P}color_source"] as? JsonPrimitive)?.content)
+    }
+
     fun styleOf(json: String?): MonetStyle? {
         val obj = json?.let { runCatching { Json.parseToJsonElement(it).jsonObject }.getOrNull() } ?: return null
         return (obj["${P}theme_style"] as? JsonPrimitive)?.content?.let { MonetStyle.of(it) }
