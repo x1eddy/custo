@@ -56,6 +56,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
+import app.custo.feature.widgetsets.WidgetThemes
 import app.custo.ui.components.ColorPicker
 import app.custo.ui.components.Hint
 import app.custo.ui.components.ScreenScaffold
@@ -117,6 +118,17 @@ fun WidgetEditorScreen(appWidgetId: Int, onBack: () -> Unit) {
         item { WidgetPreview(w.kind, style, Modifier.fillMaxWidth().height(w.kind.previewHeight.dp)) }
 
         item { Column(verticalArrangement = Arrangement.spacedBy(10.dp)) { KindOptions(w.kind, style) { style = it } } }
+        item {
+            SectionCard("Set style", subtitle = "Frame, colors and stickers from a widget set") {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(style.themeId == null, { style = style.copy(themeId = null) }, { Text("None") })
+                    WidgetThemes.all.forEach { t ->
+                        FilterChip(style.themeId == t.id, { style = t.styleFor(w.kind, style.themeSlot, style) }, { Text(t.name) })
+                    }
+                }
+                if (style.themeId != null) Hint("Colors and shape below are set by the set. Pick None to use your own.")
+            }
+        }
 
         item {
             SectionCard("Text") {
@@ -281,6 +293,10 @@ private fun KindOptions(kind: WidgetKind, style: WidgetStyle, onChange: (WidgetS
         WidgetKind.APPS -> SectionCard("Apps", subtitle = "Pick up to six") {
             SwitchRow("Show names", null, style.showLabels) { onChange(style.copy(showLabels = it)) }
             AppPicker(style.apps) { onChange(style.copy(apps = it)) }
+        }
+        WidgetKind.BANNER -> SectionCard("Banner") {
+            OutlinedTextField(style.bannerText, { onChange(style.copy(bannerText = it.take(40))) }, Modifier.fillMaxWidth(), label = { Text("Big text") }, singleLine = true)
+            OutlinedTextField(style.bannerSub, { onChange(style.copy(bannerSub = it.take(60))) }, Modifier.fillMaxWidth(), label = { Text("Small text (optional)") }, singleLine = true)
         }
         WidgetKind.QUOTE -> SectionCard("Quote") {
             SwitchRow("Show author", null, style.showAuthor) { onChange(style.copy(showAuthor = it)) }

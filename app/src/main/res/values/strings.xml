@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Custo</string>
+    <string name="widget_banner_desc">A greeting in big letters</string>
     <string name="widget_clock_desc">Clock with date</string>
     <string name="widget_analog_desc">Analog clock</string>
     <string name="widget_hour_desc">Big hour clock</string>

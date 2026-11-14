@@ -51,7 +51,7 @@ private fun Bar(style: WidgetStyle, fraction: Float) {
     LinearProgressIndicator(
         progress = fraction.coerceIn(0f, 1f),
         modifier = GlanceModifier.fillMaxWidth().height(8.dp).cornerRadius(4.dp),
-        color = fgProvider(style),
+        color = accentProvider(style),
         backgroundColor = track,
     )
 }
@@ -200,7 +200,7 @@ class BatteryRingWidget : CustoWidget() {
         val ring = remember(b.level) { WidgetArt.ring(b.level / 100f) }
         Frame(style, actionStartActivity(Intent(Intent.ACTION_POWER_USAGE_SUMMARY))) {
             Box(GlanceModifier.size(side.dp), contentAlignment = Alignment.Center) {
-                Image(ImageProvider(ring), "Battery ${b.level}%", GlanceModifier.size(side.dp), colorFilter = ColorFilter.tint(fgProvider(style)))
+                Image(ImageProvider(ring), "Battery ${b.level}%", GlanceModifier.size(side.dp), colorFilter = ColorFilter.tint(accentProvider(style)))
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     if (b.charging) Image(ImageProvider(R.drawable.ic_bolt), "Charging", GlanceModifier.size((18 * style.textScale).dp), colorFilter = ColorFilter.tint(fgProvider(style)))
                     if (style.showPercent) WText("${b.level}%", style = style.text(min(26f, side / 4.2f), bold = true).copy(textAlign = TextAlign.Center))

@@ -144,6 +144,12 @@
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_note" />
         </receiver>
+        <receiver android:name=".feature.widgets.BannerReceiver" android:exported="false" android:label="Custo banner">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_banner" />
+        </receiver>
+        <!-- Widget sets: tells Custo which widget the launcher just added so it can be styled -->
+        <receiver android:name=".feature.widgetsets.SetPinReceiver" android:exported="false" />
 
         <!-- System UI extras -->
         <receiver android:name=".feature.systemui.BootReceiver" android:exported="false">

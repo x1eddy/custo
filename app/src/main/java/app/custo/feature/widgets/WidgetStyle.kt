@@ -75,6 +75,15 @@ data class WidgetStyle(
     val hanafi: Boolean = false,
     val stepGoal: Int = 8000,
     val showSun: Boolean = true,
+    // Added in 0.4: widget sets
+    /** A [app.custo.feature.widgetsets.WidgetTheme] id. When set, the theme draws the frame, colors and stickers. */
+    val themeId: String? = null,
+    /** The kind this theme style was made for (picks the stickers). */
+    val themeKind: String = "",
+    /** Varies the stickers between widgets of the same kind in one set. */
+    val themeSlot: Int = 0,
+    val bannerText: String = "Have a nice day",
+    val bannerSub: String = "",
 ) {
     fun encode(): String = json.encodeToString(this)
 
@@ -89,6 +98,7 @@ data class WidgetStyle(
         gradient = other.gradient, bg2 = other.bg2, gradientAngle = other.gradientAngle, borderWidth = other.borderWidth,
         borderColor = other.borderColor, padding = other.padding, hAlign = other.hAlign, vAlign = other.vAlign,
         textScale = other.textScale, textShadow = other.textShadow, shadowColor = other.shadowColor,
+        themeId = other.themeId,
     )
 
     companion object {

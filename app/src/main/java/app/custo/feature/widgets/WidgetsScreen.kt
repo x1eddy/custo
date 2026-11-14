@@ -64,6 +64,7 @@ fun WidgetsScreen(nav: Navigator) {
     }
 
     ScreenScaffold(title = "Widgets") {
+        item(key = "sets") { app.custo.feature.widgetsets.WidgetSetsEntryCard { nav.push(Route.WidgetSets) } }
         if (placed.isNotEmpty()) {
             item { SectionLabel("On your home screen") }
             item {

@@ -121,6 +121,7 @@ fun ThemesScreen(nav: Navigator) {
     }
 
     ScreenScaffold(title = "Themes") {
+        item { app.custo.feature.widgetsets.WidgetSetsEntryCard { nav.push(Route.WidgetSets) } }
         item {
             SectionCard("Icons", Icons.Rounded.Apps, "Change app icons, make your own icon style, use icon packs.", onClick = { nav.push(Route.IconsHub) })
         }

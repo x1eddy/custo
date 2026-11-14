@@ -71,7 +71,7 @@ import kotlin.math.min
 private val trackColor = androidx.glance.color.ColorProvider(Color(0x33808080), Color(0x33FFFFFF))
 
 @Composable
-internal fun GBar(style: WidgetStyle, fraction: Float, color: ColorProvider = fgProvider(style)) {
+internal fun GBar(style: WidgetStyle, fraction: Float, color: ColorProvider = accentProvider(style)) {
     LinearProgressIndicator(
         progress = fraction.coerceIn(0f, 1f),
         modifier = GlanceModifier.fillMaxWidth().height(8.dp).cornerRadius(4.dp),
@@ -85,7 +85,7 @@ internal fun GBar(style: WidgetStyle, fraction: Float, color: ColorProvider = fg
 internal fun Ring(style: WidgetStyle, fraction: Float, side: Float, content: @Composable () -> Unit) {
     val ring = remember((fraction * 100).toInt()) { WidgetArt.ring(fraction) }
     Box(GlanceModifier.size(side.dp), contentAlignment = Alignment.Center) {
-        Image(ImageProvider(ring), null, GlanceModifier.size(side.dp), colorFilter = ColorFilter.tint(fgProvider(style)))
+        Image(ImageProvider(ring), null, GlanceModifier.size(side.dp), colorFilter = ColorFilter.tint(accentProvider(style)))
         content()
     }
 }

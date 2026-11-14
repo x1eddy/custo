@@ -74,6 +74,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.custo.R
+import app.custo.feature.widgetsets.ThemeArt
+import app.custo.feature.widgetsets.WidgetTheme
+import app.custo.feature.widgetsets.WidgetThemes
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -127,6 +132,34 @@ internal class P(val s: WidgetStyle, val fg: Color, val bg: Color) {
 /** In-app replica of each widget so edits preview instantly. */
 @Composable
 fun WidgetPreview(kind: WidgetKind, style: WidgetStyle, modifier: Modifier = Modifier) {
+    val theme = WidgetThemes.byId(style.themeId)
+    if (theme != null) ThemedPreview(kind, style, theme, modifier) else PlainPreview(kind, style, modifier)
+}
+
+/** A set widget: the theme's frame and stickers drawn straight onto the canvas, content on top. */
+@Composable
+private fun ThemedPreview(kind: WidgetKind, style: WidgetStyle, theme: WidgetTheme, modifier: Modifier) {
+    val p = P(style, Color(style.fg), Color(style.bg))
+    val f = theme.frame
+    val padded = !((kind == WidgetKind.PHOTO && style.photoUri != null) || (kind == WidgetKind.CAROUSEL && style.photos.isNotEmpty()))
+    val k = if (padded) 1f else 0f
+    val window = if (padded) 0f else 3f
+    Box(modifier) {
+        Canvas(Modifier.matchParentSize()) {
+            drawIntoCanvas { ThemeArt.drawWidget(it.nativeCanvas, theme, kind, style.themeSlot, size.width, size.height, density) }
+        }
+        Box(
+            Modifier.matchParentSize().padding(
+                start = (f.outerSide + f.innerSide * k + window).dp, top = (f.outerTop + f.innerTop * k + window).dp,
+                end = (f.outerSide + f.innerSide * k + window).dp, bottom = (f.outerBottom + f.innerBottom * k + window).dp,
+            ),
+            contentAlignment = BiasAlignment(style.hAlign.bias(), style.vAlign.bias()),
+        ) { p.Body(kind) }
+    }
+}
+
+@Composable
+private fun PlainPreview(kind: WidgetKind, style: WidgetStyle, modifier: Modifier) {
     val dark = isSystemInDarkTheme()
     val bg = if (style.themed) colorResource(if (dark) android.R.color.system_accent1_800 else android.R.color.system_accent1_100) else Color(style.bg)
     val fg = if (style.themed) colorResource(if (dark) android.R.color.system_accent1_100 else android.R.color.system_accent1_900) else Color(style.fg)
@@ -312,6 +345,8 @@ private fun P.Body(kind: WidgetKind) {
             val b = bmp
             if (b != null) {
                 Image(b.asImageBitmap(), "Photo", Modifier.fillMaxSize().clip(RoundedCornerShape((s.corner - s.borderWidth).coerceAtLeast(0).dp)), contentScale = ContentScale.Crop)
+            } else if (s.themeId != null) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+                T("Tap to add a photo", 11f, alpha = 0.8f, align = TextAlign.Center)
             } else Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(Icons.Rounded.Image, null, tint = fg, modifier = Modifier.size(36.dp))
                 T("Tap to pick a photo", 13f, align = TextAlign.Center)
@@ -345,6 +380,10 @@ private fun P.Body(kind: WidgetKind) {
         WidgetKind.WORK, WidgetKind.WEEK, WidgetKind.WATER, WidgetKind.MOOD, WidgetKind.TODO, WidgetKind.STEPS,
         WidgetKind.SCREEN_TIME, WidgetKind.MOON, WidgetKind.PRAYER, WidgetKind.FISH, WidgetKind.BUBBLES,
         WidgetKind.SWITCH, WidgetKind.COUPLE, WidgetKind.CAROUSEL -> NewBody(kind)
+        WidgetKind.BANNER -> Column(wide, horizontalAlignment = ha) {
+            T(s.bannerText, 28f, bold = true, modifier = wide)
+            if (s.bannerSub.isNotBlank()) T(s.bannerSub, 13f, alpha = 0.8f, modifier = wide)
+        }
         WidgetKind.QUOTE -> Column(wide, horizontalAlignment = ha) {
             val (q, a) = WidgetLogic.QUOTES[WidgetLogic.quoteIndex(LocalDate.now(), 0, WidgetLogic.QUOTES.size)]
             T("“$q”", 17f, italic = true, modifier = wide)

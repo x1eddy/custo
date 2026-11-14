@@ -154,6 +154,8 @@ fun CustoNavHost(initialRoute: Route? = null) {
                     Route.OverlayStickers -> app.custo.feature.overlays.StickersScreen(onBack = { nav.pop() })
                     Route.VideoWallpaper -> app.custo.feature.themes.VideoWallpaperScreen(onBack = { nav.pop() })
                     Route.Collage -> app.custo.feature.themes.CollageScreen(onBack = { nav.pop() })
+                    Route.WidgetSets -> app.custo.feature.widgetsets.WidgetSetsScreen(nav)
+                    is Route.WidgetSet -> app.custo.feature.widgetsets.WidgetSetScreen(target.id, nav)
                     else -> Unit
                 }
             }

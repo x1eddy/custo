@@ -134,6 +134,11 @@ class PhotoWidget : CustoWidget() {
                     GlanceModifier.fillMaxSize().padding(inset).cornerRadius((style.corner - style.borderWidth).coerceAtLeast(0).dp),
                     contentScale = ContentScale.Crop,
                 )
+            } else if (style.themeId != null) {
+                // The set's art fills the frame; just a small hint at the bottom.
+                Column(GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.Bottom, horizontalAlignment = Alignment.CenterHorizontally) {
+                    WText("Tap to add a photo", style = style.text(11f, alpha = 0.8f).copy(textAlign = TextAlign.Center), maxLines = 1)
+                }
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Image(ImageProvider(R.drawable.ic_photo), null, GlanceModifier.size(36.dp), colorFilter = ColorFilter.tint(fgProvider(style)))

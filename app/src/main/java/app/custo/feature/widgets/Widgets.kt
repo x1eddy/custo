@@ -56,7 +56,8 @@ enum class WidgetKind(
     BUBBLES("Bubble wrap", "Pop them all, then reset", WidgetCategory.FUN, BubblesReceiver::class.java, 170),
     SWITCH("Click switch", "A satisfying switch with a counter", WidgetCategory.FUN, SwitchReceiver::class.java, 130),
     COUPLE("Together", "Two photos, two names, days together", WidgetCategory.MEDIA, CoupleReceiver::class.java, 170),
-    CAROUSEL("Photo carousel", "Up to 20 photos that take turns", WidgetCategory.MEDIA, CarouselReceiver::class.java, 200);
+    CAROUSEL("Photo carousel", "Up to 20 photos that take turns", WidgetCategory.MEDIA, CarouselReceiver::class.java, 200),
+    BANNER("Banner", "A greeting in big letters", WidgetCategory.TOOLS, BannerReceiver::class.java, 90);
 
     /** False when the phone can't support this kind at all (it's hidden from the gallery). */
     fun available(context: Context): Boolean = when (this) {
@@ -97,6 +98,7 @@ enum class WidgetKind(
         SWITCH -> SwitchWidget()
         COUPLE -> CoupleWidget()
         CAROUSEL -> CarouselWidget()
+        BANNER -> BannerWidget()
     }
 }
 
@@ -125,11 +127,13 @@ object Widgets {
         w.kind.widget().update(context, w.glanceId)
     }
 
-    fun requestPin(context: Context, kind: WidgetKind): Boolean {
+    fun requestPin(context: Context, kind: WidgetKind, onAdded: android.app.PendingIntent? = null): Boolean {
         val awm = AppWidgetManager.getInstance(context)
         if (!awm.isRequestPinAppWidgetSupported) return false
-        return awm.requestPinAppWidget(ComponentName(context, kind.receiver), null, null)
+        return awm.requestPinAppWidget(ComponentName(context, kind.receiver), null, onAdded)
     }
+
+    fun pinSupported(context: Context): Boolean = AppWidgetManager.getInstance(context).isRequestPinAppWidgetSupported
 
     suspend fun bump(context: Context, widget: GlanceAppWidget, id: GlanceId) {
         updateAppWidgetState(context, id) { it[TICK_KEY] = System.currentTimeMillis() }

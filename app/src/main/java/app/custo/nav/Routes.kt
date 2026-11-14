@@ -61,4 +61,6 @@ sealed interface Route {
     data object OverlayStickers : Route
     data object VideoWallpaper : Route
     data object Collage : Route
+    data object WidgetSets : Route
+    data class WidgetSet(val id: String) : Route
 }

@@ -63,6 +63,9 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import app.custo.MainActivity
 import app.custo.R
+import app.custo.feature.widgetsets.ThemeArt
+import app.custo.feature.widgetsets.WidgetTheme
+import app.custo.feature.widgetsets.WidgetThemes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -181,6 +184,49 @@ internal fun currentStyle(): WidgetStyle = WidgetStyle.decode(currentState(Widge
  */
 @Composable
 internal fun Frame(style: WidgetStyle, onClick: Action?, padded: Boolean = true, content: @Composable () -> Unit) {
+    val theme = WidgetThemes.byId(style.themeId)
+    if (theme != null) ThemedFrame(style, theme, onClick, padded, content)
+    else PlainFrame(style, onClick, padded, content)
+}
+
+/** Accent for bars and rings: the set's accent when the widget belongs to one, else the text color. */
+@Composable
+internal fun accentProvider(style: WidgetStyle): ColorProvider {
+    val theme = WidgetThemes.byId(style.themeId) ?: return fgProvider(style)
+    val c = Color(if (theme.frame == app.custo.feature.widgetsets.FrameStyle.FROSTED) theme.palette.text else theme.palette.accent)
+    return androidx.glance.color.ColorProvider(c, c)
+}
+
+/** A widget from a set: the theme's frame and stickers as one bitmap, live content on top. */
+@Composable
+private fun ThemedFrame(style: WidgetStyle, theme: WidgetTheme, onClick: Action?, padded: Boolean, content: @Composable () -> Unit) {
+    val ctx = LocalContext.current
+    val size = LocalSize.current
+    val kind = remember(style.themeKind) { WidgetKind.entries.firstOrNull { it.name == style.themeKind } }
+    var m = GlanceModifier.fillMaxSize()
+    if (onClick != null) m = m.clickable(onClick)
+    Box(m) {
+        val bmp = remember(theme.id, kind, style.themeSlot, size) {
+            ThemeArt.widgetBitmap(ctx, theme, kind, style.themeSlot, size.width.value, size.height.value)
+        }
+        Image(ImageProvider(bmp), null, GlanceModifier.fillMaxSize(), contentScale = ContentScale.FillBounds)
+        val f = theme.frame
+        val k = if (padded) 1f else 0f
+        val window = if (padded) 0f else 3f
+        Box(
+            GlanceModifier.fillMaxSize().padding(
+                start = (f.outerSide + f.innerSide * k + window).dp, top = (f.outerTop + f.innerTop * k + window).dp,
+                end = (f.outerSide + f.innerSide * k + window).dp, bottom = (f.outerBottom + f.innerBottom * k + window).dp,
+            ),
+            contentAlignment = Alignment(style.hAlign.glance(), style.vAlign.glance()),
+        ) {
+            CompositionLocalProvider(LocalShadow provides (if (style.textShadow) style.shadowColor else null)) { content() }
+        }
+    }
+}
+
+@Composable
+private fun PlainFrame(style: WidgetStyle, onClick: Action?, padded: Boolean, content: @Composable () -> Unit) {
     val ctx = LocalContext.current
     val size = LocalSize.current
     var m = GlanceModifier.fillMaxSize().cornerRadius(style.corner.dp)

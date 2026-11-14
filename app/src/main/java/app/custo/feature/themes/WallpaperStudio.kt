@@ -57,6 +57,15 @@ class WallpaperStudio(private val context: Context) {
         bmp.recycle()
     }
 
+    /** Renders a drawn-in-code wallpaper (e.g. a widget set's) at screen size and sets it. */
+    suspend fun applyPainted(target: WallTarget, paint: (Canvas, Float, Float) -> Unit) = withContext(Dispatchers.Default) {
+        val (w, h) = screenSize()
+        val bmp = createBitmap(w, h)
+        paint(Canvas(bmp), w.toFloat(), h.toFloat())
+        withContext(Dispatchers.IO) { WallpaperManager.getInstance(context).setBitmap(bmp, null, true, target.flags) }
+        bmp.recycle()
+    }
+
     companion object {
         /** Full render: scene, softness (downscale + box blur) and grain. */
         fun render(spec: WallSpec, w: Int, h: Int): Bitmap {
