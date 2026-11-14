@@ -14,6 +14,11 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
     <uses-feature android:name="android.software.live_wallpaper" android:required="false" />
+    <!-- Widgets: water reminders, steps, and screen time (usage access is granted in Settings or via Shizuku). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions" />
+    <uses-feature android:name="android.hardware.sensor.stepcounter" android:required="false" />
     <!-- Lets Custo find the Shizuku app to show setup status. -->
     <queries>
         <package android:name="moe.shizuku.privileged.api" />
@@ -193,6 +198,70 @@
         <receiver android:name=".feature.widgets.QuoteReceiver" android:exported="false" android:label="Custo daily quote">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /><action android:name="android.intent.action.TIME_SET" /><action android:name="android.intent.action.TIMEZONE_CHANGED" /><action android:name="android.intent.action.LOCALE_CHANGED" /><action android:name="android.intent.action.DATE_CHANGED" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_quote" />
+        </receiver>
+
+        <receiver android:name=".feature.widgets.WorkReceiver" android:exported="false" android:label="Custo work countdown">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /><action android:name="android.intent.action.TIME_SET" /><action android:name="android.intent.action.TIMEZONE_CHANGED" /><action android:name="android.intent.action.LOCALE_CHANGED" /><action android:name="android.intent.action.DATE_CHANGED" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_work" />
+        </receiver>
+        <receiver android:name=".feature.widgets.WeekReceiver" android:exported="false" android:label="Custo days till Friday">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /><action android:name="android.intent.action.TIME_SET" /><action android:name="android.intent.action.TIMEZONE_CHANGED" /><action android:name="android.intent.action.LOCALE_CHANGED" /><action android:name="android.intent.action.DATE_CHANGED" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_week" />
+        </receiver>
+        <receiver android:name=".feature.widgets.WaterReceiver" android:exported="false" android:label="Custo water">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /><action android:name="android.intent.action.TIME_SET" /><action android:name="android.intent.action.TIMEZONE_CHANGED" /><action android:name="android.intent.action.LOCALE_CHANGED" /><action android:name="android.intent.action.DATE_CHANGED" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_water" />
+        </receiver>
+        <receiver android:name=".feature.widgets.MoodReceiver" android:exported="false" android:label="Custo mood">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /><action android:name="android.intent.action.TIME_SET" /><action android:name="android.intent.action.TIMEZONE_CHANGED" /><action android:name="android.intent.action.LOCALE_CHANGED" /><action android:name="android.intent.action.DATE_CHANGED" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_mood" />
+        </receiver>
+        <receiver android:name=".feature.widgets.TodoReceiver" android:exported="false" android:label="Custo to-do">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_todo" />
+        </receiver>
+        <receiver android:name=".feature.widgets.StepsReceiver" android:exported="false" android:label="Custo steps">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_steps" />
+        </receiver>
+        <receiver android:name=".feature.widgets.ScreenTimeReceiver" android:exported="false" android:label="Custo screen time">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_screen_time" />
+        </receiver>
+        <receiver android:name=".feature.widgets.MoonReceiver" android:exported="false" android:label="Custo moon &amp; sun">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /><action android:name="android.intent.action.TIME_SET" /><action android:name="android.intent.action.TIMEZONE_CHANGED" /><action android:name="android.intent.action.LOCALE_CHANGED" /><action android:name="android.intent.action.DATE_CHANGED" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_moon" />
+        </receiver>
+        <receiver android:name=".feature.widgets.PrayerReceiver" android:exported="false" android:label="Custo prayer times">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /><action android:name="android.intent.action.TIME_SET" /><action android:name="android.intent.action.TIMEZONE_CHANGED" /><action android:name="android.intent.action.LOCALE_CHANGED" /><action android:name="android.intent.action.DATE_CHANGED" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_prayer" />
+        </receiver>
+        <receiver android:name=".feature.widgets.FishReceiver" android:exported="false" android:label="Custo wooden fish">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_fish" />
+        </receiver>
+        <receiver android:name=".feature.widgets.BubblesReceiver" android:exported="false" android:label="Custo bubble wrap">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_bubbles" />
+        </receiver>
+        <receiver android:name=".feature.widgets.SwitchReceiver" android:exported="false" android:label="Custo click switch">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_switch" />
+        </receiver>
+        <receiver android:name=".feature.widgets.CoupleReceiver" android:exported="false" android:label="Custo together">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /><action android:name="android.intent.action.TIME_SET" /><action android:name="android.intent.action.TIMEZONE_CHANGED" /><action android:name="android.intent.action.LOCALE_CHANGED" /><action android:name="android.intent.action.DATE_CHANGED" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_couple" />
+        </receiver>
+        <receiver android:name=".feature.widgets.CarouselReceiver" android:exported="false" android:label="Custo photo carousel">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_carousel" />
+        </receiver>
+        <!-- Widget alarms (end of work, next prayer, carousel), water reminders and their "+1 glass" button. -->
+        <receiver android:name=".feature.widgets.WidgetTickReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
         </receiver>
 
         <service

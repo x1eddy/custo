@@ -43,7 +43,6 @@ import androidx.glance.layout.padding
 import androidx.glance.layout.size
 import androidx.glance.layout.width
 import androidx.glance.text.FontStyle
-import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import app.custo.R
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -69,8 +68,8 @@ class MediaWidget : CustoWidget() {
                 }
                 Spacer(GlanceModifier.width(12.dp))
                 Column(GlanceModifier.defaultWeight()) {
-                    Text(np?.title?.ifEmpty { null } ?: "Nothing playing", maxLines = 1, style = style.text(16f, bold = true).copy(textAlign = TextAlign.Start))
-                    Text(
+                    WText(np?.title?.ifEmpty { null } ?: "Nothing playing", maxLines = 1, style = style.text(16f, bold = true).copy(textAlign = TextAlign.Start))
+                    WText(
                         if (np == null) "Allow notification access in Custo → Widgets" else np.artist,
                         maxLines = 1, style = style.text(13f).copy(textAlign = TextAlign.Start),
                     )
@@ -113,7 +112,7 @@ class NoteWidget : CustoWidget() {
     override fun Content(context: Context, id: GlanceId) {
         val style = currentStyle()
         Frame(style, actionStartActivity(editIntent(context, id))) {
-            Text(style.note, style = style.text(17f), modifier = GlanceModifier.fillMaxWidth())
+            WText(style.note, style = style.text(17f), modifier = GlanceModifier.fillMaxWidth())
         }
     }
 }
@@ -139,7 +138,7 @@ class PhotoWidget : CustoWidget() {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Image(ImageProvider(R.drawable.ic_photo), null, GlanceModifier.size(36.dp), colorFilter = ColorFilter.tint(fgProvider(style)))
                     Spacer(GlanceModifier.height(6.dp))
-                    Text("Tap to pick a photo", style = style.text(13f).copy(textAlign = TextAlign.Center))
+                    WText("Tap to pick a photo", style = style.text(13f).copy(textAlign = TextAlign.Center))
                 }
             }
         }
@@ -161,7 +160,7 @@ class AppsWidget : CustoWidget() {
         val iconDp = ((size.width.value - style.padding * 2) / apps.size.coerceAtLeast(1) - 12f).coerceIn(28f, 56f) * style.textScale.coerceAtMost(1.3f)
         Frame(style, if (apps.isEmpty()) actionStartActivity(editIntent(context, id)) else null) {
             if (apps.isEmpty()) {
-                Text("Tap to pick apps", style = style.text(14f))
+                WText("Tap to pick apps", style = style.text(14f))
             } else {
                 Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     icons.forEachIndexed { i, (pkg, icon) ->
@@ -173,7 +172,7 @@ class AppsWidget : CustoWidget() {
                             if (icon != null) Image(ImageProvider(icon), labels[i], GlanceModifier.size(iconDp.dp))
                             if (style.showLabels) {
                                 Spacer(GlanceModifier.height(4.dp))
-                                Text(labels[i], maxLines = 1, style = style.text(11f).copy(textAlign = TextAlign.Center))
+                                WText(labels[i], maxLines = 1, style = style.text(11f).copy(textAlign = TextAlign.Center))
                             }
                         }
                     }
@@ -272,10 +271,10 @@ class QuoteWidget : CustoWidget() {
         val (quote, author) = WidgetLogic.QUOTES[WidgetLogic.quoteIndex(LocalDate.now(), offset, WidgetLogic.QUOTES.size)]
         Frame(style, actionRunCallback<NextQuoteAction>()) {
             Column(GlanceModifier.fillMaxWidth(), horizontalAlignment = style.hAlign.glance()) {
-                Text("“$quote”", style = style.text(17f).copy(fontStyle = FontStyle.Italic), modifier = GlanceModifier.fillMaxWidth())
+                WText("“$quote”", style = style.text(17f).copy(fontStyle = FontStyle.Italic), modifier = GlanceModifier.fillMaxWidth())
                 if (style.showAuthor) {
                     Spacer(GlanceModifier.height(6.dp))
-                    Text("— $author", style = style.text(13f, alpha = 0.75f), modifier = GlanceModifier.fillMaxWidth())
+                    WText("— $author", style = style.text(13f, alpha = 0.75f), modifier = GlanceModifier.fillMaxWidth())
                 }
             }
         }

@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Checklist
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material3.FilledTonalButton
@@ -74,7 +75,7 @@ fun WidgetsScreen(nav: Navigator) {
             }
         }
         WidgetCategory.entries.forEach { cat ->
-            val kinds = WidgetKind.entries.filter { it.category == cat }
+            val kinds = WidgetKind.entries.filter { it.category == cat && it.available(ctx) }
             item(key = "cat-${cat.name}") { SectionLabel(cat.label) }
             item(key = "row-${cat.name}") {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -82,6 +83,9 @@ fun WidgetsScreen(nav: Navigator) {
                         GalleryCard(kind, WidgetStyle(), Icons.Rounded.Add, "Add") { add(kind) }
                     }
                 }
+            }
+            if (cat == WidgetCategory.HABITS) item(key = "trackers") {
+                SectionCard("Your trackers", icon = Icons.Rounded.Checklist, subtitle = "Water, mood history and your to-do list", onClick = { nav.push(Route.WidgetTrackers) })
             }
             if (cat == WidgetCategory.MEDIA && !listenerOn) item(key = "listener") { app.custo.feature.overlays.NotificationAccessCard("Needed for the Now playing widget. Nothing is stored or sent.") }
         }
@@ -91,7 +95,7 @@ fun WidgetsScreen(nav: Navigator) {
 
 @Composable
 private fun GalleryCard(kind: WidgetKind, style: WidgetStyle, icon: androidx.compose.ui.graphics.vector.ImageVector, action: String, onClick: () -> Unit) {
-    val wide = kind.previewHeight < 110 || kind == WidgetKind.MEDIA
+    val wide = kind.previewHeight < 110 || kind == WidgetKind.MEDIA || kind == WidgetKind.COUPLE
     val width = if (wide) 280.dp else 200.dp
     Surface(
         Modifier.width(width).clip(MaterialTheme.shapes.large).clickable(onClick = onClick),

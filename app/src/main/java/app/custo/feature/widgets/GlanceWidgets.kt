@@ -12,6 +12,9 @@ import android.view.Gravity
 import android.view.View
 import android.widget.RemoteViews
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.TextUnit
@@ -132,6 +135,43 @@ internal fun WidgetStyle.text(size: Float, bold: Boolean = false, alpha: Float =
     textAlign = hAlign.text(),
 )
 
+/** Text shadow color for the widget being drawn, or null for none. Set by [Frame]. */
+internal val LocalShadow = compositionLocalOf<Int?> { null }
+
+/**
+ * Glance text with the widget's optional shadow. RemoteViews can't set a shadow layer,
+ * so the shadow is the same text drawn again, offset, underneath.
+ */
+@Composable
+internal fun WText(text: String, modifier: GlanceModifier = GlanceModifier, style: TextStyle = TextStyle(), maxLines: Int = Int.MAX_VALUE) {
+    val shadow = LocalShadow.current
+    if (shadow == null) {
+        Text(text, modifier, style, maxLines)
+        return
+    }
+    val align = when (style.textAlign) {
+        TextAlign.Start, TextAlign.Left -> Alignment.TopStart
+        TextAlign.End, TextAlign.Right -> Alignment.TopEnd
+        else -> Alignment.TopCenter
+    }
+    val o = 1.5.dp
+    Box(modifier, contentAlignment = align) {
+        Text(text, GlanceModifier.padding(start = o, top = o), style.copy(color = ColorProvider(Color(shadow))), maxLines)
+        Text(text, GlanceModifier.padding(end = o, bottom = o), style, maxLines)
+    }
+}
+
+/** Rough size buckets for responsive layouts. */
+enum class SizeClass { SMALL, WIDE, TALL, LARGE }
+
+@Composable
+internal fun sizeClass(): SizeClass {
+    val s = LocalSize.current
+    val w = s.width.value >= 200f
+    val h = s.height.value >= 200f
+    return when { w && h -> SizeClass.LARGE; w -> SizeClass.WIDE; h -> SizeClass.TALL; else -> SizeClass.SMALL }
+}
+
 @Composable
 internal fun currentStyle(): WidgetStyle = WidgetStyle.decode(currentState(Widgets.STYLE_KEY))
 
@@ -154,7 +194,9 @@ internal fun Frame(style: WidgetStyle, onClick: Action?, padded: Boolean = true,
         Box(
             GlanceModifier.fillMaxSize().padding((if (padded) style.padding else 0).dp),
             contentAlignment = Alignment(style.hAlign.glance(), style.vAlign.glance()),
-        ) { content() }
+        ) {
+            CompositionLocalProvider(LocalShadow provides (if (style.textShadow) style.shadowColor else null)) { content() }
+        }
     }
 }
 
@@ -185,8 +227,16 @@ abstract class CustoWidget : GlanceAppWidget() {
         provideContent { Content(context, id) }
     }
 
+    /** The widget body. Kinds that load data first override [provideGlance] instead. */
     @Composable
-    abstract fun Content(context: Context, id: GlanceId)
+    open fun Content(context: Context, id: GlanceId) = Unit
+}
+
+/** A widget with small (2×2), wide (4×2), tall (2×4) and large (4×4) layouts. */
+abstract class ResponsiveWidget : CustoWidget() {
+    override val sizeMode: SizeMode = SizeMode.Responsive(
+        setOf(DpSize(110.dp, 110.dp), DpSize(250.dp, 110.dp), DpSize(110.dp, 250.dp), DpSize(250.dp, 250.dp)),
+    )
 }
 
 /** Receiver that also refreshes on clock, locale and alarm changes (declared per widget in the manifest). */
@@ -354,10 +404,10 @@ class StopwatchWidget : CustoWidget() {
                     }
                     AndroidRemoteViews(rv, GlanceModifier.fillMaxWidth())
                 } else {
-                    Text(Stopwatch.format(elapsed), style = style.text(44f, bold = true))
+                    WText(Stopwatch.format(elapsed), style = style.text(44f, bold = true))
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(if (running) "Tap to pause" else if (elapsed > 0) "Paused" else "Tap to start", style = style.text(13f, alpha = 0.75f))
+                    WText(if (running) "Tap to pause" else if (elapsed > 0) "Paused" else "Tap to start", style = style.text(13f, alpha = 0.75f))
                     if (!running && elapsed > 0) {
                         Image(
                             ImageProvider(R.drawable.ic_reset), "Reset",

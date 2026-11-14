@@ -9,6 +9,7 @@ import app.custo.feature.icons.IconRepository
 import app.custo.feature.profiles.ProfileEngine
 import app.custo.feature.profiles.ProfilesRepository
 import app.custo.feature.themes.LooksRepository
+import app.custo.feature.widgets.HabitStore
 import app.custo.feature.themes.WallpaperStudio
 import app.custo.feature.systemui.StatusBarKeeper
 import app.custo.feature.systemui.SystemTweaks
@@ -31,6 +32,7 @@ class AppContainer(context: Context) {
     val backup = BackupManager(app, prefs, originals)
     val profiles = ProfilesRepository(prefs)
     val profileEngine = ProfileEngine(profiles, tweaks, shizuku)
+    val habits = HabitStore(app)
 
     /** Process-wide scope for fire-and-forget work (boot re-apply, tiles). */
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)

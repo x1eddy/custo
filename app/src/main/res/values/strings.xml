@@ -23,4 +23,18 @@
     <string name="listener_label">Custo edge lighting &amp; media</string>
     <string name="live_wallpaper_label">Custo live</string>
     <string name="live_wallpaper_desc">Your Custo wallpaper, slowly moving</string>
+    <string name="widget_work_desc">Time left at work</string>
+    <string name="widget_week_desc">Days till Friday or the weekend</string>
+    <string name="widget_water_desc">Water tracker</string>
+    <string name="widget_mood_desc">Mood calendar</string>
+    <string name="widget_todo_desc">To-do list</string>
+    <string name="widget_steps_desc">Steps today</string>
+    <string name="widget_screen_time_desc">Screen time today</string>
+    <string name="widget_moon_desc">Moon phase, sunrise and sunset</string>
+    <string name="widget_prayer_desc">Prayer times</string>
+    <string name="widget_fish_desc">Tap for merit</string>
+    <string name="widget_bubbles_desc">Bubble wrap to pop</string>
+    <string name="widget_switch_desc">A satisfying switch</string>
+    <string name="widget_couple_desc">Days together</string>
+    <string name="widget_carousel_desc">Photos that take turns</string>
 </resources>
