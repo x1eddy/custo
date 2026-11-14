@@ -1,0 +1,24 @@
+package app.custo
+
+import android.content.Context
+import app.custo.data.Prefs
+import app.custo.data.custoStore
+import app.custo.data.originalsStore
+import app.custo.feature.backup.BackupManager
+import app.custo.feature.themes.LooksRepository
+import app.custo.feature.themes.WallpaperStudio
+import app.custo.feature.systemui.SystemTweaks
+import app.custo.shizuku.OriginalsStore
+import app.custo.shizuku.ShizukuManager
+
+/** Manual dependency container: one instance per process, created by [CustoApp]. */
+class AppContainer(context: Context) {
+    val app: Context = context.applicationContext
+    val prefs = Prefs(app.custoStore)
+    val originals = OriginalsStore(app.originalsStore)
+    val shizuku = ShizukuManager(app)
+    val tweaks = SystemTweaks(shizuku, originals)
+    val wallpapers = WallpaperStudio(app)
+    val looks = LooksRepository(prefs)
+    val backup = BackupManager(app, prefs, originals)
+}
