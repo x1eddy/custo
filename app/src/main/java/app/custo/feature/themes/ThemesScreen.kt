@@ -30,6 +30,8 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Animation
+import androidx.compose.material.icons.rounded.Apps
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
@@ -42,6 +44,7 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -89,6 +92,7 @@ fun ThemesScreen(nav: Navigator) {
     var slot by remember { mutableIntStateOf(1) }
     var target by remember { mutableStateOf(WallTarget.BOTH) }
     var matchSystem by remember { mutableStateOf(true) }
+    var iconLook by remember { mutableStateOf<Look?>(null) }
 
     fun applyLook(look: Look) = runner.run("“${look.name}” applied") {
         c.wallpapers.apply(look.wall, WallTarget.BOTH)
@@ -96,9 +100,28 @@ fun ThemesScreen(nav: Navigator) {
             c.tweaks.applyMonet(look.seed, MonetStyle.of(look.style))
             look.hiddenIcons?.let { c.tweaks.setHiddenIcons(it.toSet()) }
         }
+        if (look.icons != null) iconLook = look
+    }
+
+    iconLook?.let { look ->
+        AlertDialog(
+            onDismissRequest = { iconLook = null },
+            title = { Text("Icons too?") },
+            text = { Text("“${look.name}” has its own icon style. Pick apps to give it?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    iconLook = null
+                    look.icons?.let { nav.push(Route.IconMaker(it.encode(), pickApps = true)) }
+                }) { Text("Pick apps") }
+            },
+            dismissButton = { TextButton(onClick = { iconLook = null }) { Text("Not now") } },
+        )
     }
 
     ScreenScaffold(title = "Themes") {
+        item {
+            SectionCard("Icons", Icons.Rounded.Apps, "Change app icons, make your own icon style, use icon packs.", onClick = { nav.push(Route.IconsHub) })
+        }
         item { SectionLabel("Looks") }
         item {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

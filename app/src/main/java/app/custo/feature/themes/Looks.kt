@@ -2,13 +2,17 @@ package app.custo.feature.themes
 
 import app.custo.data.Keys
 import app.custo.data.Prefs
+import app.custo.feature.icons.IconStyle
 import app.custo.feature.systemui.MonetStyle
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-/** A complete "look": wallpaper + system palette + status-bar icon set, applied in one tap. */
+/**
+ * A complete "look": wallpaper + system palette + status-bar icon set, applied in one tap.
+ * [icons] is an optional app-icon style (added later; null in older saved looks).
+ */
 @Serializable
 data class Look(
     val name: String,
@@ -17,6 +21,7 @@ data class Look(
     val style: String = MonetStyle.TONAL_SPOT.id,
     val hiddenIcons: List<String>? = null,
     val builtIn: Boolean = false,
+    val icons: IconStyle? = null,
 )
 
 val BUILT_IN_LOOKS = listOf(

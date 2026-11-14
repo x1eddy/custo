@@ -47,4 +47,13 @@ sealed interface Route {
     data object OverlaySidebar : Route
     data object LiveWallpaper : Route
     data object WallSchedule : Route
+
+    // Icons (Themes tab)
+    data object IconsHub : Route
+    data class IconChanger(val pkg: String? = null, val editId: String? = null) : Route
+    data class IconMaker(val styleJson: String? = null, val pickApps: Boolean = false) : Route
+    data object IconPacks : Route
+    data class IconPack(val pkg: String) : Route
+    data object ImportedIcons : Route
+    data object IconShortcuts : Route
 }

@@ -142,6 +142,13 @@ fun CustoNavHost(initialRoute: Route? = null) {
                     Route.OverlaySidebar -> SidebarScreen(onBack = { nav.pop() })
                     Route.LiveWallpaper -> LiveWallpaperScreen(onBack = { nav.pop() })
                     Route.WallSchedule -> WallScheduleScreen(onBack = { nav.pop() })
+                    Route.IconsHub -> app.custo.feature.icons.IconsHubScreen(nav)
+                    is Route.IconChanger -> app.custo.feature.icons.IconChangerScreen(nav, target.pkg, target.editId)
+                    is Route.IconMaker -> app.custo.feature.icons.IconMakerScreen(nav, target.styleJson, target.pickApps)
+                    Route.IconPacks -> app.custo.feature.icons.IconPacksScreen(nav)
+                    is Route.IconPack -> app.custo.feature.icons.IconPackScreen(target.pkg, nav)
+                    Route.ImportedIcons -> app.custo.feature.icons.ImportedIconsScreen(nav)
+                    Route.IconShortcuts -> app.custo.feature.icons.IconShortcutsScreen(nav)
                     else -> Unit
                 }
             }
