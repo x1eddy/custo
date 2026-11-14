@@ -123,7 +123,9 @@ fun WidgetSetsEntryCard(onClick: () -> Unit) {
                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                 )
                 Spacer(Modifier.height(10.dp))
-                FilledTonalButton(onClick = onClick) { Icon(Icons.Rounded.AutoAwesome, null); Text("  Browse sets") }
+                FilledTonalButton(onClick = onClick, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp)) {
+                    Icon(Icons.Rounded.AutoAwesome, null, Modifier.size(18.dp)); Text(" Browse", maxLines = 1, softWrap = false)
+                }
             }
             Box(Modifier.width(132.dp).height(130.dp)) {
                 WidgetThemes.all.take(3).forEachIndexed { i, t ->

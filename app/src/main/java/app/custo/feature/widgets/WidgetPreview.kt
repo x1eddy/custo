@@ -116,13 +116,16 @@ private fun VAlign.bias() = when (this) { VAlign.TOP -> -1f; VAlign.CENTER -> 0f
 internal class P(val s: WidgetStyle, val fg: Color, val bg: Color) {
     val font = s.font.compose()
 
+    /** Shrinks text when the preview is drawn smaller than a real widget (gallery tiles). */
+    var fit = 1f
+
     @Composable
     fun T(text: String, size: Float, modifier: Modifier = Modifier, bold: Boolean = false, alpha: Float = 1f, align: TextAlign = s.hAlign.textAlign(), italic: Boolean = false, color: Color = fg) {
         Text(
             text, modifier, color = color.copy(alpha = color.alpha * alpha), fontFamily = font,
             fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal,
             fontStyle = if (italic) FontStyle.Italic else FontStyle.Normal,
-            fontSize = (size * s.textScale).sp, lineHeight = (size * s.textScale * 1.15f).sp,
+            fontSize = (size * s.textScale * fit).sp, lineHeight = (size * s.textScale * fit * 1.15f).sp,
             textAlign = align, maxLines = 4, overflow = TextOverflow.Ellipsis,
             style = if (s.textShadow) TextStyle(shadow = Shadow(Color(s.shadowColor), Offset(2f, 2f), 3f)) else TextStyle.Default,
         )
@@ -154,7 +157,16 @@ private fun ThemedPreview(kind: WidgetKind, style: WidgetStyle, theme: WidgetThe
                 end = (f.outerSide + f.innerSide * k + window).dp, bottom = (f.outerBottom + f.innerBottom * k + window).dp,
             ),
             contentAlignment = BiasAlignment(style.hAlign.bias(), style.vAlign.bias()),
-        ) { p.Body(kind) }
+        ) { FitBody(p, kind) }
+    }
+}
+
+/** Measures the content area and scales preview text so it never wraps or overflows. */
+@Composable
+private fun FitBody(p: P, kind: WidgetKind) {
+    androidx.compose.foundation.layout.BoxWithConstraints(contentAlignment = BiasAlignment(p.s.hAlign.bias(), p.s.vAlign.bias())) {
+        p.fit = minOf(1f, maxWidth.value / 240f, maxHeight.value / 110f).coerceAtLeast(0.35f)
+        p.Body(kind)
     }
 }
 
@@ -175,7 +187,7 @@ private fun PlainPreview(kind: WidgetKind, style: WidgetStyle, modifier: Modifie
     Box(
         m.padding(if (padded) style.padding.dp else style.borderWidth.dp),
         contentAlignment = BiasAlignment(style.hAlign.bias(), style.vAlign.bias()),
-    ) { p.Body(kind) }
+    ) { FitBody(p, kind) }
 }
 
 private fun angleBrush(a: Color, b: Color, angle: Int): Brush = object : ShaderBrush() {
