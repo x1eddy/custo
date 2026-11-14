@@ -163,11 +163,27 @@ internal fun WidgetStyle.gravity(): Int =
 
 internal fun WidgetStyle.sp(base: Float): TextUnit = (base * textScale).sp
 
+/**
+ * How much the widget's text must shrink to fit its real size, set by [Frame]. 1 = full size.
+ * Big numbers take the full factor; small labels shrink at most to 80% so they stay readable.
+ */
+internal val LocalTextFit = compositionLocalOf { 1f }
+
+/** Reference content area a widget's base text sizes were designed for (a 2×2 widget). */
+private const val REF_W = 150f
+private const val REF_H = 120f
+
+@Composable
+private fun frameFit(style: WidgetStyle): Float {
+    val a = contentSize(style)
+    return minOf(1f, a.width.value / REF_W, a.height.value / REF_H).coerceAtLeast(0.35f)
+}
+
 /** Text style in the widget's font, color and scale. */
 @Composable
 internal fun WidgetStyle.text(size: Float, bold: Boolean = false, alpha: Float = 1f): TextStyle = TextStyle(
     color = fgProvider(this, alpha),
-    fontSize = sp(size),
+    fontSize = sp(size * LocalTextFit.current.let { f -> if (size >= 24f) f else maxOf(f, 0.8f) }),
     fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal,
     fontFamily = font.glance(),
     textAlign = hAlign.text(),
@@ -230,8 +246,11 @@ internal fun currentStyle(): WidgetStyle = WidgetStyle.decode(currentState(Widge
 @Composable
 internal fun Frame(style: WidgetStyle, onClick: Action?, padded: Boolean = true, content: @Composable () -> Unit) {
     val theme = WidgetThemes.byId(style.themeId)
-    if (theme != null) ThemedFrame(style, theme, onClick, padded, content)
-    else PlainFrame(style, onClick, padded, content)
+    val fit = frameFit(style)
+    androidx.compose.runtime.CompositionLocalProvider(LocalTextFit provides fit) {
+        if (theme != null) ThemedFrame(style, theme, onClick, padded, content)
+        else PlainFrame(style, onClick, padded, content)
+    }
 }
 
 /** Accent for bars and rings: the set's accent when the widget belongs to one, else the text color. */
@@ -305,11 +324,30 @@ internal fun editIntent(ctx: Context, glanceId: GlanceId): Intent {
 }
 
 /** Colors and scales TextViews/TextClocks inside a RemoteViews layout. */
-internal fun RemoteViews.styleText(style: WidgetStyle, vararg views: Pair<Int, Float>) {
+/**
+ * Colors and sizes system-drawn text. [fit] (from [TextFit]) shrinks everything together so it
+ * stays inside the widget. Sizes are in dp, so a large system font size can't push digits out.
+ */
+internal fun RemoteViews.styleText(style: WidgetStyle, vararg views: Pair<Int, Float>, fit: Float = 1f) {
     views.forEach { (id, base) ->
         if (style.themed) setColor(id, "setTextColor", R.color.widget_fg) else setTextColor(id, style.fg)
-        setTextViewTextSize(id, TypedValue.COMPLEX_UNIT_SP, base * style.textScale)
+        setTextViewTextSize(id, TypedValue.COMPLEX_UNIT_DIP, base * style.textScale * fit)
     }
+}
+
+/** The widget's current size minus its frame, so text can be fitted to the real space. */
+@Composable
+internal fun contentSize(style: WidgetStyle): DpSize {
+    val size = androidx.glance.LocalSize.current
+    val theme = app.custo.feature.widgetsets.WidgetThemes.byId(style.themeId)
+    val (padW, padH) = if (theme != null) {
+        val f = theme.frame
+        (f.outerSide + f.innerSide) * 2 to (f.outerTop + f.innerTop + f.outerBottom + f.innerBottom)
+    } else {
+        val p = (style.padding + style.borderWidth + 4).toFloat()
+        p * 2 to p * 2
+    }
+    return DpSize((size.width.value - padW).coerceAtLeast(1f).dp, (size.height.value - padH).coerceAtLeast(1f).dp)
 }
 
 internal fun fontLayout(font: WidgetFont, sans: Int, serif: Int, mono: Int, cursive: Int, pixel: Int, heavy: Int) = when (font) {
@@ -363,11 +401,16 @@ class ClockWidget : CustoWidget() {
     @Composable
     override fun Content(context: Context, id: GlanceId) {
         val style = currentStyle()
+        val area = contentSize(style)
         val rv = RemoteViews(context.packageName, clockLayout(style)).apply {
+            val h12 = !android.text.format.DateFormat.is24HourFormat(context)
             when (style.clock) {
-                ClockLook.BIG -> styleText(style, R.id.time to 56f, R.id.date to 15f)
-                ClockLook.STACKED -> styleText(style, R.id.time to 64f, R.id.time2 to 64f, R.id.date to 14f)
-                ClockLook.MINIMAL -> styleText(style, R.id.date to 14f, R.id.time to 34f)
+                ClockLook.BIG -> styleText(style, R.id.time to 56f, R.id.date to 15f, fit = TextFit.stack(area, style.textScale,
+                    TextFit.Line(56f, 5), TextFit.Line(15f, 17, style.showDate)))
+                ClockLook.STACKED -> styleText(style, R.id.time to 64f, R.id.time2 to 64f, R.id.date to 14f, fit = TextFit.stack(area, style.textScale,
+                    TextFit.Line(64f, 2), TextFit.Line(64f, 2), TextFit.Line(14f, 6, style.showDate)))
+                ClockLook.MINIMAL -> styleText(style, R.id.date to 14f, R.id.time to 34f, fit = TextFit.stack(area, style.textScale,
+                    TextFit.Line(14f, 9, style.showDate), TextFit.Line(34f, if (h12) 8 else 5)))
             }
             setViewVisibility(R.id.date, if (style.showDate) View.VISIBLE else View.GONE)
             setInt(R.id.root, "setGravity", style.gravity())
@@ -394,7 +437,13 @@ class HourWidget : CustoWidget() {
         val style = currentStyle()
         val layout = fontLayout(style.font, R.layout.clock_hour_sans, R.layout.clock_hour_serif, R.layout.clock_hour_mono, R.layout.clock_hour_cursive, R.layout.clock_hour_pixel, R.layout.clock_hour_heavy)
         val rv = RemoteViews(context.packageName, layout).apply {
-            styleText(style, R.id.time to 96f, R.id.time2 to 40f, R.id.date to 14f)
+            val area = contentSize(style)
+            // Big hour beside a small column (minutes over date): fit both the row width and the tall hour.
+            val fit = minOf(
+                TextFit.row(area, style.textScale, TextFit.Line(96f, 2), TextFit.Line(40f, 2)),
+                TextFit.stack(area, style.textScale, TextFit.Line(96f, 2)),
+            )
+            styleText(style, R.id.time to 96f, R.id.time2 to 40f, R.id.date to 14f, fit = fit)
             setViewVisibility(R.id.date, if (style.showDate) View.VISIBLE else View.GONE)
             setInt(R.id.root, "setGravity", style.gravity())
         }
@@ -450,6 +499,13 @@ class WorldWidget : CustoWidget() {
     override fun Content(context: Context, id: GlanceId) {
         val style = currentStyle()
         val layout = fontLayout(style.font, R.layout.world_row_sans, R.layout.world_row_serif, R.layout.world_row_mono, R.layout.world_row_cursive, R.layout.world_row_pixel, R.layout.world_row_heavy)
+        val rows = style.zones.take(3).size.coerceAtLeast(1)
+        val area = contentSize(style)
+        val rowArea = DpSize(area.width, (area.height.value / rows - 6f).coerceAtLeast(1f).dp)
+        val fit = minOf(
+            TextFit.row(rowArea, style.textScale, TextFit.Line(15f, 10), TextFit.Line(26f, 5)),
+            TextFit.stack(rowArea, style.textScale, TextFit.Line(26f, 5)),
+        )
         Frame(style, actionStartActivity(Intent(AlarmClock.ACTION_SHOW_ALARMS))) {
             Column(GlanceModifier.fillMaxWidth(), verticalAlignment = style.vAlign.glance()) {
                 style.zones.take(3).forEach { zone ->
@@ -457,7 +513,7 @@ class WorldWidget : CustoWidget() {
                         setTextViewText(R.id.label, cityName(zone))
                         setString(R.id.time, "setTimeZone", zone)
                         setString(R.id.date, "setTimeZone", zone)
-                        styleText(style, R.id.label to 15f, R.id.date to 12f, R.id.time to 26f)
+                        styleText(style, R.id.label to 15f, R.id.date to 12f, R.id.time to 26f, fit = fit)
                     }
                     AndroidRemoteViews(rv, GlanceModifier.fillMaxWidth().padding(vertical = 3.dp))
                 }
@@ -497,7 +553,9 @@ class StopwatchWidget : CustoWidget() {
                     val layout = fontLayout(style.font, R.layout.chrono_sans, R.layout.chrono_serif, R.layout.chrono_mono, R.layout.chrono_cursive, R.layout.chrono_pixel, R.layout.chrono_heavy)
                     val rv = RemoteViews(context.packageName, layout).apply {
                         setChronometer(R.id.chrono, base, null, true)
-                        styleText(style, R.id.chrono to 44f)
+                        // Leave room for the buttons under the time.
+                        val area = contentSize(style)
+                        styleText(style, R.id.chrono to 44f, fit = TextFit.stack(DpSize(area.width, area.height * 0.6f), style.textScale, TextFit.Line(44f, 5)))
                         setInt(R.id.root, "setGravity", style.gravity())
                     }
                     AndroidRemoteViews(rv, GlanceModifier.fillMaxWidth())
