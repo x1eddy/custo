@@ -22,4 +22,15 @@ sealed interface Route {
     data object QsEditor : Route
     data object Backup : Route
     data class WidgetEditor(val appWidgetId: Int) : Route
+    data object OverlayEdge : Route
+    data object OverlayNotifLight : Route
+    data object OverlayIsland : Route
+    data object OverlayBattery : Route
+    data object OverlayCharging : Route
+    data object OverlayCorners : Route
+    data object OverlayNetSpeed : Route
+    data object OverlayVolume : Route
+    data object OverlayButtons : Route
+    data object OverlayGestures : Route
+    data object OverlaySidebar : Route
 }
