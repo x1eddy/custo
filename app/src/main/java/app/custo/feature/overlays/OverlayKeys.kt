@@ -108,4 +108,19 @@ object OverlayKeys {
     val sidebarOffsetY = floatPreferencesKey("sidebar_offset_y")
     val sidebarApps = stringPreferencesKey("sidebar_apps") // csv of packages
     val sidebarActions = stringPreferencesKey("sidebar_actions") // csv of OverlayAction
+
+    // Control Center
+    val cc = booleanPreferencesKey("cc")
+    val ccZone = stringPreferencesKey("cc_zone") // CcZone
+    val ccZoneWidth = floatPreferencesKey("cc_zone_width") // fraction of screen width
+    val ccShowZone = booleanPreferencesKey("cc_show_zone")
+    val ccTiles = stringPreferencesKey("cc_tiles") // csv of CcTile
+    val ccApps = stringPreferencesKey("cc_apps") // csv of packages
+    val ccSkin = stringPreferencesKey("cc_skin") // CcSkin
+    val ccRadiusDp = floatPreferencesKey("cc_radius_dp")
+
+    // Home-screen stickers
+    val stickers = booleanPreferencesKey("stickers")
+    val stickerList = stringPreferencesKey("sticker_list") // StickerMath json
+    val stickerArrange = booleanPreferencesKey("sticker_arrange")
 }

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="video_wallpaper_label">Custo video</string>
+    <string name="video_wallpaper_desc">Your own video, looping quietly. Pauses when hidden.</string>
+</resources>

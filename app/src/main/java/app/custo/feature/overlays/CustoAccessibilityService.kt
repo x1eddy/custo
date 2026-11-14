@@ -46,6 +46,7 @@ class CustoAccessibilityService : AccessibilityService(), OverlayHost {
     private lateinit var edge: EdgeLightingOverlay
     private lateinit var notifLight: NotificationLightOverlay
     private lateinit var island: DynamicIslandOverlay
+    private lateinit var controlCenter: ControlCenterOverlay
 
     private var screenReceiver: BroadcastReceiver? = null
     private var powerReceiver: BroadcastReceiver? = null
@@ -62,13 +63,15 @@ class CustoAccessibilityService : AccessibilityService(), OverlayHost {
         edge = EdgeLightingOverlay(this)
         notifLight = NotificationLightOverlay(this)
         island = DynamicIslandOverlay(this)
+        controlCenter = ControlCenterOverlay(this)
+        actions.onControlCenter = { controlCenter.open() }
         val volume = VolumePanelOverlay(this)
         keys = VolumeKeys(this, volume)
         // Order matters a little: later windows draw on top of earlier ones.
         overlays = listOf(
-            ScreenTintOverlay(this), RoundedCornersOverlay(this), BatteryBarOverlay(this), NetSpeedOverlay(this),
+            ScreenTintOverlay(this), StickerOverlay(this), RoundedCornersOverlay(this), BatteryBarOverlay(this), NetSpeedOverlay(this),
             notifLight, StatusBarTapOverlay(this), EdgeGesturesOverlay(this), EdgeSidebarOverlay(this),
-            island, edge, ChargingAnimationOverlay(this), volume,
+            island, edge, ChargingAnimationOverlay(this), volume, controlCenter,
         )
         OverlayBus.serviceRunning.value = true
         scope.launch { container.prefs.data.collectLatest { p -> prefs = p; applyPrefs(p) } }
@@ -78,19 +81,29 @@ class CustoAccessibilityService : AccessibilityService(), OverlayHost {
         scope.launch { OverlayBus.islandNotif.collect { island.onNotification(it) } }
         scope.launch { OverlayBus.media.collect { island.setMedia(it) } }
         scope.launch { OverlayBus.timer.collect { island.setTimer(it) } }
+        scope.launch { ControlCenterBus.open.collect { controlCenter.open() } }
     }
 
     private var lastPkg: String? = null
-    private val ignoredPkgs by lazy {
+    private var lastFront: String? = null
+    /** Windows that sit on top of an app without replacing it: keyboards, the shade, system dialogs. */
+    private val transientPkgs by lazy {
         val ims = getSystemService(android.view.inputmethod.InputMethodManager::class.java)
             .inputMethodList.map { it.packageName }.toSet()
-        ims + setOf(packageName, "com.android.systemui", "android")
+        ims + setOf("com.android.systemui", "android")
     }
+    private val ignoredPkgs by lazy { transientPkgs + packageName }
 
-    /** Foreground-app changes drive per-app profiles. Only window-state events are subscribed. */
+    /** Foreground-app changes drive per-app profiles and home-only stickers. Only window-state events are subscribed. */
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event?.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
         val pkg = event.packageName?.toString() ?: return
+        // Custo's own overlay windows can report state changes too; only its activity counts as "in front".
+        val front = pkg !in transientPkgs && (pkg != packageName || event.className?.toString() == app.custo.MainActivity::class.java.name)
+        if (front && pkg != lastFront && ::overlays.isInitialized) {
+            lastFront = pkg
+            overlays.forEach { runCatching { it.onForegroundApp(pkg) } }
+        }
         if (pkg in ignoredPkgs || pkg == lastPkg) return
         lastPkg = pkg
         container.profileEngine.onForegroundApp(pkg)

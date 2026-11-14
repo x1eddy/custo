@@ -20,6 +20,8 @@ import androidx.compose.material.icons.rounded.RadioButtonChecked
 import androidx.compose.material.icons.rounded.RoundedCorner
 import androidx.compose.material.icons.rounded.SmartButton
 import androidx.compose.material.icons.rounded.Swipe
+import androidx.compose.material.icons.rounded.SpaceDashboard
+import androidx.compose.material.icons.rounded.EmojiEmotions
 import androidx.compose.material.icons.automirrored.rounded.ViewSidebar
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
@@ -94,6 +96,7 @@ fun OverlaysScreen(nav: Navigator) {
 
         item { SectionLabel("Screen") }
         item { HubCard("Rounded corners", Icons.Rounded.RoundedCorner, "Round off square screen corners", p, OverlayKeys.corners) { nav.push(Route.OverlayCorners) } }
+        item { HubCard("Stickers", Icons.Rounded.EmojiEmotions, "Cute stickers on your home screen", p, OverlayKeys.stickers) { nav.push(Route.OverlayStickers) } }
         item { HubCard("Network speed", Icons.Rounded.NetworkCheck, "Live up and down speed in the status bar", p, OverlayKeys.netSpeed) { nav.push(Route.OverlayNetSpeed) } }
         item {
             SectionCard("Screen tint", Icons.Rounded.Brightness6, "A color layer over everything. Stacks with Extra dim.") {
@@ -107,6 +110,7 @@ fun OverlaysScreen(nav: Navigator) {
         item { HubCard("Volume panel", Icons.AutoMirrored.Rounded.VolumeUp, "Your own volume slider, in four styles", p, Keys.volumePanelEnabled) { nav.push(Route.OverlayVolume) } }
         item { HubCard("Button actions", Icons.Rounded.SmartButton, "Double or long press volume keys", p, OverlayKeys.buttons) { nav.push(Route.OverlayButtons) } }
         item { HubCard("Edge gestures", Icons.Rounded.Swipe, "Tap or swipe the screen edges", p, OverlayKeys.gestures) { nav.push(Route.OverlayGestures) } }
+        item { HubCard("Control Center", Icons.Rounded.SpaceDashboard, "Pull down from the top edge for quick toggles and music", p, OverlayKeys.cc) { nav.push(Route.OverlayControlCenter) } }
         item { HubCard("Edge sidebar", Icons.AutoMirrored.Rounded.ViewSidebar, "Favorite apps and shortcuts from a side handle", p, OverlayKeys.sidebar) { nav.push(Route.OverlaySidebar) } }
         item {
             SectionCard("Double-tap to lock", Icons.Rounded.Lock, "Double-tap the middle of the status bar to lock.") {

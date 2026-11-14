@@ -30,6 +30,8 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Animation
+import androidx.compose.material.icons.rounded.Dashboard
+import androidx.compose.material.icons.rounded.Movie
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
@@ -186,6 +188,12 @@ fun ThemesScreen(nav: Navigator) {
         }
         item {
             SectionCard("Day & night", Icons.Rounded.Schedule, "Switch looks at set times.", onClick = { nav.push(Route.WallSchedule) })
+        }
+        item {
+            SectionCard("Video wallpaper", Icons.Rounded.Movie, "Loop one of your videos. Silent unless you want sound.", onClick = { nav.push(Route.VideoWallpaper) })
+        }
+        item {
+            SectionCard("Collage", Icons.Rounded.Dashboard, "Put 2 to 6 photos together as a wallpaper.", onClick = { nav.push(Route.Collage) })
         }
     }
 }

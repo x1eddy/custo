@@ -10,6 +10,9 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- Default ringtone pickers; granted through Shizuku (appops), never asked from the user. -->
     <uses-permission android:name="android.permission.WRITE_SETTINGS" tools:ignore="ProtectedPermissions" />
+    <!-- Control Center: Wi-Fi tile state and Do Not Disturb (only after the user grants access). -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
     <uses-feature android:name="android.software.live_wallpaper" android:required="false" />
     <!-- Lets Custo find the Shizuku app to show setup status. -->
     <queries>
@@ -194,6 +197,14 @@
             android:permission="android.permission.BIND_WALLPAPER">
             <intent-filter><action android:name="android.service.wallpaper.WallpaperService" /></intent-filter>
             <meta-data android:name="android.service.wallpaper" android:resource="@xml/live_wallpaper" />
+        </service>
+        <service
+            android:name=".feature.themes.VideoWallpaperService"
+            android:exported="true"
+            android:label="@string/video_wallpaper_label"
+            android:permission="android.permission.BIND_WALLPAPER">
+            <intent-filter><action android:name="android.service.wallpaper.WallpaperService" /></intent-filter>
+            <meta-data android:name="android.service.wallpaper" android:resource="@xml/video_wallpaper" />
         </service>
         <receiver android:name=".feature.themes.WallScheduleReceiver" android:exported="false">
             <intent-filter>

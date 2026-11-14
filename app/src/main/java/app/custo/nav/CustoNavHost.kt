@@ -142,6 +142,10 @@ fun CustoNavHost(initialRoute: Route? = null) {
                     Route.OverlaySidebar -> SidebarScreen(onBack = { nav.pop() })
                     Route.LiveWallpaper -> LiveWallpaperScreen(onBack = { nav.pop() })
                     Route.WallSchedule -> WallScheduleScreen(onBack = { nav.pop() })
+                    Route.OverlayControlCenter -> app.custo.feature.overlays.ControlCenterScreen(onBack = { nav.pop() })
+                    Route.OverlayStickers -> app.custo.feature.overlays.StickersScreen(onBack = { nav.pop() })
+                    Route.VideoWallpaper -> app.custo.feature.themes.VideoWallpaperScreen(onBack = { nav.pop() })
+                    Route.Collage -> app.custo.feature.themes.CollageScreen(onBack = { nav.pop() })
                     else -> Unit
                 }
             }
