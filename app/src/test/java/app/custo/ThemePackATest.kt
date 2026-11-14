@@ -1,6 +1,9 @@
 package app.custo
 
+import app.custo.feature.widgets.WidgetFont
 import app.custo.feature.widgets.WidgetKind
+import app.custo.feature.widgets.WidgetStyle
+import app.custo.feature.widgetsets.HudMode
 import app.custo.feature.widgetsets.SetLayout
 import app.custo.feature.widgetsets.ThemePackA
 import app.custo.feature.widgetsets.WidgetThemes
@@ -38,6 +41,20 @@ class ThemePackATest {
             val rows = SetLayout.rowsUsed(SetLayout.pack(t.widgets.map { it.cols to it.rows }))
             assertTrue("${t.name} uses $rows rows", rows <= 8)
             assertTrue(t.name, t.widgets.any { it.kind == WidgetKind.BANNER })
+        }
+    }
+
+    @Test fun gameSetsUseBundledFontsAndDrawTheirWidgetsAsGameUi() {
+        mapOf(ThemePackA.BLOCKY to WidgetFont.PIXEL, ThemePackA.BATTLE_ROYALE to WidgetFont.HEAVY).forEach { (t, font) ->
+            assertEquals(t.name, font, t.font)
+            assertNotNull(t.name, t.hud)
+            t.widgets.forEach { w -> assertNotNull("${t.name} ${w.kind}", t.hudMode(w.kind)) }
+            assertEquals(t.name, HudMode.BEHIND, t.hudMode(WidgetKind.CLOCK))
+            assertEquals(t.name, HudMode.SLOTS, t.hudMode(WidgetKind.APPS))
+            // App slots always hold every picked app.
+            for (apps in 0..6) assertTrue(t.hud!!.appSlots(apps, 330f, 40f) >= apps.coerceAtLeast(1))
+            // Saved styles keep the bundled font.
+            assertEquals(font, WidgetStyle.decode(t.styleForSetWidget(0).encode()).font)
         }
     }
 }

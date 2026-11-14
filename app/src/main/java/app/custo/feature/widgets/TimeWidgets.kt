@@ -45,7 +45,7 @@ internal fun timeFormat(ctx: Context): DateTimeFormatter =
 /** A system-drawn countdown to [untilMillis] (wall clock). It ticks without waking Custo. */
 @Composable
 internal fun Countdown(context: Context, style: WidgetStyle, untilMillis: Long, size: Float, modifier: GlanceModifier = GlanceModifier.fillMaxWidth()) {
-    val layout = fontLayout(style.font, R.layout.chrono_sans, R.layout.chrono_serif, R.layout.chrono_mono, R.layout.chrono_cursive)
+    val layout = fontLayout(style.font, R.layout.chrono_sans, R.layout.chrono_serif, R.layout.chrono_mono, R.layout.chrono_cursive, R.layout.chrono_pixel, R.layout.chrono_heavy)
     val rv = RemoteViews(context.packageName, layout).apply {
         val left = (untilMillis - System.currentTimeMillis()).coerceAtLeast(0)
         setChronometer(R.id.chrono, SystemClock.elapsedRealtime() + left, null, true)

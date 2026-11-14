@@ -23,7 +23,12 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         val widgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
-        val initial = if (widgetId != AppWidgetManager.INVALID_APPWIDGET_ID) Route.WidgetEditor(widgetId) else null
+        val debugSet = if (BuildConfig.DEBUG) intent.getStringExtra("debug_widget_set") else null
+        val initial = when {
+            widgetId != AppWidgetManager.INVALID_APPWIDGET_ID -> Route.WidgetEditor(widgetId)
+            debugSet != null -> Route.WidgetSet(debugSet)
+            else -> null
+        }
         setContent {
             CustoTheme {
                 val onboarded by container.prefs.flow(Keys.onboarded, false).collectAsStateWithLifecycle(initialValue = null)

@@ -166,27 +166,6 @@ internal object PackAArt {
     private const val DIRT_D = 0xFF6A4630.toInt()
     private const val DIRT_L = 0xFFA57A55.toInt()
 
-    val pickaxe: StickerArt = {
-        paPixels(14, 14) {
-            line(2, 11, 9, 4, WOOD)
-            put(WOOD_D, 3, 10, 5, 8, 7, 6)
-            put(GEM_L, 4, 2, 5, 1, 6, 1, 7, 1, 8, 1, 9, 2, 10, 3, 11, 4, 12, 5, 12, 6, 12, 7, 12, 8, 11, 9)
-            put(GEM_D, 6, 2, 7, 2, 8, 2, 9, 3, 10, 4, 11, 5, 11, 6, 11, 7)
-        }
-    }
-
-    val sword: StickerArt = {
-        paPixels(14, 14) {
-            line(12, 1, 6, 7, GEM_L)
-            line(11, 1, 5, 7, GEM)
-            this[12, 1] = WHITE
-            line(3, 6, 7, 10, GEM_D)
-            line(4, 9, 2, 11, WOOD)
-            line(5, 9, 3, 11, WOOD_D)
-            put(GEM_D, 1, 12, 2, 12)
-        }
-    }
-
     val slime: StickerArt = {
         val g = 0xFF8BE07A.toInt(); val d = 0xFF5DBB4C.toInt(); val e = 0xFF1F3B1A.toInt(); val w = 0xFFE4FFD9.toInt()
         paPixels(10, 10) {
@@ -199,36 +178,6 @@ internal object PackAArt {
         }
     }
 
-    val pixelTree: StickerArt = {
-        paPixels(12, 12) {
-            rect(2, 1, 9, 6, GRASS); rect(1, 2, 10, 5, GRASS)
-            put(GRASS_D, 3, 2, 7, 1, 8, 4, 2, 4, 5, 5, 6, 3, 9, 3, 4, 6)
-            put(GRASS_L, 4, 1, 3, 3, 6, 2, 8, 2, 1, 2, 5, 4)
-            rect(5, 7, 6, 10, WOOD)
-            put(WOOD_D, 5, 8, 6, 10)
-        }
-    }
-
-    val pixelSun: StickerArt = {
-        paPixels(10, 10) {
-            rect(1, 1, 8, 8, 0xFFFFB627.toInt())
-            rect(2, 2, 7, 7, 0xFFFFE15A.toInt())
-            put(0xFFFFF7C2.toInt(), 3, 3, 4, 3, 3, 4)
-        }
-    }
-
-    val gem: StickerArt = {
-        paPixels(12, 11) {
-            val rows = arrayOf(2 to (3..8), 3 to (2..9), 4 to (1..10), 5 to (2..9), 6 to (3..8), 7 to (4..7), 8 to (5..6))
-            for ((j, range) in rows) for (i in range) this[i, j] = when {
-                j <= 3 -> if (i < 6) GEM_L else GEM
-                i >= 6 -> GEM_D
-                else -> GEM
-            }
-            put(WHITE, 3, 3, 4, 3, 2, 4)
-        }
-    }
-
     val torch: StickerArt = {
         paPixels(10, 13) {
             rect(4, 6, 5, 11, WOOD)
@@ -237,18 +186,6 @@ internal object PackAArt {
             rect(3, 2, 6, 5, 0xFFFF7A1A.toInt())
             rect(4, 2, 5, 5, 0xFFFFC23A.toInt())
             put(0xFFFFF6B8.toInt(), 4, 4, 5, 4, 4, 5, 5, 5)
-        }
-    }
-
-    val grassBlock: StickerArt = {
-        paPixels(10, 10) {
-            rect(1, 1, 8, 8, DIRT)
-            rect(1, 1, 8, 2, GRASS)
-            put(GRASS, 1, 3, 3, 3, 4, 3, 7, 3, 4, 4)
-            put(GRASS_L, 2, 1, 5, 2, 7, 1)
-            put(GRASS_D, 3, 2, 8, 2, 1, 3)
-            put(DIRT_D, 2, 5, 5, 4, 7, 6, 3, 7, 6, 8, 8, 4)
-            put(DIRT_L, 4, 6, 8, 5, 1, 7, 6, 5, 2, 8)
         }
     }
 
@@ -559,14 +496,6 @@ internal object PackAArt {
         shape(poly(u + 0.06f * k, v - 0.36f * k, u - 0.16f * k, v + 0.04f * k, u, v + 0.04f * k, u - 0.06f * k, v + 0.36f * k, u + 0.17f * k, v - 0.07f * k, u + 0.02f * k, v - 0.07f * k, u + 0.12f * k, v - 0.36f * k), BR_YELLOW)
     }
 
-    val storm: StickerArt = {
-        val disc = circleP(0f, 0f, 0.43f)
-        paGfill(disc, 0xFFB47CFF.toInt(), 0xFF5A1BC4.toInt())
-        stroke(path { addArc(RectF(x(-0.32f), y(-0.32f), x(0.32f), y(0.32f)), 200f, 120f) }, lineW * 0.8f, 0xAAFFFFFF.toInt())
-        stroke(path { addArc(RectF(x(-0.24f), y(-0.24f), x(0.24f), y(0.24f)), 20f, 110f) }, lineW * 0.8f, 0x88FFFFFF.toInt())
-        bolt(0f, 0.02f, 0.9f)
-    }
-
     val island: StickerArt = {
         shape(poly(-0.42f, 0.04f, 0.42f, 0.04f, 0.22f, 0.26f, 0.06f, 0.46f, -0.08f, 0.32f, -0.26f, 0.24f), 0xFF8A6A55.toInt())
         tint(poly(0.1f, 0.08f, 0.36f, 0.08f, 0.2f, 0.24f, 0.08f, 0.38f), 0x33000000)
@@ -594,20 +523,6 @@ internal object PackAArt {
         }
     }
 
-    val lootChest: StickerArt = {
-        if (colorful) for (i in 0 until 8) {
-            val a = -PI.toFloat() + i * PI.toFloat() / 7
-            tint(poly(0f, -0.1f, cos(a - 0.08f) * 0.5f, -0.1f + sin(a - 0.08f) * 0.4f, cos(a + 0.08f) * 0.5f, -0.1f + sin(a + 0.08f) * 0.4f), 0x66FFE26B)
-        }
-        shape(rectP(-0.4f, -0.04f, 0.4f, 0.38f, 0.04f), BR_BLUE)
-        shape(path { m(-0.4f, -0.04f); l(-0.4f, -0.16f); q(-0.4f, -0.33f, -0.23f, -0.33f); l(0.23f, -0.33f); q(0.4f, -0.33f, 0.4f, -0.16f); l(0.4f, -0.04f); close() }, 0xFF4C97FF.toInt())
-        shape(rectP(-0.3f, -0.31f, -0.2f, 0.38f), GOLD)
-        shape(rectP(0.2f, -0.31f, 0.3f, 0.38f), GOLD)
-        shape(rectP(-0.08f, -0.12f, 0.08f, 0.08f, 0.02f), GOLD)
-        solid(circleP(0f, -0.04f, 0.025f), BLACK)
-        tint(rectP(-0.36f, -0.26f, -0.32f, -0.08f), 0x66FFFFFF)
-    }
-
     val supplyDrop: StickerArt = {
         val anchors = floatArrayOf(-0.41f, -0.14f, 0.14f, 0.41f)
         for (a in anchors) stroke(path { m(a, -0.14f); l(if (a < 0) -0.15f else 0.15f, 0.14f) }, lineW * 0.6f)
@@ -618,16 +533,6 @@ internal object PackAArt {
         shape(rectP(-0.2f, 0.12f, 0.2f, 0.47f, 0.02f), 0xFFE0A84A.toInt())
         stroke(path { m(-0.2f, 0.12f); l(0.2f, 0.47f); m(0.2f, 0.12f); l(-0.2f, 0.47f) }, lineW * 0.7f, if (colorful) 0xFFB07A2A.toInt() else ink.line)
         shape(rectP(-0.2f, 0.25f, 0.2f, 0.33f), BR_PURPLE)
-    }
-
-    val crown: StickerArt = {
-        shape(poly(-0.42f, 0.22f, -0.42f, -0.24f, -0.21f, -0.02f, 0f, -0.36f, 0.21f, -0.02f, 0.42f, -0.24f, 0.42f, 0.22f), BR_YELLOW)
-        tint(poly(-0.36f, 0.14f, -0.36f, -0.1f, -0.24f, 0.04f), 0x55FFFFFF)
-        shape(rectP(-0.45f, 0.14f, 0.45f, 0.38f, 0.04f), BR_PURPLE)
-        shape(circleP(-0.42f, -0.28f, 0.055f), 0xFF4CE0FF.toInt())
-        shape(circleP(0f, -0.4f, 0.06f), 0xFFFF5A8A.toInt())
-        shape(circleP(0.42f, -0.28f, 0.055f), 0xFF4CE0FF.toInt())
-        paLabel("#1", 0f, 0.26f, 0.2f, WHITE)
     }
 
     // ---------- Gamer RGB ----------
@@ -966,40 +871,6 @@ internal object PackAFrames {
         lineTo(l, t + 2 * p); lineTo(l + p, t + 2 * p); lineTo(l + p, t + p); lineTo(l + 2 * p, t + p); close()
     }
 
-    /** A grass-topped dirt block with pixel texture and stepped corners. */
-    val pixelBlock = FramePainter { c, theme, card, _, d, seed ->
-        val p = 3f * d
-        val body = stepped(card, p)
-        c.withSave { translate(p, p); drawPath(body, paint(0x66000000)) }
-        c.drawPath(body, paint(theme.palette.background))
-        val rnd = Random(seed + 101)
-        val cell = p * 2
-        val grassH = (cell * 3).coerceAtMost(card.height() * 0.3f)
-        c.withSave {
-            clipPath(body)
-            var y = card.top
-            while (y < card.bottom) {
-                var x = card.left
-                while (x < card.right) {
-                    val roll = rnd.nextFloat()
-                    if (roll < 0.18f) drawRect(x, y, x + cell, y + cell, paint(0xFF6A4630.toInt()))
-                    else if (roll < 0.3f) drawRect(x, y, x + cell, y + cell, paint(0xFFA57A55.toInt()))
-                    x += cell
-                }
-                y += cell
-            }
-            var x = card.left
-            while (x < card.right) {
-                val drip = cell * rnd.nextInt(0, 3)
-                drawRect(x, card.top, x + cell, card.top + grassH + drip, paint(theme.palette.accent))
-                if (rnd.nextFloat() < 0.4f) drawRect(x, card.top + cell * rnd.nextInt(0, 2), x + cell, card.top + cell * rnd.nextInt(1, 3), paint(0xFF83CF56.toInt()))
-                if (drip > 0) drawRect(x, card.top + grassH + drip - p, x + cell, card.top + grassH + drip, paint(0xFF3F8A2A.toInt()))
-                x += cell
-            }
-        }
-        c.drawPath(body, paint(0xFF1C1A1E.toInt(), Paint.Style.STROKE, 1.8f * d).apply { strokeJoin = Paint.Join.MITER })
-    }
-
     /** Terminal window: title bar with dots, scanlines, green outline and a cursor block. */
     val terminal = FramePainter { c, theme, card, r, d, _ ->
         val green = theme.palette.accent
@@ -1074,26 +945,6 @@ internal object PackAFrames {
         c.drawLine(card.right - cut, card.bottom, card.right, card.bottom - cut, accent)
         val tick = paint(alpha(pal.text, 0.6f), Paint.Style.STROKE, 1f * d)
         for (i in 0 until 3) c.drawLine(card.right - (8f + i * 4f) * d, card.top + 4f * d, card.right - (8f + i * 4f) * d, card.top + 7f * d, tick)
-    }
-
-    /** Chunky cartoon panel: purple gradient, bold outline, offset shadow and a yellow gleam. */
-    val battlePanel = FramePainter { c, theme, card, r, d, _ ->
-        val pal = theme.palette
-        val o = 4f * d
-        c.drawRoundRect(RectF(card.left + o, card.top + o, card.right + o, card.bottom + o), r, r, paint(pal.line))
-        c.drawRoundRect(card, r, r, paint(0xFF000000.toInt()).apply {
-            shader = LinearGradient(0f, card.top, 0f, card.bottom, PackAKit.shade(pal.background, 1.18f), PackAKit.shade(pal.background, 0.7f), Shader.TileMode.CLAMP)
-        })
-        c.withSave {
-            clipPath(Path().apply { addRoundRect(card, r, r, Path.Direction.CW) })
-            drawRect(card.left, card.top, card.right, card.top + card.height() * 0.42f, paint(0x1AFFFFFF))
-        }
-        c.drawRoundRect(card, r, r, paint(pal.line, Paint.Style.STROKE, 3f * d))
-        val inset = 5f * d
-        val gleam = paint(pal.accent, Paint.Style.STROKE, 3f * d)
-        val arc = RectF(card.left + inset, card.top + inset, card.left + inset + r * 1.4f, card.top + inset + r * 1.4f)
-        c.drawArc(arc, 190f, 55f, false, gleam)
-        c.drawPoint(card.left + inset + r * 1.0f, card.top + inset + 0.5f * d, gleam)
     }
 
     /** Dark card wrapped in a rainbow glow; the gradient's start turns with the slot. */

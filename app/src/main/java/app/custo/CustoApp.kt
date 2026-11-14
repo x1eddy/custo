@@ -9,6 +9,7 @@ class CustoApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        app.custo.feature.widgets.WidgetFonts.init(this)
         container = AppContainer(this)
         container.shizuku.start()
         container.statusBarKeeper.watch(container.appScope)

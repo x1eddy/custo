@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:gravity="center" android:orientation="vertical">
+    <TextClock android:shadowColor="#B3202020" android:shadowDx="5" android:shadowDy="5" android:shadowRadius="0.01"
+        android:id="@+id/time" android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:format12Hour="h:mm" android:format24Hour="HH:mm" android:fontFamily="@font/custo_pixel"
+        android:textSize="56sp" android:includeFontPadding="false" />
+    <TextClock android:shadowColor="#B3202020" android:shadowDx="2" android:shadowDy="2" android:shadowRadius="0.01"
+        android:id="@+id/date" android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:format12Hour="EEEE, MMM d" android:format24Hour="EEEE, d MMM" android:fontFamily="@font/custo_pixel" android:textSize="15sp" />
+</LinearLayout>

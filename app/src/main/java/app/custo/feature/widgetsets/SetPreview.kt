@@ -9,6 +9,7 @@ import android.util.LruCache
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.withTranslation
 import app.custo.feature.widgets.WidgetFont
+import app.custo.feature.widgets.WidgetFonts
 import app.custo.feature.widgets.WidgetKind
 import app.custo.feature.widgets.WidgetLogic
 import app.custo.feature.widgets.WidgetStyle
@@ -55,15 +56,18 @@ object SetPreviews {
         val (cw, ch) = SetLayout.cellSize(right - left, bottom - top, 4, SetLayout.rowsUsed(cells))
         val boxes = SetLayout.boxes(cells, left, top, cw, ch)
         val today = LocalDate.now()
+        val hud = HudData.sample(today)
         boxes.forEachIndexed { i, b ->
             val sw = theme.widgets[i]
             val style = theme.styleForSetWidget(i, today)
             c.withTranslation(b.left, b.top) {
-                ThemeArt.drawWidget(this, theme, sw.kind, style.themeSlot, b.width, b.height, d)
-                val card = ThemeArt.cardRect(theme, b.width, b.height, d)
-                val f = theme.frame
-                val content = RectF(card.left + f.innerSide * d, card.top + f.innerTop * d, card.right - f.innerSide * d, card.bottom - f.innerBottom * d)
-                MiniContent(this, theme, style, d, today).draw(sw.kind, content)
+                ThemeArt.drawWidget(this, theme, sw.kind, style.themeSlot, b.width, b.height, d, style, hud)
+                // Kinds a theme HUD draws are complete already; clocks still get their (sample) time on top.
+                val mode = theme.hudMode(sw.kind)
+                if (mode == null || mode == HudMode.BEHIND) {
+                    val content = ThemeArt.contentRect(theme, ThemeArt.cardRect(theme, b.width, b.height, d), d)
+                    MiniContent(this, theme, style, d, today).draw(sw.kind, content)
+                }
             }
         }
         dock(c, theme, wf, hf, d)
@@ -107,6 +111,8 @@ internal fun WidgetFont.typeface(bold: Boolean): Typeface {
         WidgetFont.SERIF -> Typeface.create(Typeface.SERIF, style)
         WidgetFont.MONO -> Typeface.create(Typeface.MONOSPACE, style)
         WidgetFont.CURSIVE -> Typeface.create("cursive", style)
+        // Bundled faces are already as heavy as they get; never fake-bold them.
+        WidgetFont.PIXEL, WidgetFont.HEAVY -> WidgetFonts.typeface(this)
     }
 }
 
@@ -162,7 +168,18 @@ private class MiniContent(val c: Canvas, val theme: WidgetTheme, val ws: WidgetS
         if (r.width() < 8 || r.height() < 8) return
         val h = r.height()
         when (kind) {
-            WidgetKind.CLOCK, WidgetKind.HOUR -> stack(r, listOf(
+            WidgetKind.CLOCK -> if (ws.font == WidgetFont.HEAVY) {
+                // Matches clock_big_heavy.xml: big time, date on the bottom edge.
+                val date = today.format(DateTimeFormatter.ofPattern("EEEE, d MMM", loc)).uppercase(loc)
+                val dp = fit(text(min(h * 0.13f, 14 * d)), date, r.width())
+                c.drawText(date, r.centerX(), r.bottom - dp.fontMetrics.descent, dp)
+                val dh = dp.fontMetrics.let { it.descent - it.ascent }
+                stack(RectF(r.left, r.top, r.right, r.bottom - dh), listOf("10:08" to text(min(h * 0.5f, r.width() / 2.2f))))
+            } else stack(r, listOf(
+                "10:08" to text(min(h * 0.45f, r.width() / 2.6f), bold = true),
+                today.format(DateTimeFormatter.ofPattern("EEE, d MMM", loc)) to text(min(h * 0.13f, 14 * d), alpha = 0.85f),
+            ))
+            WidgetKind.HOUR -> stack(r, listOf(
                 "10:08" to text(min(h * 0.45f, r.width() / 2.6f), bold = true),
                 today.format(DateTimeFormatter.ofPattern("EEE, d MMM", loc)) to text(min(h * 0.13f, 14 * d), alpha = 0.85f),
             ))

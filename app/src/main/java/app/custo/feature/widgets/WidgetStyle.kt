@@ -4,7 +4,8 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 enum class ClockLook(val label: String) { BIG("Big"), STACKED("Stacked"), MINIMAL("Minimal") }
-enum class WidgetFont(val label: String) { SANS("Sans"), SERIF("Serif"), MONO("Mono"), CURSIVE("Script") }
+/** Widget text faces. [PIXEL] and [HEAVY] are bundled fonts (see [WidgetFonts]); the rest are system families. */
+enum class WidgetFont(val label: String) { SANS("Sans"), SERIF("Serif"), MONO("Mono"), CURSIVE("Script"), PIXEL("Pixel"), HEAVY("Heavy") }
 enum class HAlign(val label: String) { START("Left"), CENTER("Center"), END("Right") }
 enum class VAlign(val label: String) { TOP("Top"), CENTER("Middle"), BOTTOM("Bottom") }
 enum class DialStyle(val label: String) { MINIMAL("Minimal"), CLASSIC("Classic"), DOTS("Dots"), BOLD("Bold"), RING("Ring") }

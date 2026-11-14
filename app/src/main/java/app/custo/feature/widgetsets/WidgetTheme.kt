@@ -81,6 +81,45 @@ fun interface FramePainter {
     fun paint(c: Canvas, theme: WidgetTheme, card: android.graphics.RectF, r: Float, d: Float, seed: Int)
 }
 
+/**
+ * How a theme's HUD (see [ThemeHud]) takes part in one widget kind:
+ * [BEHIND] draws a backdrop and the widget's own content goes on top (live clocks),
+ * [REPLACE] draws the whole content from [HudData] (no Glance text at all),
+ * [SLOTS] draws slots that the widget fills with app icons (see [ThemeHud.appSlots]).
+ */
+enum class HudMode { BEHIND, REPLACE, SLOTS }
+
+/** Live values a HUD shows. Kept small and comparable so widget bitmaps can be cached on it. */
+data class HudData(
+    val today: LocalDate,
+    val battery: Int,
+    val charging: Boolean,
+    val locale: java.util.Locale = java.util.Locale.getDefault(),
+) {
+    companion object {
+        /** What gallery previews show. */
+        fun sample(today: LocalDate = LocalDate.now()) = HudData(today, 76, false)
+    }
+}
+
+/**
+ * Lets a theme draw a widget's content itself, game-UI style (hearts for battery, a hotbar for apps...).
+ * The same code paints home-screen widget bitmaps, in-app previews and the gallery cards, so all three match.
+ */
+interface ThemeHud {
+    /** How [kind] is handled, or null to leave it to the normal widget content. */
+    fun mode(kind: WidgetKind): HudMode?
+
+    /**
+     * Draws [kind]'s content. [content] is the card's content area (card minus the frame's inner insets),
+     * [card] the whole card, [d] pixels per dp.
+     */
+    fun draw(c: Canvas, theme: WidgetTheme, kind: WidgetKind, style: WidgetStyle, data: HudData, card: android.graphics.RectF, content: android.graphics.RectF, d: Float)
+
+    /** For [HudMode.SLOTS]: how many equal slots to draw across [w] x [h] (dp) for [apps] apps. */
+    fun appSlots(apps: Int, w: Float, h: Float): Int = apps.coerceAtLeast(1)
+}
+
 /** How stickers are inked: full color with an outline, or line art in one color. */
 enum class InkStyle { COLOR, LINE }
 
@@ -129,7 +168,12 @@ data class WidgetTheme(
     val corner: Float = 22f,
     /** Overrides how [frame] is drawn (its insets still come from [frame]). */
     val framePainter: FramePainter? = null,
+    /** Draws some widgets' content as game UI (see [ThemeHud]). */
+    val hud: ThemeHud? = null,
 ) {
+    /** The HUD mode for [kind], or null when this theme has no HUD for it. */
+    fun hudMode(kind: WidgetKind?): HudMode? = kind?.let { hud?.mode(it) }
+
     fun decorationsFor(kind: WidgetKind?, slot: Int): List<Decoration> {
         val variants = kind?.let { decorations[it] } ?: fallbackDecorations
         if (variants.isEmpty()) return emptyList()

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Heavy display face: the time fills the card and the date sits on the bottom edge (a name plate in the set art). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:gravity="center" android:orientation="vertical">
+    <TextClock android:id="@+id/time" android:layout_width="wrap_content" android:layout_height="0dp" android:layout_weight="1"
+        android:gravity="center" android:format12Hour="h:mm" android:format24Hour="HH:mm" android:fontFamily="@font/custo_heavy"
+        android:textSize="56sp" android:includeFontPadding="false"
+        android:shadowColor="#AA000000" android:shadowDx="0" android:shadowDy="6" android:shadowRadius="0.01" />
+    <TextClock android:id="@+id/date" android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:format12Hour="EEEE, MMM d" android:format24Hour="EEEE, d MMM" android:fontFamily="@font/custo_heavy"
+        android:textAllCaps="true" android:textSize="15sp" android:includeFontPadding="false" android:letterSpacing="0.04"
+        android:shadowColor="#AA000000" android:shadowDx="0" android:shadowDy="2" android:shadowRadius="0.01" />
+</LinearLayout>

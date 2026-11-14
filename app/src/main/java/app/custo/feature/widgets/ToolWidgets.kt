@@ -45,6 +45,8 @@ import androidx.glance.layout.width
 import androidx.glance.text.FontStyle
 import androidx.glance.text.TextAlign
 import app.custo.R
+import app.custo.feature.widgetsets.HudMode
+import app.custo.feature.widgetsets.WidgetThemes
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import java.time.LocalDate
@@ -163,8 +165,30 @@ class AppsWidget : CustoWidget() {
         val labels = remember(apps) { apps.map { WidgetArt.appLabel(context, it) } }
         val size = LocalSize.current
         val iconDp = ((size.width.value - style.padding * 2) / apps.size.coerceAtLeast(1) - 12f).coerceIn(28f, 56f) * style.textScale.coerceAtMost(1.3f)
+        val theme = WidgetThemes.byId(style.themeId)
+        val slotted = theme?.hudMode(WidgetKind.APPS) == HudMode.SLOTS
         Frame(style, if (apps.isEmpty()) actionStartActivity(editIntent(context, id)) else null) {
-            if (apps.isEmpty()) {
+            if (slotted && theme != null) {
+                // The set draws a row of slots; each app sits centered in its slot.
+                val f = theme.frame
+                val w = size.width.value - 2 * (f.outerSide + f.innerSide)
+                val h = size.height.value - (f.outerTop + f.innerTop + f.outerBottom + f.innerBottom)
+                val n = theme.hud!!.appSlots(apps.size, w, h)
+                val slotDp = minOf(w / n, h) * 0.62f
+                Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    for (i in 0 until n) {
+                        val pair = icons.getOrNull(i)
+                        val launch = pair?.let { context.packageManager.getLaunchIntentForPackage(it.first) }
+                        Box(
+                            GlanceModifier.defaultWeight().then(if (launch != null) GlanceModifier.clickable(actionStartActivity(launch)) else GlanceModifier),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            val icon = pair?.second
+                            if (icon != null) Image(ImageProvider(icon), labels[i], GlanceModifier.size(slotDp.dp))
+                        }
+                    }
+                }
+            } else if (apps.isEmpty()) {
                 WText("Tap to pick apps", style = style.text(14f))
             } else {
                 Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {

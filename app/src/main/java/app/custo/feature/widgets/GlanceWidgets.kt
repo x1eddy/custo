@@ -17,6 +17,7 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -63,6 +64,8 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import app.custo.MainActivity
 import app.custo.R
+import app.custo.feature.widgetsets.HudData
+import app.custo.feature.widgetsets.HudMode
 import app.custo.feature.widgetsets.ThemeArt
 import app.custo.feature.widgetsets.WidgetTheme
 import app.custo.feature.widgetsets.WidgetThemes
@@ -102,6 +105,38 @@ internal fun WidgetFont.glance(): FontFamily = when (this) {
     WidgetFont.SERIF -> FontFamily.Serif
     WidgetFont.MONO -> FontFamily.Monospace
     WidgetFont.CURSIVE -> FontFamily.Cursive
+    // Glance can't load app fonts: these names are markers that [WText] draws with a font TextView.
+    WidgetFont.PIXEL -> PIXEL_FAMILY
+    WidgetFont.HEAVY -> HEAVY_FAMILY
+}
+
+private val PIXEL_FAMILY = FontFamily("custo-pixel")
+private val HEAVY_FAMILY = FontFamily("custo-heavy")
+
+/** The RemoteViews text layout for a bundled-font marker family, or null for system families. */
+private fun FontFamily?.fontTextLayout(): Int? = when (this?.family) {
+    PIXEL_FAMILY.family -> R.layout.text_pixel
+    HEAVY_FAMILY.family -> R.layout.text_heavy
+    else -> null
+}
+
+/** Text in a bundled font: a RemoteViews TextView whose layout names the font. */
+@Composable
+private fun FontText(layout: Int, text: String, modifier: GlanceModifier, style: TextStyle, maxLines: Int, color: ColorProvider? = null) {
+    val ctx = LocalContext.current
+    val rv = RemoteViews(ctx.packageName, layout).apply {
+        setTextViewText(R.id.text, text)
+        setTextColor(R.id.text, (color ?: style.color).getColor(ctx).toArgb())
+        setTextViewTextSize(R.id.text, TypedValue.COMPLEX_UNIT_SP, style.fontSize?.value ?: 14f)
+        setInt(R.id.text, "setMaxLines", maxLines.coerceIn(1, 20))
+        val g = when (style.textAlign) {
+            TextAlign.Start, TextAlign.Left -> Gravity.START
+            TextAlign.End, TextAlign.Right -> Gravity.END
+            else -> Gravity.CENTER_HORIZONTAL
+        }
+        setInt(R.id.text, "setGravity", g or Gravity.CENTER_VERTICAL)
+    }
+    AndroidRemoteViews(rv, modifier)
 }
 
 internal fun HAlign.glance(): Alignment.Horizontal = when (this) {
@@ -148,6 +183,16 @@ internal val LocalShadow = compositionLocalOf<Int?> { null }
 @Composable
 internal fun WText(text: String, modifier: GlanceModifier = GlanceModifier, style: TextStyle = TextStyle(), maxLines: Int = Int.MAX_VALUE) {
     val shadow = LocalShadow.current
+    val fontLayout = style.fontFamily.fontTextLayout()
+    if (fontLayout != null) {
+        if (shadow == null) FontText(fontLayout, text, modifier, style, maxLines)
+        else Box(modifier) {
+            val o = 1.5.dp
+            FontText(fontLayout, text, GlanceModifier.fillMaxWidth().padding(start = o, top = o), style, maxLines, ColorProvider(Color(shadow)))
+            FontText(fontLayout, text, GlanceModifier.fillMaxWidth().padding(end = o, bottom = o), style, maxLines)
+        }
+        return
+    }
     if (shadow == null) {
         Text(text, modifier, style, maxLines)
         return
@@ -205,9 +250,13 @@ private fun ThemedFrame(style: WidgetStyle, theme: WidgetTheme, onClick: Action?
     val kind = remember(style.themeKind) { WidgetKind.entries.firstOrNull { it.name == style.themeKind } }
     var m = GlanceModifier.fillMaxSize()
     if (onClick != null) m = m.clickable(onClick)
+    // A HUD draws some kinds' content into the bitmap (hearts, hotbars...), from live values.
+    val mode = if (padded) theme.hudMode(kind) else null
+    val hud = if (mode != null) readBattery(ctx).let { b -> HudData(java.time.LocalDate.now(), b.level, b.charging, ctx.resources.configuration.locales[0]) } else null
+    val hudStyle = if (mode != null) style else null
     Box(m) {
-        val bmp = remember(theme.id, kind, style.themeSlot, size) {
-            ThemeArt.widgetBitmap(ctx, theme, kind, style.themeSlot, size.width.value, size.height.value)
+        val bmp = remember(theme.id, kind, style.themeSlot, size, hud, hudStyle) {
+            ThemeArt.widgetBitmap(ctx, theme, kind, style.themeSlot, size.width.value, size.height.value, hudStyle, hud)
         }
         Image(ImageProvider(bmp), null, GlanceModifier.fillMaxSize(), contentScale = ContentScale.FillBounds)
         val f = theme.frame
@@ -220,7 +269,9 @@ private fun ThemedFrame(style: WidgetStyle, theme: WidgetTheme, onClick: Action?
             ),
             contentAlignment = Alignment(style.hAlign.glance(), style.vAlign.glance()),
         ) {
-            CompositionLocalProvider(LocalShadow provides (if (style.textShadow) style.shadowColor else null)) { content() }
+            if (mode != HudMode.REPLACE) {
+                CompositionLocalProvider(LocalShadow provides (if (style.textShadow) style.shadowColor else null)) { content() }
+            }
         }
     }
 }
@@ -261,8 +312,9 @@ internal fun RemoteViews.styleText(style: WidgetStyle, vararg views: Pair<Int, F
     }
 }
 
-internal fun fontLayout(font: WidgetFont, sans: Int, serif: Int, mono: Int, cursive: Int) = when (font) {
+internal fun fontLayout(font: WidgetFont, sans: Int, serif: Int, mono: Int, cursive: Int, pixel: Int, heavy: Int) = when (font) {
     WidgetFont.SANS -> sans; WidgetFont.SERIF -> serif; WidgetFont.MONO -> mono; WidgetFont.CURSIVE -> cursive
+    WidgetFont.PIXEL -> pixel; WidgetFont.HEAVY -> heavy
 }
 
 /** Every Custo widget: exact sizing (for drawn backgrounds) and one composable body. */
@@ -326,9 +378,9 @@ class ClockWidget : CustoWidget() {
     }
 
     private fun clockLayout(s: WidgetStyle): Int = when (s.clock) {
-        ClockLook.BIG -> fontLayout(s.font, R.layout.clock_big_sans, R.layout.clock_big_serif, R.layout.clock_big_mono, R.layout.clock_big_cursive)
-        ClockLook.STACKED -> fontLayout(s.font, R.layout.clock_stacked_sans, R.layout.clock_stacked_serif, R.layout.clock_stacked_mono, R.layout.clock_stacked_cursive)
-        ClockLook.MINIMAL -> fontLayout(s.font, R.layout.clock_minimal_sans, R.layout.clock_minimal_serif, R.layout.clock_minimal_mono, R.layout.clock_minimal_cursive)
+        ClockLook.BIG -> fontLayout(s.font, R.layout.clock_big_sans, R.layout.clock_big_serif, R.layout.clock_big_mono, R.layout.clock_big_cursive, R.layout.clock_big_pixel, R.layout.clock_big_heavy)
+        ClockLook.STACKED -> fontLayout(s.font, R.layout.clock_stacked_sans, R.layout.clock_stacked_serif, R.layout.clock_stacked_mono, R.layout.clock_stacked_cursive, R.layout.clock_stacked_pixel, R.layout.clock_stacked_heavy)
+        ClockLook.MINIMAL -> fontLayout(s.font, R.layout.clock_minimal_sans, R.layout.clock_minimal_serif, R.layout.clock_minimal_mono, R.layout.clock_minimal_cursive, R.layout.clock_minimal_pixel, R.layout.clock_minimal_heavy)
     }
 }
 
@@ -340,7 +392,7 @@ class HourWidget : CustoWidget() {
     @Composable
     override fun Content(context: Context, id: GlanceId) {
         val style = currentStyle()
-        val layout = fontLayout(style.font, R.layout.clock_hour_sans, R.layout.clock_hour_serif, R.layout.clock_hour_mono, R.layout.clock_hour_cursive)
+        val layout = fontLayout(style.font, R.layout.clock_hour_sans, R.layout.clock_hour_serif, R.layout.clock_hour_mono, R.layout.clock_hour_cursive, R.layout.clock_hour_pixel, R.layout.clock_hour_heavy)
         val rv = RemoteViews(context.packageName, layout).apply {
             styleText(style, R.id.time to 96f, R.id.time2 to 40f, R.id.date to 14f)
             setViewVisibility(R.id.date, if (style.showDate) View.VISIBLE else View.GONE)
@@ -397,7 +449,7 @@ class WorldWidget : CustoWidget() {
     @Composable
     override fun Content(context: Context, id: GlanceId) {
         val style = currentStyle()
-        val layout = fontLayout(style.font, R.layout.world_row_sans, R.layout.world_row_serif, R.layout.world_row_mono, R.layout.world_row_cursive)
+        val layout = fontLayout(style.font, R.layout.world_row_sans, R.layout.world_row_serif, R.layout.world_row_mono, R.layout.world_row_cursive, R.layout.world_row_pixel, R.layout.world_row_heavy)
         Frame(style, actionStartActivity(Intent(AlarmClock.ACTION_SHOW_ALARMS))) {
             Column(GlanceModifier.fillMaxWidth(), verticalAlignment = style.vAlign.glance()) {
                 style.zones.take(3).forEach { zone ->
@@ -442,7 +494,7 @@ class StopwatchWidget : CustoWidget() {
         Frame(style, toggle) {
             Column(horizontalAlignment = style.hAlign.glance()) {
                 if (running) {
-                    val layout = fontLayout(style.font, R.layout.chrono_sans, R.layout.chrono_serif, R.layout.chrono_mono, R.layout.chrono_cursive)
+                    val layout = fontLayout(style.font, R.layout.chrono_sans, R.layout.chrono_serif, R.layout.chrono_mono, R.layout.chrono_cursive, R.layout.chrono_pixel, R.layout.chrono_heavy)
                     val rv = RemoteViews(context.packageName, layout).apply {
                         setChronometer(R.id.chrono, base, null, true)
                         styleText(style, R.id.chrono to 44f)

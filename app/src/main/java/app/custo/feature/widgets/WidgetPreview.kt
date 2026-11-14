@@ -66,6 +66,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -74,6 +75,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.custo.R
+import app.custo.feature.widgetsets.HudData
+import app.custo.feature.widgetsets.HudMode
 import app.custo.feature.widgetsets.ThemeArt
 import app.custo.feature.widgetsets.WidgetTheme
 import app.custo.feature.widgetsets.WidgetThemes
@@ -94,11 +97,17 @@ import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
+private val pixelFamily = FontFamily(Font(R.font.custo_pixel, FontWeight.Normal), Font(R.font.custo_pixel, FontWeight.Bold))
+private val heavyFamily = FontFamily(Font(R.font.custo_heavy, FontWeight.Normal), Font(R.font.custo_heavy, FontWeight.Bold))
+
 private fun WidgetFont.compose(): FontFamily = when (this) {
     WidgetFont.SANS -> FontFamily.SansSerif
     WidgetFont.SERIF -> FontFamily.Serif
     WidgetFont.MONO -> FontFamily.Monospace
     WidgetFont.CURSIVE -> FontFamily.Cursive
+    // The same file for both weights, so bold never gets a smeared synthetic outline.
+    WidgetFont.PIXEL -> pixelFamily
+    WidgetFont.HEAVY -> heavyFamily
 }
 
 private fun HAlign.compose(): Alignment.Horizontal = when (this) {
@@ -147,17 +156,49 @@ private fun ThemedPreview(kind: WidgetKind, style: WidgetStyle, theme: WidgetThe
     val padded = !((kind == WidgetKind.PHOTO && style.photoUri != null) || (kind == WidgetKind.CAROUSEL && style.photos.isNotEmpty()))
     val k = if (padded) 1f else 0f
     val window = if (padded) 0f else 3f
+    val ctx = LocalContext.current
+    val mode = if (padded) theme.hudMode(kind) else null
+    // Live values for the theme's HUD, like the home-screen widget reads them.
+    val loc = LocalConfiguration.current.locales[0]
+    val hud = remember(mode, loc) {
+        if (mode == null) null
+        else readBattery(ctx).let { b -> HudData(LocalDate.now(), b.level, b.charging, loc) }
+    }
     Box(modifier) {
         Canvas(Modifier.matchParentSize()) {
-            drawIntoCanvas { ThemeArt.drawWidget(it.nativeCanvas, theme, kind, style.themeSlot, size.width, size.height, density) }
+            drawIntoCanvas { ThemeArt.drawWidget(it.nativeCanvas, theme, kind, style.themeSlot, size.width, size.height, density, style, hud) }
         }
+        if (mode == HudMode.REPLACE) return@Box
         Box(
             Modifier.matchParentSize().padding(
                 start = (f.outerSide + f.innerSide * k + window).dp, top = (f.outerTop + f.innerTop * k + window).dp,
                 end = (f.outerSide + f.innerSide * k + window).dp, bottom = (f.outerBottom + f.innerBottom * k + window).dp,
             ),
             contentAlignment = BiasAlignment(style.hAlign.bias(), style.vAlign.bias()),
-        ) { FitBody(p, kind) }
+        ) {
+            if (mode == HudMode.SLOTS) SlotApps(p, theme) else FitBody(p, kind)
+        }
+    }
+}
+
+/** App icons centered in a theme HUD's slots (same split as the home-screen widget). */
+@Composable
+private fun SlotApps(p: P, theme: WidgetTheme) {
+    val ctx = LocalContext.current
+    val apps = p.s.apps.take(6)
+    val icons by produceState<List<Bitmap?>>(emptyList(), apps) {
+        value = withContext(Dispatchers.IO) { apps.map { WidgetArt.appIcon(ctx, it) } }
+    }
+    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
+        val n = theme.hud!!.appSlots(apps.size, maxWidth.value, maxHeight.value)
+        val icon = (minOf(maxWidth.value / n, maxHeight.value) * 0.62f).dp
+        Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+            for (i in 0 until n) {
+                Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    icons.getOrNull(i)?.let { Image(it.asImageBitmap(), null, Modifier.size(icon)) }
+                }
+            }
+        }
     }
 }
 
@@ -210,7 +251,11 @@ private fun P.Body(kind: WidgetKind) {
 
     when (kind) {
         WidgetKind.CLOCK -> when (s.clock) {
-            ClockLook.BIG -> Column(horizontalAlignment = ha) {
+            // Like clock_big_heavy.xml: the time fills the card, the date sits on the bottom edge.
+            ClockLook.BIG -> if (s.font == WidgetFont.HEAVY) Column(Modifier.fillMaxSize(), horizontalAlignment = ha) {
+                Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { T(fmt("H:mm"), 56f) }
+                if (s.showDate) T(fmt("EEEE, d MMM").uppercase(loc), 15f)
+            } else Column(horizontalAlignment = ha) {
                 T(fmt("H:mm"), 56f, bold = true)
                 if (s.showDate) T(fmt("EEEE, MMM d"), 15f)
             }

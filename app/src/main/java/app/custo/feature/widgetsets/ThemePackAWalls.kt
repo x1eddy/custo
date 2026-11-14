@@ -40,91 +40,6 @@ internal object PackAWalls {
 
     // ---------- Blocky ----------
 
-    /** Pixel landscape: stepped sky, square sun, block clouds, grass/dirt/stone terrain with gems and trees. */
-    val blocky = WallPainter { c, w, h ->
-        val skyCols = intArrayOf(0xFF5EA8F5.toInt(), 0xFF6DB3F7.toInt(), 0xFF7DBEF9.toInt(), 0xFF8EC9FA.toInt(), 0xFFA0D3FB.toInt(), 0xFFB3DDFC.toInt())
-        val band = h * 0.12f
-        skyCols.forEachIndexed { i, col -> c.drawRect(0f, i * band, w, if (i == skyCols.lastIndex) h else (i + 1) * band, fill(col)) }
-        val b = w / 16f
-        val px = b / 4f
-        // Sun.
-        c.drawRect(w * 0.72f, h * 0.07f, w * 0.72f + b * 2f, h * 0.07f + b * 2f, fill(0xFFFFE36B.toInt()))
-        c.drawRect(w * 0.72f + px, h * 0.07f + px, w * 0.72f + b * 2f - px, h * 0.07f + b * 2f - px, fill(0xFFFFF6B5.toInt()))
-        val rnd = Random(5)
-        // Clouds: chunky rows of squares.
-        repeat(5) { k ->
-            val cx = rnd.nextFloat() * w; val cy = h * (0.05f + k * 0.08f) + rnd.nextFloat() * h * 0.03f
-            val unit = b * 0.6f
-            val cw = 3 + rnd.nextInt(4)
-            c.drawRect(cx, cy + unit, cx + cw * unit * 1.4f, cy + unit * 2, fill(0xF2FFFFFF.toInt()))
-            c.drawRect(cx + unit, cy, cx + (cw - 1) * unit * 1.2f, cy + unit, fill(0xF2FFFFFF.toInt()))
-            c.drawRect(cx, cy + unit * 1.7f, cx + cw * unit * 1.4f, cy + unit * 2, fill(0x22000000))
-        }
-        // Distant blocky hills.
-        val farTop = h * 0.6f
-        var hh = 0
-        for (i in 0..32) {
-            hh = (hh + rnd.nextInt(-1, 2)).coerceIn(-3, 2)
-            c.drawRect(i * b / 2, farTop + hh * b / 2, (i + 1) * b / 2, h, fill(0xFF8FC7A0.toInt()))
-        }
-        // Terrain columns.
-        val ground = h * 0.7f
-        var lvl = 0
-        val levels = IntArray(17) { lvl = (lvl + rnd.nextInt(-1, 2)).coerceIn(-2, 2); lvl }
-        val tex = Random(9)
-        fun blockTex(x: Float, y: Float, base: Int, dark: Int, light: Int) {
-            c.drawRect(x, y, x + b, y + b, fill(base))
-            for (j in 0 until 4) for (i in 0 until 4) {
-                val roll = tex.nextFloat()
-                if (roll < 0.2f) c.drawRect(x + i * px, y + j * px, x + (i + 1) * px, y + (j + 1) * px, fill(dark))
-                else if (roll < 0.32f) c.drawRect(x + i * px, y + j * px, x + (i + 1) * px, y + (j + 1) * px, fill(light))
-            }
-        }
-        for (i in 0 until 17) {
-            val x = i * b
-            val top = ground + levels[i] * b
-            var y = top
-            var depth = 0
-            while (y < h) {
-                when {
-                    depth == 0 -> {
-                        blockTex(x, y, 0xFF8A603F.toInt(), 0xFF6A4630.toInt(), 0xFFA57A55.toInt())
-                        c.drawRect(x, y, x + b, y + px * 1.5f, fill(0xFF62B33F.toInt()))
-                        for (k in 0 until 4) if (tex.nextFloat() < 0.5f) c.drawRect(x + k * px, y + px * 1.5f, x + (k + 1) * px, y + px * 2.5f, fill(0xFF3F8A2A.toInt()))
-                        c.drawRect(x + tex.nextInt(4) * px, y, x + tex.nextInt(4) * px + px, y + px, fill(0xFF83CF56.toInt()))
-                    }
-                    depth < 3 -> blockTex(x, y, 0xFF8A603F.toInt(), 0xFF6A4630.toInt(), 0xFFA57A55.toInt())
-                    else -> {
-                        blockTex(x, y, 0xFF7D7D86.toInt(), 0xFF64646C.toInt(), 0xFF9494A0.toInt())
-                        if (tex.nextFloat() < 0.12f) {
-                            val ore = if (tex.nextBoolean()) 0xFF3CCFC6.toInt() else 0xFFFFC93C.toInt()
-                            c.drawRect(x + px, y + px, x + px * 2, y + px * 2, fill(ore))
-                            c.drawRect(x + px * 2, y + px * 2, x + px * 3, y + px * 3, fill(ore))
-                        }
-                    }
-                }
-                y += b; depth++
-            }
-            c.drawLine(x, top, x, h, line(0x22000000, w * 0.002f))
-        }
-        // Trees standing on the grass.
-        for (i in intArrayOf(2, 9, 14)) {
-            val top = ground + levels[i] * b
-            val tx = i * b
-            c.drawRect(tx + b * 0.25f, top - b * 1.6f, tx + b * 0.75f, top, fill(0xFF9C6A3A.toInt()))
-            c.drawRect(tx + b * 0.25f, top - b * 1.6f, tx + b * 0.4f, top, fill(0xFF6E4625.toInt()))
-            c.drawRect(tx - b * 0.75f, top - b * 3.2f, tx + b * 1.75f, top - b * 1.4f, fill(0xFF4E9E36.toInt()))
-            c.drawRect(tx - b * 0.25f, top - b * 3.7f, tx + b * 1.25f, top - b * 3.2f, fill(0xFF4E9E36.toInt()))
-            for (k in 0 until 10) {
-                val lx = tx - b * 0.75f + tex.nextInt(10) * px
-                val ly = top - b * 3.2f + tex.nextInt(7) * px
-                c.drawRect(lx, ly, lx + px, ly + px, fill(if (k % 2 == 0) 0xFF3F8A2A.toInt() else 0xFF6CC24A.toInt()))
-            }
-        }
-        PackAKit.sticker(c, PackAArt.slime, w * 0.36f, ground + levels[5] * b - b * 0.45f, b * 0.95f, 0xFF1C1A1E.toInt())
-        PackAKit.sticker(c, PackAArt.torch, w * 0.72f, ground + levels[11] * b - b * 0.6f, b * 1.2f, 0xFF1C1A1E.toInt())
-    }
-
     // ---------- Matrix code ----------
 
     private const val GLYPHS = "ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ0123456789:=+*<>"
@@ -328,43 +243,6 @@ internal object PackAWalls {
     }
 
     // ---------- Battle royale ----------
-
-    /** Cartoon sky with a purple storm closing in, floating islands, a glider and a supply drop. */
-    val stormSky = WallPainter { c, w, h ->
-        vGradient(c, 0f, h, w, intArrayOf(0xFF2C7BFF.toInt(), 0xFF7CC4FF.toInt(), 0xFFBFE6FF.toInt()), floatArrayOf(0f, 0.55f, 1f))
-        puff(c, w * 0.2f, h * 0.3f, w * 0.1f, 0xE6FFFFFF.toInt())
-        puff(c, w * 0.8f, h * 0.42f, w * 0.12f, 0xE6FFFFFF.toInt())
-        puff(c, w * 0.45f, h * 0.62f, w * 0.08f, 0xCCFFFFFF.toInt())
-        vGradient(c, h * 0.9f, h, w, intArrayOf(0xFF39A0FF.toInt(), 0xFF1D6FE0.toInt()))
-        val ink = 0xFF15093D.toInt()
-        PackAKit.sticker(c, PackAArt.island, w * 0.26f, h * 0.48f, w * 0.34f, ink)
-        PackAKit.sticker(c, PackAArt.island, w * 0.78f, h * 0.66f, w * 0.28f, ink, 4f)
-        PackAKit.sticker(c, PackAArt.island, w * 0.42f, h * 0.84f, w * 0.4f, ink, -3f)
-        PackAKit.sticker(c, PackAArt.glider, w * 0.68f, h * 0.24f, w * 0.2f, ink, -8f)
-        PackAKit.sticker(c, PackAArt.supplyDrop, w * 0.16f, h * 0.15f, w * 0.17f, ink, 6f)
-        // The storm: everything outside the safe circle turns purple.
-        val ccx = w * 0.5f; val ccy = h * 0.55f; val rad = w * 0.68f
-        val outside = Path().apply {
-            fillType = Path.FillType.EVEN_ODD
-            addRect(0f, 0f, w, h, Path.Direction.CW)
-            addCircle(ccx, ccy, rad, Path.Direction.CW)
-        }
-        c.drawPath(outside, fill(0x996A1FD0.toInt()))
-        PackAKit.glow(c, Path().apply { addCircle(ccx, ccy, rad, Path.Direction.CW) }, 0xFFC08BFF.toInt(), w * 0.008f)
-        val rnd = Random(8)
-        val boltP = fill(0xFFFFE066.toInt())
-        repeat(5) {
-            val a = rnd.nextFloat() * 2 * PI.toFloat()
-            val bx = ccx + cos(a) * rad * 1.15f; val by = ccy + sin(a) * rad * 1.15f
-            if (bx in 0f..w && by in 0f..h) {
-                val s = w * 0.05f
-                c.drawPath(Path().apply {
-                    moveTo(bx + s * 0.1f, by - s); lineTo(bx - s * 0.4f, by + s * 0.1f); lineTo(bx, by + s * 0.1f)
-                    lineTo(bx - s * 0.15f, by + s); lineTo(bx + s * 0.45f, by - s * 0.2f); lineTo(bx + s * 0.05f, by - s * 0.2f); lineTo(bx + s * 0.3f, by - s); close()
-                }, boltP)
-            }
-        }
-    }
 
     // ---------- Gamer RGB ----------
 

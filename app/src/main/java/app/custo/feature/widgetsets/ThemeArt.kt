@@ -13,6 +13,7 @@ import androidx.core.graphics.createBitmap
 import androidx.core.graphics.withRotation
 import androidx.core.graphics.withSave
 import app.custo.feature.widgets.WidgetKind
+import app.custo.feature.widgets.WidgetStyle
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.min
@@ -38,11 +39,27 @@ object ThemeArt {
         return RectF(f.outerSide * d, f.outerTop * d, w - f.outerSide * d, h - f.outerBottom * d)
     }
 
-    /** Frame + stickers for one widget, [d] = pixels per dp. */
-    fun drawWidget(c: Canvas, theme: WidgetTheme, kind: WidgetKind?, slot: Int, w: Float, h: Float, d: Float) {
+    /** The content area inside a card: the card minus the frame's inner insets. */
+    fun contentRect(theme: WidgetTheme, card: RectF, d: Float): RectF {
+        val f = theme.frame
+        return RectF(card.left + f.innerSide * d, card.top + f.innerTop * d, card.right - f.innerSide * d, card.bottom - f.innerBottom * d)
+    }
+
+    /**
+     * Frame + stickers for one widget, [d] = pixels per dp. With [style] and [hud] data, a theme HUD
+     * also draws the content of the kinds it handles (between the frame and the stickers).
+     */
+    fun drawWidget(
+        c: Canvas, theme: WidgetTheme, kind: WidgetKind?, slot: Int, w: Float, h: Float, d: Float,
+        style: WidgetStyle? = null, hud: HudData? = null,
+    ) {
         val card = cardRect(theme, w, h, d)
         if (card.width() <= 2 || card.height() <= 2) return
         drawFrame(c, theme, card, d, seed = (kind?.ordinal ?: 0) * 31 + slot)
+        val themeHud = theme.hud
+        if (themeHud != null && kind != null && style != null && hud != null && themeHud.mode(kind) != null) {
+            themeHud.draw(c, theme, kind, style, hud, card, contentRect(theme, card, d), d)
+        }
         val ink = ink(theme)
         val box = SetLayout.Box(card.left, card.top, card.right, card.bottom)
         theme.decorationsFor(kind, slot).forEach { dec ->
@@ -53,14 +70,17 @@ object ThemeArt {
     }
 
     /** A widget background bitmap sized to the widget, at a capped density to stay under the RemoteViews memory limit. */
-    fun widgetBitmap(ctx: Context, theme: WidgetTheme, kind: WidgetKind?, slot: Int, wDp: Float, hDp: Float): Bitmap {
+    fun widgetBitmap(
+        ctx: Context, theme: WidgetTheme, kind: WidgetKind?, slot: Int, wDp: Float, hDp: Float,
+        style: WidgetStyle? = null, hud: HudData? = null,
+    ): Bitmap {
         val d = min(ctx.resources.displayMetrics.density, 2f)
         val w = (wDp.takeIf { it > 0 } ?: 200f).times(d).toInt().coerceIn(8, 1000)
         val h = (hDp.takeIf { it > 0 } ?: 200f).times(d).toInt().coerceIn(8, 1000)
         // If the widget is huge, shrink the density so both sides fit in 1000 px.
         val dd = min(d, min(1000f / (wDp.coerceAtLeast(1f)), 1000f / (hDp.coerceAtLeast(1f))))
         val bmp = createBitmap(w, h)
-        drawWidget(Canvas(bmp), theme, kind, slot, w.toFloat(), h.toFloat(), dd)
+        drawWidget(Canvas(bmp), theme, kind, slot, w.toFloat(), h.toFloat(), dd, style, hud)
         return bmp
     }
 
