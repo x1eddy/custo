@@ -10,6 +10,13 @@ import app.custo.nav.Route
 import app.custo.ui.theme.CustoTheme
 import android.appwidget.AppWidgetManager
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.custo.data.Keys
+import app.custo.feature.home.Onboarding
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -17,7 +24,20 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val widgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
         val initial = if (widgetId != AppWidgetManager.INVALID_APPWIDGET_ID) Route.WidgetEditor(widgetId) else null
-        setContent { CustoTheme { CustoNavHost(initial) } }
+        setContent {
+            CustoTheme {
+                val onboarded by container.prefs.flow(Keys.onboarded, false).collectAsStateWithLifecycle(initialValue = null)
+                var startRoute by remember { mutableStateOf<Route?>(initial) }
+                when (onboarded) {
+                    null -> Unit // first frame: DataStore not read yet; the splash/window background shows
+                    false -> Onboarding { setup ->
+                        if (setup) startRoute = Route.ShizukuSetup
+                        lifecycleScope.launch { container.prefs.set(Keys.onboarded, true) }
+                    }
+                    true -> CustoNavHost(startRoute)
+                }
+            }
+        }
     }
 
     override fun onResume() {

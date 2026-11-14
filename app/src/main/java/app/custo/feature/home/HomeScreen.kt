@@ -66,6 +66,7 @@ import app.custo.shizuku.ShizukuState
 import app.custo.ui.components.ScreenScaffold
 import app.custo.ui.components.SupportBadge
 import app.custo.ui.components.rememberActionRunner
+import app.custo.ui.components.enterAnimation
 
 @Composable
 fun HomeScreen(nav: Navigator) {
@@ -94,8 +95,22 @@ fun HomeScreen(nav: Navigator) {
     }
     val ready = state == ShizukuState.READY
 
+    // Quick toggles: read the live system values once Shizuku is ready.
+    var batteryPct by remember { mutableStateOf<Boolean?>(null) }
+    var clockSecs by remember { mutableStateOf<Boolean?>(null) }
+    var snappy by remember { mutableStateOf<Boolean?>(null) }
+    LaunchedEffect(tick, state) {
+        if (state != ShizukuState.READY) return@LaunchedEffect
+        runCatching {
+            batteryPct = c.tweaks.batteryPercent()
+            clockSecs = c.tweaks.clockSeconds()
+            snappy = c.tweaks.animationScales().window <= 0.5f
+        }
+    }
+
     ScreenScaffold(
         title = "Custo",
+        leading = { app.custo.ui.components.CustoMark(Modifier.size(40.dp)) },
         actions = {
             Box(Modifier.clip(CircleShape).clickable { nav.push(Route.ShizukuSetup) }.padding(8.dp)) {
                 SupportBadge(if (ready) "System access" else "No system access", ready)
@@ -118,9 +133,27 @@ fun HomeScreen(nav: Navigator) {
             }
         }
 
+        item {
+            androidx.compose.foundation.lazy.LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.enterAnimation(0),
+            ) {
+                item { QuickToggle("Battery %", batteryPct, ready) { on -> batteryPct = on; runner.run { c.tweaks.setBatteryPercent(on) } } }
+                item { QuickToggle("Clock seconds", clockSecs, ready) { on -> clockSecs = on; runner.run { c.tweaks.setClockSeconds(on) } } }
+                item {
+                    QuickToggle("Snappy motion", snappy, ready) { on ->
+                        snappy = on
+                        val v = if (on) 0.5f else 1f
+                        runner.run { c.tweaks.setAnimationScales(app.custo.feature.systemui.AnimationScales(v, v, v)) }
+                    }
+                }
+                item { QuickToggle("Edge light", prefs[Keys.edgeEnabled] == true, true) { on -> runner.run { c.prefs.set(Keys.edgeEnabled, on) } } }
+            }
+        }
+
         // Your setup: live wallpaper colors + current palette.
         item {
-            Tile(cs.primaryContainer, cs.onPrimaryContainer, Modifier.fillMaxWidth().height(208.dp), onClick = { nav.goTab(Tab.THEMES) }) {
+            Tile(cs.primaryContainer, cs.onPrimaryContainer, Modifier.fillMaxWidth().height(208.dp).enterAnimation(1), onClick = { nav.goTab(Tab.THEMES) }) {
                 Row(Modifier.fillMaxHeight()) {
                     WallPreview(wallSpec, Modifier.fillMaxHeight())
                     Spacer(Modifier.width(18.dp))
@@ -145,7 +178,7 @@ fun HomeScreen(nav: Navigator) {
         }
 
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.enterAnimation(2)) {
                 Tile(cs.tertiaryContainer, cs.onTertiaryContainer, Modifier.weight(1f).height(168.dp), onClick = { nav.goTab(Tab.SYSTEM) }) {
                     Text("System UI", style = MaterialTheme.typography.titleLarge)
                     Spacer(Modifier.weight(1f))
@@ -161,7 +194,7 @@ fun HomeScreen(nav: Navigator) {
         }
 
         item {
-            Tile(cs.surfaceContainerHigh, cs.onSurface, Modifier.fillMaxWidth(), onClick = { nav.goTab(Tab.OVERLAYS) }) {
+            Tile(cs.surfaceContainerHigh, cs.onSurface, Modifier.fillMaxWidth().enterAnimation(3), onClick = { nav.goTab(Tab.OVERLAYS) }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Overlays", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
                     SupportBadge(if (overlaysOn) "Running" else "Off", overlaysOn)
@@ -175,7 +208,7 @@ fun HomeScreen(nav: Navigator) {
         }
 
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.enterAnimation(4)) {
                 Tile(cs.surfaceContainerLow, cs.onSurface, Modifier.weight(1f), onClick = { nav.push(Route.Backup) }) {
                     Icon(Icons.Rounded.Backup, null)
                     Text("Backup", style = MaterialTheme.typography.titleMedium)
@@ -216,15 +249,42 @@ private fun Tile(
     body: @Composable ColumnScope.() -> Unit,
 ) {
     val interaction = remember { MutableInteractionSource() }
+    val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
     val pressed by interaction.collectIsPressedAsState()
     val s by animateFloatAsState(if (pressed) 0.96f else 1f, spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessMediumLow), label = "tile")
     Column(
         modifier.scale(s).clip(RoundedCornerShape(28.dp)).background(container)
-            .clickable(interaction, null, onClick = onClick)
+            .clickable(interaction, null) {
+                haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.ContextClick)
+                onClick()
+            }
             .padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         androidx.compose.runtime.CompositionLocalProvider(androidx.compose.material3.LocalContentColor provides content) { body() }
+    }
+}
+
+/** Pill toggle for Home; null value = still loading, disabled = needs Shizuku. */
+@Composable
+private fun QuickToggle(label: String, on: Boolean?, enabled: Boolean, onChange: (Boolean) -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
+    val active = on == true
+    val bg by androidx.compose.animation.animateColorAsState(if (active) cs.primary else cs.surfaceContainerHigh, label = "qt")
+    val fg by androidx.compose.animation.animateColorAsState(if (active) cs.onPrimary else if (enabled) cs.onSurface else cs.onSurface.copy(alpha = 0.4f), label = "qtf")
+    Row(
+        Modifier.clip(CircleShape).background(bg)
+            .clickable(enabled = enabled && on != null) {
+                haptics.performHapticFeedback(if (!active) androidx.compose.ui.hapticfeedback.HapticFeedbackType.ToggleOn else androidx.compose.ui.hapticfeedback.HapticFeedbackType.ToggleOff)
+                onChange(!active)
+            }
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(8.dp).clip(CircleShape).background(if (active) cs.onPrimary else fg.copy(alpha = 0.35f)))
+        Spacer(Modifier.width(8.dp))
+        Text(label, style = MaterialTheme.typography.labelLarge, color = fg)
     }
 }
 

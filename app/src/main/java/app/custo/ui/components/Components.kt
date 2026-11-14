@@ -91,6 +91,7 @@ fun ScreenScaffold(
     title: String,
     onBack: (() -> Unit)? = null,
     actions: @Composable () -> Unit = {},
+    leading: (@Composable () -> Unit)? = null,
     content: LazyListScope.() -> Unit,
 ) {
     // Surface supplies onSurface as the default text color for everything on the page.
@@ -110,7 +111,8 @@ fun ScreenScaffold(
                         actions()
                     }
                 }
-                Row(verticalAlignment = Alignment.Bottom) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (leading != null) { leading(); Spacer(Modifier.width(12.dp)) }
                     Text(title, style = MaterialTheme.typography.displaySmall, modifier = Modifier.weight(1f))
                     if (onBack == null) actions()
                 }
@@ -163,9 +165,16 @@ fun SectionCard(
 
 @Composable
 fun SwitchRow(title: String, subtitle: String? = null, checked: Boolean, enabled: Boolean = true, onChange: (Boolean) -> Unit) {
+    val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
+    val toggle: (Boolean) -> Unit = { on ->
+        haptics.performHapticFeedback(
+            if (on) androidx.compose.ui.hapticfeedback.HapticFeedbackType.ToggleOn else androidx.compose.ui.hapticfeedback.HapticFeedbackType.ToggleOff,
+        )
+        onChange(on)
+    }
     Row(
         Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small)
-            .clickable(enabled = enabled) { onChange(!checked) }
+            .clickable(enabled = enabled) { toggle(!checked) }
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -174,7 +183,7 @@ fun SwitchRow(title: String, subtitle: String? = null, checked: Boolean, enabled
             if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Spacer(Modifier.width(12.dp))
-        Switch(checked = checked, onCheckedChange = onChange, enabled = enabled)
+        Switch(checked = checked, onCheckedChange = toggle, enabled = enabled)
     }
 }
 
