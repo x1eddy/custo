@@ -145,13 +145,23 @@ fun NotOnPhoneRow(title: String) {
     }
 }
 
-/** Switch rows for [toggles]; unsupported ones get a small "Not on this phone" line. */
+/**
+ * Switch rows for [toggles]. Options this phone doesn't have are left out and named once,
+ * quietly, at the bottom, so cards aren't cluttered with dead rows.
+ */
 @Composable
 fun ToggleRows(toggles: List<Toggle>, states: Map<String, ToggleState>, onChange: (Toggle, Boolean) -> Unit) {
+    val known = toggles.mapNotNull { t -> states[t.id]?.let { t to it } }
+    val (ok, missing) = known.partition { it.second.supported }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        toggles.forEach { t ->
-            val st = states[t.id] ?: return@forEach
-            if (st.supported) SwitchRow(t.title, t.subtitle, st.on) { onChange(t, it) } else NotOnPhoneRow(t.title)
+        ok.forEach { (t, st) -> SwitchRow(t.title, t.subtitle, st.on) { onChange(t, it) } }
+        if (missing.isNotEmpty()) {
+            Text(
+                "Not on this phone: " + missing.joinToString(", ") { it.first.title.replaceFirstChar { c -> c.lowercase() } },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 2.dp),
+            )
         }
     }
 }

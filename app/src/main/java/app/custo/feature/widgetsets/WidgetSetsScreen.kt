@@ -234,15 +234,25 @@ fun WidgetSetScreen(id: String, nav: Navigator) {
         item { SectionLabel("In this set") }
         item {
             val today = remember { java.time.LocalDate.now() }
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                itemsIndexed(theme.widgets) { i, sw ->
-                    val style = remember(theme.id, i) { theme.styleForSetWidget(i, today) }
-                    Column(Modifier.width((sw.cols * 84).dp.coerceAtLeast(140.dp))) {
-                        Box(Modifier.fillMaxWidth().height((sw.rows * 84).dp).clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.surfaceContainerHigh)) {
-                            WidgetPreview(sw.kind, style, Modifier.fillMaxSize())
+            // Every widget at its true proportions on a 4-column grid, so the whole set is visible.
+            androidx.compose.foundation.layout.BoxWithConstraints {
+                val gap = 10.dp
+                val cell = (maxWidth - gap * 3) / 4
+                androidx.compose.foundation.layout.FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(gap),
+                    verticalArrangement = Arrangement.spacedBy(gap),
+                ) {
+                    theme.widgets.forEachIndexed { i, sw ->
+                        val style = remember(theme.id, i) { theme.styleForSetWidget(i, today) }
+                        val cols = sw.cols.coerceIn(1, 4)
+                        Column(Modifier.width(cell * cols + gap * (cols - 1))) {
+                            Box(
+                                Modifier.fillMaxWidth().height(cell * sw.rows.coerceAtLeast(1) * 0.9f)
+                                    .clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                            ) { WidgetPreview(sw.kind, style, Modifier.fillMaxSize()) }
+                            Text(sw.kind.label, style = MaterialTheme.typography.labelMedium, maxLines = 1, modifier = Modifier.padding(top = 4.dp))
+                            if (!sw.kind.available(ctx)) Text("Not on this phone", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Text(sw.kind.label, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 6.dp))
-                        if (!sw.kind.available(ctx)) Text("Not on this phone", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }

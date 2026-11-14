@@ -112,13 +112,17 @@ fun ScreenTweaksScreen(nav: Navigator) {
     ScreenScaffold(title = "Screen", onBack = { nav.pop() }) {
         if (!ready) { lockedItem(nav); return@ScreenScaffold }
         if (st == null) { item { Hint("Reading your system…") }; return@ScreenScaffold }
+        val missing = listOfNotNull(
+            "hiding the camera notch".takeUnless { st.cutoutAvailable },
+            "refresh rate".takeUnless { st.refresh != null },
+        )
 
         item {
             var level by remember(st.dimLevel) { mutableStateOf(st.dimLevel.toFloat()) }
             SectionCard("Extra dim", Icons.Rounded.BrightnessLow) {
                 val ts = st.toggles[EXTRA_DIM.id]
                 if (ts == null || !ts.supported) NotOnPhoneRow("Extra dim") else {
-                    SwitchRow("Extra dim", null, ts.on) { on -> act { c.tweaks.setToggle(EXTRA_DIM, on) } }
+                    SwitchRow("On", null, ts.on) { on -> act { c.tweaks.setToggle(EXTRA_DIM, on) } }
                     Text("Intensity · ${level.roundToInt()}%", style = MaterialTheme.typography.labelMedium)
                     Slider(level, { level = it }, valueRange = 0f..100f, onValueChangeFinished = {
                         act { c.tweaks.write(Namespace.SECURE, "reduce_bright_colors_level", level.roundToInt().toString()) }
@@ -131,7 +135,7 @@ fun ScreenTweaksScreen(nav: Navigator) {
             SectionCard("Night light", Icons.Rounded.NightsStay) {
                 val ts = st.toggles[NIGHT_LIGHT.id]
                 if (ts == null || !ts.supported) NotOnPhoneRow("Night light") else {
-                    SwitchRow("Night light", null, ts.on) { on -> act { c.tweaks.setToggle(NIGHT_LIGHT, on) } }
+                    SwitchRow("On", null, ts.on) { on -> act { c.tweaks.setToggle(NIGHT_LIGHT, on) } }
                     Text(if (st.nightKelvin) "Warmth · ${temp.roundToInt()} K" else "Warmth · ${temp.roundToInt()}", style = MaterialTheme.typography.labelMedium)
                     Slider(temp, { temp = it }, valueRange = st.nightRange.first.toFloat()..st.nightRange.last.toFloat(), onValueChangeFinished = {
                         act { c.tweaks.write(Namespace.SECURE, "night_display_color_temperature", temp.roundToInt().toString()) }
@@ -159,10 +163,9 @@ fun ScreenTweaksScreen(nav: Navigator) {
                 }
             }
         }
-        item {
-            SectionCard("Hide camera notch", Icons.Rounded.Fullscreen) {
-                if (!st.cutoutAvailable) NotOnPhoneRow("Hide camera notch")
-                else SwitchRow("Hide camera notch", "Blacks out the top edge", st.cutoutHidden) { on -> act { c.tweaks.setHideCutout(on) } }
+        if (st.cutoutAvailable) item {
+            SectionCard("Camera notch", Icons.Rounded.Fullscreen) {
+                SwitchRow("Hide it", "Blacks out the top edge", st.cutoutHidden) { on -> act { c.tweaks.setHideCutout(on) } }
             }
         }
         item {
@@ -174,10 +177,10 @@ fun ScreenTweaksScreen(nav: Navigator) {
                 }
             }
         }
-        item {
+        if (st.refresh != null) item {
             SectionCard("Refresh rate", Icons.Rounded.Speed) {
                 val r = st.refresh
-                if (r == null) NotOnPhoneRow("Refresh rate") else {
+                run {
                     val max = r.rates.last()
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         r.rates.forEach { hz ->
@@ -196,6 +199,7 @@ fun ScreenTweaksScreen(nav: Navigator) {
                 }
             }
         }
+        if (missing.isNotEmpty()) item { Hint("Not on this phone: ${missing.joinToString(", ")}.") }
     }
 }
 

@@ -27,7 +27,7 @@ import app.custo.ui.components.SectionCard
 import app.custo.ui.components.rememberActionRunner
 
 private val AOD = listOf(
-    Toggle(Namespace.SECURE, "doze_always_on", "Always-on display",
+    Toggle(Namespace.SECURE, "doze_always_on", "Always on",
         probe = Probe.AnyOf(Probe.ResBool("config_dozeAlwaysOnDisplayAvailable"), Probe.Present)),
     Toggle(Namespace.SECURE, "doze_pulse_on_pick_up", "Lift to check phone",
         probe = Probe.AnyOf(Probe.ResBool("config_dozePulsePickup"), Probe.Present)),

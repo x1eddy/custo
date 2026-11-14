@@ -197,7 +197,7 @@ fun SystemUiScreen(nav: Navigator) {
         }
         item {
             var contrast by remember(st.contrast) { mutableStateOf(st.contrast ?: 0f) }
-            SectionCard("Contrast", Icons.Rounded.Contrast, if (st.contrast == null) null else "%.2f".format(contrast)) {
+            SectionCard("Contrast", Icons.Rounded.Contrast, if (st.contrast == null) null else contrastLabel(contrast)) {
                 if (st.contrast == null) NotOnPhoneRow("Contrast")
                 else Slider(contrast, { contrast = (it * 4).roundToInt() / 4f }, valueRange = -1f..1f, steps = 7, onValueChangeFinished = {
                     act { c.tweaks.write(Namespace.SECURE, "contrast_level", contrast.toString()) }
@@ -345,4 +345,12 @@ private fun DensityCard(st: SysState, onApply: (Int?, Boolean) -> Unit, act: (St
             dismissButton = { TextButton(onClick = { countdown = 0; act("Display size reverted") { c.tweaks.setDensity(previous) } }) { Text("Revert") } },
         )
     }
+}
+
+/** Android 14's contrast steps are 0 (standard), 0.5 (medium) and 1 (high). */
+private fun contrastLabel(v: Float): String = when {
+    v < -0.25f -> "Low"
+    v < 0.25f -> "Standard"
+    v < 0.75f -> "Medium"
+    else -> "High"
 }
