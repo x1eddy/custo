@@ -1,0 +1,199 @@
+package app.custo.feature.overlays
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.core.graphics.drawable.toBitmap
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.emptyPreferences
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.custo.container
+import app.custo.data.Prefs
+import app.custo.ui.components.ActionRunner
+import app.custo.ui.components.rememberActionRunner
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlin.math.roundToInt
+
+/** Prefs plus a setter and service state, shared by every overlay screen. */
+class OverlayUiState(val p: Preferences, val running: Boolean, val runner: ActionRunner, private val prefs: Prefs) {
+    fun <T> set(key: Preferences.Key<T>, v: T) = runner.run { prefs.set(key, v) }
+
+    fun preview(kind: Preview) {
+        if (!running) runner.message("Turn on the overlay service first") else OverlayBus.preview.tryEmit(kind)
+    }
+}
+
+@Composable
+fun rememberOverlayUi(): OverlayUiState {
+    val c = LocalContext.current.container
+    val runner = rememberActionRunner()
+    val p by c.prefs.data.collectAsStateWithLifecycle(emptyPreferences())
+    val running by OverlayBus.serviceRunning.collectAsStateWithLifecycle()
+    return OverlayUiState(p, running, runner, c.prefs)
+}
+
+/** A labelled slider that saves when the finger lifts. */
+@Composable
+fun PrefSlider(label: String, value: Float, range: ClosedFloatingPointRange<Float>, format: (Float) -> String, steps: Int = 0, onDone: (Float) -> Unit) {
+    var v by remember(value) { mutableFloatStateOf(value) }
+    Column {
+        Text("$label · ${format(v)}", style = MaterialTheme.typography.labelMedium)
+        Slider(v, { v = it }, valueRange = range, steps = steps, onValueChangeFinished = { onDone(v) })
+    }
+}
+
+fun fmtDp(v: Float) = "${v.roundToInt()} dp"
+fun fmtPct(v: Float) = "${(v * 100).roundToInt()} %"
+fun fmtSec(v: Float) = "%.1f s".format(v)
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun <E : Enum<E>> ChoiceChips(entries: List<E>, selected: E, label: (E) -> String, onSelect: (E) -> Unit) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        entries.forEach { e -> FilterChip(selected == e, { onSelect(e) }, { Text(label(e)) }) }
+    }
+}
+
+@Composable
+fun <E : Enum<E>> Segmented(entries: List<E>, selected: E, label: (E) -> String, onSelect: (E) -> Unit) {
+    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+        entries.forEachIndexed { i, e ->
+            SegmentedButton(selected == e, { onSelect(e) }, SegmentedButtonDefaults.itemShape(i, entries.size)) {
+                Text(label(e), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
+    }
+}
+
+/** "Label ........ [Action ▾]" row. */
+@Composable
+fun ActionRow(label: String, current: OverlayAction, choices: List<OverlayAction>, onPick: (OverlayAction) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        Box {
+            OutlinedButton(onClick = { open = true }) { Text(current.label) }
+            DropdownMenu(open, { open = false }) {
+                choices.forEach { a -> DropdownMenuItem({ Text(a.label) }, { onPick(a); open = false }) }
+            }
+        }
+    }
+}
+
+@Composable
+fun PreviewButton(text: String = "Preview", onClick: () -> Unit) {
+    FilledTonalButton(onClick = onClick) { Text(text) }
+}
+
+@Composable
+fun AppIcon(pkg: String, size: Int = 36) {
+    val ctx = LocalContext.current
+    val bmp by produceState<ImageBitmap?>(null, pkg) {
+        value = withContext(Dispatchers.IO) { Apps.icon(ctx, pkg)?.toBitmap(96, 96)?.asImageBitmap() }
+    }
+    Box(Modifier.size(size.dp)) { bmp?.let { Image(it, null, Modifier.size(size.dp)) } }
+}
+
+/** Pick installed launcher apps. [max] limits how many can be chosen. */
+@Composable
+fun AppPickerDialog(title: String, selected: List<String>, max: Int = Int.MAX_VALUE, onDismiss: () -> Unit, onDone: (List<String>) -> Unit) {
+    val ctx = LocalContext.current
+    val apps by produceState<List<LauncherApp>?>(null) { value = Apps.launcherApps(ctx) }
+    val chosen = remember { mutableStateListOf<String>().apply { addAll(selected) } }
+    var query by rememberSaveable { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(query, { query = it }, placeholder = { Text("Search") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                if (max != Int.MAX_VALUE) Text("${chosen.size} of $max", style = MaterialTheme.typography.labelMedium)
+                val list = apps
+                if (list == null) Text("Loading…")
+                else LazyColumn(Modifier.heightIn(max = 380.dp)) {
+                    items(list.filter { query.isBlank() || it.label.contains(query, ignoreCase = true) }, key = { it.pkg }) { app ->
+                        val on = app.pkg in chosen
+                        Row(
+                            Modifier.fillMaxWidth().clickable {
+                                if (on) chosen.remove(app.pkg) else if (chosen.size < max) chosen.add(app.pkg)
+                            }.padding(vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            AppIcon(app.pkg, 32)
+                            Spacer(Modifier.width(12.dp))
+                            Text(app.label, Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Checkbox(on, null)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = { onDone(chosen.toList()) }) { Text("Done") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}
+
+/** A button showing a time of day that opens a time picker. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TimeButton(label: String, minute: Int, onPick: (Int) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    OutlinedButton(onClick = { open = true }) { Text("$label ${OverlayLogic.formatMinute(minute)}") }
+    if (open) {
+        val state = rememberTimePickerState(minute / 60, minute % 60)
+        AlertDialog(
+            onDismissRequest = { open = false },
+            text = { TimePicker(state) },
+            confirmButton = { TextButton(onClick = { onPick(state.hour * 60 + state.minute); open = false }) { Text("OK") } },
+            dismissButton = { TextButton(onClick = { open = false }) { Text("Cancel") } },
+        )
+    }
+}

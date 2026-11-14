@@ -5,6 +5,6 @@
     <string name="widget_battery_desc">Battery level</string>
     <string name="widget_media_desc">Now playing with controls</string>
     <string name="widget_note_desc">Sticky note</string>
-    <string name="a11y_description">Custo draws its overlays (edge lighting, battery bar) and shows its own volume panel when you press the volume keys. It does not read your screen content.</string>
+    <string name="a11y_description">Custo draws its overlays (edge lighting, battery bar, island, gestures and more) and can take over the volume keys for its own panel and button actions. It does not read your screen content.</string>
     <string name="listener_label">Custo edge lighting &amp; media</string>
 </resources>

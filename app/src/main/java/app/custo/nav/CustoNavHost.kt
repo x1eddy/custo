@@ -51,7 +51,18 @@ import androidx.compose.ui.Modifier
 import app.custo.feature.backup.BackupScreen
 import app.custo.feature.home.HomeScreen
 import app.custo.feature.home.ShizukuSetupScreen
+import app.custo.feature.overlays.BatteryBarScreen
+import app.custo.feature.overlays.ButtonsScreen
+import app.custo.feature.overlays.ChargingScreen
+import app.custo.feature.overlays.CornersScreen
+import app.custo.feature.overlays.EdgeGesturesScreen
+import app.custo.feature.overlays.EdgeLightingScreen
+import app.custo.feature.overlays.IslandScreen
+import app.custo.feature.overlays.NetSpeedScreen
+import app.custo.feature.overlays.NotificationLightScreen
 import app.custo.feature.overlays.OverlaysScreen
+import app.custo.feature.overlays.SidebarScreen
+import app.custo.feature.overlays.VolumePanelScreen
 import app.custo.feature.systemui.QsEditorScreen
 import app.custo.feature.systemui.SystemUiScreen
 import app.custo.feature.themes.ThemesScreen
@@ -116,6 +127,17 @@ fun CustoNavHost(initialRoute: Route? = null) {
                     Route.SoundHaptics -> app.custo.feature.systemui.SoundScreen(nav)
                     Route.TilePack -> app.custo.feature.systemui.TilePackScreen(nav)
                     Route.AdvancedSettings -> app.custo.feature.systemui.AdvancedScreen(nav)
+                    Route.OverlayEdge -> EdgeLightingScreen(onBack = { nav.pop() })
+                    Route.OverlayNotifLight -> NotificationLightScreen(onBack = { nav.pop() })
+                    Route.OverlayIsland -> IslandScreen(onBack = { nav.pop() })
+                    Route.OverlayBattery -> BatteryBarScreen(onBack = { nav.pop() })
+                    Route.OverlayCharging -> ChargingScreen(onBack = { nav.pop() })
+                    Route.OverlayCorners -> CornersScreen(onBack = { nav.pop() })
+                    Route.OverlayNetSpeed -> NetSpeedScreen(onBack = { nav.pop() })
+                    Route.OverlayVolume -> VolumePanelScreen(onBack = { nav.pop() })
+                    Route.OverlayButtons -> ButtonsScreen(onBack = { nav.pop() })
+                    Route.OverlayGestures -> EdgeGesturesScreen(onBack = { nav.pop() })
+                    Route.OverlaySidebar -> SidebarScreen(onBack = { nav.pop() })
                     else -> Unit
                 }
             }
