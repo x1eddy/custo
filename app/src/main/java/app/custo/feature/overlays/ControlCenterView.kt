@@ -52,8 +52,8 @@ sealed interface CcHit {
 class CcColors(val tile: Int, val tileOn: Int, val icon: Int, val iconOn: Int, val text: Int, val sub: Int, val fill: Int, val onFill: Int) {
     companion object {
         fun of(skin: CcSkin, accent: Int): CcColors = when (skin) {
-            CcSkin.LIGHT -> CcColors(0xE6F4F4F6.toInt(), accent, 0xFF1C1B1F.toInt(), 0xFFFFFFFF.toInt(), 0xFF1C1B1F.toInt(), 0xFF5F5E66.toInt(), accent, 0xFFFFFFFF.toInt())
-            CcSkin.DARK -> CcColors(0xD92A2A2E.toInt(), accent, 0xFFFFFFFF.toInt(), 0xFFFFFFFF.toInt(), 0xFFFFFFFF.toInt(), 0xFFB9B8C0.toInt(), 0xF2FFFFFF.toInt(), 0xFF1C1B1F.toInt())
+            CcSkin.LIGHT -> CcColors(0xF5F4F4F6.toInt(), accent, 0xFF1C1B1F.toInt(), 0xFFFFFFFF.toInt(), 0xFF1C1B1F.toInt(), 0xFF5F5E66.toInt(), accent, 0xFFFFFFFF.toInt())
+            CcSkin.DARK -> CcColors(0xF22A2A2E.toInt(), accent, 0xFFFFFFFF.toInt(), 0xFFFFFFFF.toInt(), 0xFFFFFFFF.toInt(), 0xFFB9B8C0.toInt(), 0xF2FFFFFF.toInt(), 0xFF1C1B1F.toInt())
             CcSkin.ACCENT -> CcColors(
                 (OverlayLogic.lerpColor(accent, 0xFF000000.toInt(), 0.45f) and 0x00FFFFFF) or 0xE0000000.toInt(),
                 0xFFFFFFFF.toInt(), 0xFFFFFFFF.toInt(), accent, 0xFFFFFFFF.toInt(), 0xCCFFFFFF.toInt(), 0xF2FFFFFF.toInt(), accent,
@@ -91,7 +91,7 @@ class ControlCenterView(
     private val r = RectF()
     private val slop = ViewConfiguration.get(context).scaledTouchSlop.toFloat()
 
-    private val scrim = Paint().apply { color = 0x73000000 }
+    private val scrim = Paint().apply { color = 0xC4000000.toInt() }
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG)
     private val label = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = 11 * d; textAlign = Paint.Align.CENTER }
     private val title = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = 15 * d; isFakeBoldText = true }
@@ -154,7 +154,7 @@ class ControlCenterView(
     private fun icon(res: Int): Drawable? = icons.getOrPut(res) { ContextCompat.getDrawable(context, res)?.mutate() }
 
     override fun onDraw(canvas: Canvas) {
-        scrim.alpha = (0x73 * progress).toInt()
+        scrim.alpha = (0xC4 * progress).toInt()
         canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), scrim)
         canvas.withSave {
             translate(0f, -(1f - progress) * 48 * d)
