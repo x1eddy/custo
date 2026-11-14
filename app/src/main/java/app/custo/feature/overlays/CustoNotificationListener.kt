@@ -36,6 +36,8 @@ class CustoNotificationListener : NotificationListenerService() {
     private var pendingRefresh: Job? = null
     private var prefs: Preferences? = null
     private var connected = false
+    /** Keys currently in the shade, to tell new posts from updates. */
+    private val knownKeys = HashSet<String>()
 
     private val sessionsListener = MediaSessionManager.OnActiveSessionsChangedListener { list -> track(list ?: emptyList()) }
 
@@ -67,6 +69,8 @@ class CustoNotificationListener : NotificationListenerService() {
             m.addOnActiveSessionsChangedListener(sessionsListener, me)
             track(m.getActiveSessions(me))
         }
+        knownKeys.clear()
+        runCatching { activeNotifications }.getOrNull()?.forEach { knownKeys += it.key }
         scan()
     }
 
@@ -76,6 +80,7 @@ class CustoNotificationListener : NotificationListenerService() {
         runCatching { msm?.removeOnActiveSessionsChangedListener(sessionsListener) }
         controllers.forEach { it.unregisterCallback(mediaCallback) }
         controllers.clear()
+        knownKeys.clear()
         OverlayBus.unread.value = emptyMap()
         OverlayBus.timer.value = null
         OverlayBus.media.value = null
@@ -112,9 +117,22 @@ class CustoNotificationListener : NotificationListenerService() {
         return n.category != Notification.CATEGORY_TRANSPORT && n.category != Notification.CATEGORY_PROGRESS
     }
 
+    /** False for silent channels, low-importance posts and quiet updates (FLAG_ONLY_ALERT_ONCE). */
+    private fun makesNoise(sbn: StatusBarNotification, isUpdate: Boolean): Boolean {
+        val ranking = NotificationListenerService.Ranking()
+        val ranked = runCatching { currentRanking?.getRanking(sbn.key, ranking) == true }.getOrDefault(false)
+        return NotifFilter.shouldAlert(
+            isUpdate = isUpdate,
+            onlyAlertOnce = sbn.notification.flags and Notification.FLAG_ONLY_ALERT_ONCE != 0,
+            importance = if (ranked) ranking.importance else null,
+            channelImportance = if (ranked) ranking.channel?.importance else null,
+        )
+    }
+
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         val n = sbn.notification
-        if (isAlerting(sbn)) {
+        val isUpdate = !knownKeys.add(sbn.key)
+        if (isAlerting(sbn) && makesNoise(sbn, isUpdate)) {
             val p = prefs
             if (p?.get(Keys.edgeEnabled) == true) {
                 OverlayBus.edge.tryEmit(EdgeEvent(sbn.packageName, Apps.colorFor(this, sbn.packageName, n.color)))
@@ -129,7 +147,10 @@ class CustoNotificationListener : NotificationListenerService() {
         scan()
     }
 
-    override fun onNotificationRemoved(sbn: StatusBarNotification) = scan()
+    override fun onNotificationRemoved(sbn: StatusBarNotification) {
+        knownKeys.remove(sbn.key)
+        scan()
+    }
 
     /** Recomputes unread notifications and the running chronometer from the shade. */
     private fun scan() {

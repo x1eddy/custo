@@ -80,6 +80,15 @@ fun HomeScreen(nav: Navigator) {
     var confirmReset by remember { mutableStateOf(false) }
     var tick by remember { mutableIntStateOf(0) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { tick++ }
+    // Undo all runs in the app scope (it may recreate this activity); show its result whenever it lands.
+    val undoResult by c.undoResult.collectAsStateWithLifecycle()
+    val snackbar = app.custo.ui.components.LocalSnackbar.current
+    LaunchedEffect(undoResult) {
+        val msg = undoResult ?: return@LaunchedEffect
+        tick++
+        snackbar.showSnackbar(msg)
+        c.consumeUndoResult()
+    }
 
     var widgetCount by remember { mutableIntStateOf(0) }
     var styleName by remember { mutableStateOf<String?>(null) }
@@ -236,10 +245,7 @@ fun HomeScreen(nav: Navigator) {
             confirmButton = {
                 TextButton(onClick = {
                     confirmReset = false
-                    runner.run {
-                        val notes = c.tweaks.restoreAll()
-                        runner.message(if (notes.isEmpty()) "All back to how it was" else notes.joinToString("\n"))
-                    }
+                    c.undoAll()
                 }) { Text("Undo all") }
             },
             dismissButton = { TextButton(onClick = { confirmReset = false }) { Text("Cancel") } },

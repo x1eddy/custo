@@ -33,11 +33,19 @@ class SystemTweaks(private val shell: Shell, private val originals: OriginalsSto
         return r
     }
 
-    suspend fun read(ns: Namespace, key: String): String? =
-        ShellCommands.parseSettingValue(run(ShellCommands.settingsGet(ns, key)).output)
+    /** Current value, or null if the setting is unset or could not be read. */
+    suspend fun read(ns: Namespace, key: String): String? = runCatching { readStrict(ns, key) }.getOrNull()
+
+    /** Like [read], but throws when `settings get` fails, so a failure is never mistaken for "unset". */
+    suspend fun readStrict(ns: Namespace, key: String): String? {
+        val r = run(ShellCommands.settingsGet(ns, key))
+        if (!r.ok) error("Could not read $key: ${r.error}")
+        return ShellCommands.parseSettingValue(r.output)
+    }
 
     suspend fun write(ns: Namespace, key: String, value: String?) {
-        originals.rememberIfAbsent(ns, key, read(ns, key))
+        // Throws if the current value can't be read: never record a bogus original or write blind.
+        rememberOriginal(ns, key)
         if (value == null) runOk(ShellCommands.settingsDelete(ns, key))
         else runOk(ShellCommands.settingsPut(ns, key, value))
     }
@@ -114,9 +122,23 @@ class SystemTweaks(private val shell: Shell, private val originals: OriginalsSto
 
     // ---- Navigation ---------------------------------------------------------------------------
 
-    suspend fun setNavMode(mode: NavMode, current: NavMode?) {
-        current?.let { originals.rememberIfAbsent(Namespace.CUSTO, NAV_KEY, it.overlay) }
+    suspend fun setNavMode(mode: NavMode) {
+        // Record the overlay enabled right now, read straight from the overlay list. With no navbar
+        // overlay enabled the phone runs its built-in default: record NAV_NONE so undo disables
+        // whatever Custo enabled and the phone falls back to exactly that default.
+        if (!originals.contains(Namespace.CUSTO, NAV_KEY)) {
+            val list = runOk(ShellCommands.OVERLAY_LIST).output
+            originals.rememberIfAbsent(Namespace.CUSTO, NAV_KEY, SysCmd.enabledNavOverlay(list) ?: NAV_NONE)
+        }
         runOk(ShellCommands.overlayEnableExclusiveInCategory(mode.overlay))
+    }
+
+    private suspend fun restoreNav(original: String?): ShellResult {
+        if (original != null && original != NAV_NONE) return run(ShellCommands.overlayEnableExclusiveInCategory(original))
+        val list = run(ShellCommands.OVERLAY_LIST)
+        if (!list.ok) return list
+        val enabled = SysCmd.enabledNavOverlay(list.output) ?: return ShellResult(0, "")
+        return run(ShellCommands.overlayDisable(enabled))
     }
 
     // ---- Motion & display ---------------------------------------------------------------------
@@ -192,7 +214,9 @@ class SystemTweaks(private val shell: Shell, private val originals: OriginalsSto
     suspend fun probe(cmd: String): String = run(cmd).output
 
     /** Records a setting's current value for undo when Custo changes it through some other API. */
-    suspend fun rememberOriginal(ns: Namespace, key: String) = originals.rememberIfAbsent(ns, key, read(ns, key))
+    suspend fun rememberOriginal(ns: Namespace, key: String) {
+        if (!originals.contains(ns, key)) originals.rememberIfAbsent(ns, key, readStrict(ns, key))
+    }
 
     suspend fun isRecorded(ns: Namespace, key: String): Boolean = originals.all().containsKey(ns to key)
 
@@ -286,8 +310,7 @@ class SystemTweaks(private val shell: Shell, private val originals: OriginalsSto
             val (ns, key) = nsKey
             val r = when {
                 ns == Namespace.SECURE && key == DENSITY_KEY -> run(ShellCommands.wmDensity(value?.toIntOrNull()))
-                ns == Namespace.CUSTO && key == NAV_KEY ->
-                    value?.let { run(ShellCommands.overlayEnableExclusiveInCategory(it)) } ?: ShellResult(0, "")
+                ns == Namespace.CUSTO && key == NAV_KEY -> restoreNav(value)
                 ns == Namespace.CUSTO && key == STATUSBAR_FLAGS_KEY -> run(SysCmd.sendDisableFlag(emptySet()))
                 ns == Namespace.CUSTO && key == WM_SIZE_KEY -> run(SysCmd.wmSize(ScreenSize.parse(value)))
                 ns == Namespace.CUSTO && key == CUTOUT_KEY -> restoreCutout(value)
@@ -297,9 +320,13 @@ class SystemTweaks(private val shell: Shell, private val originals: OriginalsSto
                 else -> run(ShellCommands.settingsPut(ns, key, value))
             }
             when {
-                r.ok -> Unit
+                // Forget each original as soon as it is back, so only failures stay for a retry.
+                r.ok -> originals.remove(ns, key)
                 // The ROM stored a value Android won't accept back; leave Custo's value in place.
-                r.output.contains("Invalid value") -> notes += "$key kept as is (your phone uses a non-standard value)"
+                r.output.contains("Invalid value") -> {
+                    notes += "$key kept as is (your phone uses a non-standard value)"
+                    originals.remove(ns, key)
+                }
                 else -> problems += "$key: ${r.error}"
             }
         }
@@ -313,6 +340,8 @@ class SystemTweaks(private val shell: Shell, private val originals: OriginalsSto
         /** Pseudo key; not written via `settings`, restored with `wm density`. */
         const val DENSITY_KEY = "custo_density_override"
         const val NAV_KEY = "nav_overlay"
+        /** Recorded for [NAV_KEY] when no navbar overlay was enabled (device default). */
+        const val NAV_NONE = "none"
 
         /** Pseudo keys for non-`settings` state, restored specially in [restoreAll]. */
         const val STATUSBAR_FLAGS_KEY = "statusbar_disable_flags"

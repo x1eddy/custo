@@ -26,7 +26,6 @@ import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.Navigation
 import androidx.compose.material.icons.rounded.SignalCellularAlt
 import androidx.compose.material.icons.rounded.Wallpaper
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -36,7 +35,6 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -64,7 +62,7 @@ import app.custo.ui.components.SectionLabel
 import app.custo.ui.components.SupportBadge
 import app.custo.ui.components.SwitchRow
 import app.custo.ui.components.rememberActionRunner
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 private data class SysState(
@@ -265,7 +263,7 @@ fun SystemUiScreen(nav: Navigator) {
                         st.caps.navModes.forEachIndexed { i, m ->
                             SegmentedButton(
                                 selected = st.caps.currentNav == m,
-                                onClick = { act("Navigation: ${m.label}") { c.tweaks.setNavMode(m, st.caps.currentNav) } },
+                                onClick = { act("Navigation: ${m.label}") { c.tweaks.setNavMode(m) } },
                                 shape = SegmentedButtonDefaults.itemShape(i, st.caps.navModes.size),
                             ) { Text(m.label) }
                         }
@@ -293,7 +291,22 @@ fun SystemUiScreen(nav: Navigator) {
                 ScaleSlider("Animator", anim.animator, { anim = anim.copy(animator = it) }) { act { c.tweaks.setAnimationScales(anim) } }
             }
         }
-        item { DensityCard(st, onApply = { dpi, revert -> act { c.tweaks.setDensity(dpi) }; revert }, act = ::act) }
+        item {
+            DensityCard(st, onApply = { dpi ->
+                // Density changes recreate this activity: run in the app scope with the revert armed first.
+                val previous = st.overrideDpi
+                RevertTimer.start(c.appScope, "Keep this display size?") { c.tweaks.setDensity(previous) }
+                c.appScope.launch {
+                    try {
+                        c.tweaks.setDensity(dpi)
+                        reload++
+                    } catch (e: Throwable) {
+                        RevertTimer.revertNow(c.appScope)
+                        runner.message(errorText(e))
+                    }
+                }
+            }, act = ::act)
+        }
         item {
             var scale by remember(st.fontScale) { mutableStateOf(st.fontScale) }
             SectionCard("Font size", Icons.Rounded.FormatSize, "${(scale * 100).roundToInt()}%") {
@@ -310,40 +323,20 @@ private fun ScaleSlider(label: String, value: Float, onChange: (Float) -> Unit, 
 }
 
 @Composable
-private fun DensityCard(st: SysState, onApply: (Int?, Boolean) -> Unit, act: (String?, suspend () -> Unit) -> Unit) {
+private fun DensityCard(st: SysState, onApply: (Int) -> Unit, act: (String?, suspend () -> Unit) -> Unit) {
     val c = LocalContext.current.container
     val current = st.overrideDpi ?: st.physicalDpi
     var dpi by remember(current) { mutableStateOf(current.toFloat()) }
-    var previous by remember { mutableStateOf<Int?>(null) }
-    var countdown by remember { mutableIntStateOf(0) }
 
     SectionCard("Display size", Icons.Rounded.GridView, "${dpi.roundToInt()} dpi · stock ${st.physicalDpi}") {
         val lo = (st.physicalDpi * 0.7f).coerceAtLeast(240f)
         val hi = (st.physicalDpi * 1.3f)
         Slider(dpi, { dpi = it }, valueRange = lo..hi)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = {
-                previous = st.overrideDpi
-                countdown = 15
-                onApply(dpi.roundToInt(), true)
-            }) { Text("Apply") }
+            Button(onClick = { onApply(dpi.roundToInt()) }) { Text("Apply") }
             OutlinedButton(onClick = { act("Display size reset") { c.tweaks.setDensity(null) } }) { Text("Reset") }
         }
         Hint("Auto-reverts in 15 s unless you keep it.")
-    }
-
-    if (countdown > 0) {
-        LaunchedEffect(Unit) {
-            while (countdown > 0) { delay(1000); countdown-- }
-            act("Display size reverted") { c.tweaks.setDensity(previous) }
-        }
-        AlertDialog(
-            onDismissRequest = {},
-            title = { Text("Keep this display size?") },
-            text = { Text("Switching back in $countdown s") },
-            confirmButton = { TextButton(onClick = { countdown = -1 }) { Text("Keep") } },
-            dismissButton = { TextButton(onClick = { countdown = 0; act("Display size reverted") { c.tweaks.setDensity(previous) } }) { Text("Revert") } },
-        )
     }
 }
 

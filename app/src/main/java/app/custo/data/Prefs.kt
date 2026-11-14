@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.map
 
 val Context.custoStore: DataStore<Preferences> by preferencesDataStore("custo")
 val Context.originalsStore: DataStore<Preferences> by preferencesDataStore("originals")
+/** Per-app profile engine state (what to put back); separate so backups and resets never touch it. */
+val Context.profileStateStore: DataStore<Preferences> by preferencesDataStore("profile_engine")
 
 /** All of Custo's own settings. Keys are grouped by feature. */
 object Keys {

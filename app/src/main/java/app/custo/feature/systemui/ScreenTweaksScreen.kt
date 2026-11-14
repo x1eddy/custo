@@ -34,6 +34,7 @@ import app.custo.ui.components.ScreenScaffold
 import app.custo.ui.components.SectionCard
 import app.custo.ui.components.SwitchRow
 import app.custo.ui.components.rememberActionRunner
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 internal val EXTRA_DIM = Toggle(Namespace.SECURE, "reduce_bright_colors_activated", "Extra dim",
@@ -157,9 +158,17 @@ fun ScreenTweaksScreen(nav: Navigator) {
         item {
             ResolutionCard(st.physical, st.override) { size ->
                 val previous = st.override
-                act {
-                    c.tweaks.setScreenSize(size)
-                    RevertTimer.start(c.appScope, "Keep this resolution?") { c.tweaks.setScreenSize(previous) }
+                // The resolution change recreates this activity, so it runs in the app scope, with the
+                // revert armed before the first command: a half-applied change still switches back.
+                RevertTimer.start(c.appScope, "Keep this resolution?") { c.tweaks.setScreenSize(previous) }
+                c.appScope.launch {
+                    try {
+                        c.tweaks.setScreenSize(size)
+                        reload++
+                    } catch (e: Throwable) {
+                        RevertTimer.revertNow(c.appScope)
+                        runner.message(errorText(e))
+                    }
                 }
             }
         }

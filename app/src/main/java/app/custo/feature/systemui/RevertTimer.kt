@@ -59,6 +59,11 @@ object RevertTimer {
     }
 }
 
+/** Snackbar text for a failed display change (same wording as ActionRunner). */
+internal fun errorText(e: Throwable): String =
+    if (e is app.custo.shizuku.ShellUnavailableException) "Start Shizuku first. Open Home → Set up Shizuku"
+    else e.message?.take(160) ?: "Something went wrong"
+
 @Composable
 fun RevertDialog(scope: CoroutineScope) {
     val p by RevertTimer.pending.collectAsStateWithLifecycle()

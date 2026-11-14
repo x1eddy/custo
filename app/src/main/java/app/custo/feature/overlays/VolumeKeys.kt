@@ -1,5 +1,6 @@
 package app.custo.feature.overlays
 
+import android.media.AudioAttributes
 import android.media.AudioManager
 import android.os.SystemClock
 import android.view.KeyEvent
@@ -21,6 +22,11 @@ class VolumeKeys(private val host: OverlayHost, private val panel: VolumePanelOv
         val timeout = Runnable { handle(this, detector.onTimeout(SystemClock.uptimeMillis())) }
     }
 
+    /** isStreamActive(STREAM_ALARM) is hidden API; active players with alarm usage say the same. */
+    private fun alarmActive(): Boolean = runCatching {
+        audio.activePlaybackConfigurations.any { it.audioAttributes.usage == AudioAttributes.USAGE_ALARM }
+    }.getOrDefault(false)
+
     fun onKeyEvent(event: KeyEvent): Boolean {
         val slot = when (event.keyCode) {
             KeyEvent.KEYCODE_VOLUME_UP -> up
@@ -30,13 +36,16 @@ class VolumeKeys(private val host: OverlayHost, private val panel: VolumePanelOv
         val p = host.prefs ?: return false
         val inCall = audio.mode == AudioManager.MODE_IN_CALL || audio.mode == AudioManager.MODE_IN_COMMUNICATION ||
             audio.mode == AudioManager.MODE_RINGTONE
-        if (inCall) { slot.detector.reset(); slot.plan = VolumeKeyPolicy.PASS; return false }
+        // A ringing alarm gets the keys like a call does (the clock app uses them to silence/snooze).
+        val alarm = alarmActive()
+        if (inCall || alarm) { slot.detector.reset(); slot.plan = VolumeKeyPolicy.PASS; return false }
 
         if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0 && slot.detector.isIdle) {
             val remapOn = p[OverlayKeys.buttons] == true
             slot.plan = VolumeKeyPolicy.plan(
                 isUp = slot.isUp,
                 inCall = false,
+                alarmActive = false,
                 panelOn = p[Keys.volumePanelEnabled] == true,
                 remapOn = remapOn,
                 doubleAction = OverlayAction.of(p[if (slot.isUp) OverlayKeys.upDouble else OverlayKeys.downDouble]),

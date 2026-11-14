@@ -8,20 +8,24 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import app.custo.data.Prefs
-import app.custo.shizuku.OriginalsStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 
-class BackupManager(private val context: Context, private val prefs: Prefs, private val originals: OriginalsStore) {
+/**
+ * Exports / imports Custo's own settings. Recorded system originals are deliberately left out:
+ * they describe the phone they were recorded on, and "undoing" to another phone's values would
+ * leave this one in the wrong state.
+ */
+class BackupManager(private val context: Context, private val prefs: Prefs) {
 
     suspend fun export(uri: Uri) = withContext(Dispatchers.IO) {
         val settings = prefs.data.first().asMap().mapNotNull { (k, v) -> Profile.tag(v)?.let { k.name to it } }.toMap()
-        val profile = Profile(createdAt = System.currentTimeMillis(), settings = settings, originals = originals.rawAll())
+        val profile = Profile(createdAt = System.currentTimeMillis(), settings = settings)
         context.contentResolver.openOutputStream(uri, "wt")!!.bufferedWriter().use { it.write(profile.encode()) }
     }
 
-    /** Replaces Custo's settings. Originals are only added where this phone has none recorded yet. */
+    /** Replaces Custo's settings. Originals found in older export files are ignored. */
     suspend fun import(uri: Uri): Int = withContext(Dispatchers.IO) {
         val text = context.contentResolver.openInputStream(uri)!!.bufferedReader().use { it.readText() }
         val profile = Profile.decode(text)
@@ -37,8 +41,6 @@ class BackupManager(private val context: Context, private val prefs: Prefs, priv
                 }
             }
         }
-        val existing = originals.rawAll().keys
-        originals.putAll(profile.originals.filterKeys { it !in existing })
         profile.settings.size
     }
 }

@@ -82,9 +82,10 @@ object VolumeKeyPolicy {
         longSkip: Boolean,
         musicActive: Boolean,
         screenOn: Boolean,
+        alarmActive: Boolean = false,
     ): KeyPlan {
-        // Never interfere with calls.
-        if (inCall) return PASS
+        // Never interfere with calls or a ringing alarm (volume keys silence / snooze it).
+        if (inCall || alarmActive) return PASS
         val dbl = if (remapOn) doubleAction.takeIf { it.forKeys } ?: OverlayAction.NONE else OverlayAction.NONE
         var lng = if (remapOn) longAction.takeIf { it.forKeys } ?: OverlayAction.NONE else OverlayAction.NONE
         if (lng == OverlayAction.NONE && panelOn && longSkip && musicActive && screenOn) {

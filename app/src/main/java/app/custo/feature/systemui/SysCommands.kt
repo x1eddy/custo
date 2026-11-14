@@ -112,6 +112,13 @@ object SysCmd {
             .firstOrNull { it.startsWith("[x]") && it.contains(CUTOUT_PREFIX) }
             ?.substringAfter("]")?.trim()
 
+    /** The enabled navigation-mode overlay (`com.android.internal.systemui.navbar.*`), if any. */
+    fun enabledNavOverlay(overlayList: String): String? =
+        overlayList.lineSequence().map { it.trim() }
+            .filter { it.startsWith("[x]") }
+            .map { it.substringAfter("]").trim() }
+            .firstOrNull { id -> NavMode.entries.any { id == it.overlay || id.startsWith(it.overlay + "_") } }
+
     fun hasOverlay(overlayList: String, id: String): Boolean =
         overlayList.lineSequence().any { line -> line.trim().substringAfter("]").trim() == id }
 

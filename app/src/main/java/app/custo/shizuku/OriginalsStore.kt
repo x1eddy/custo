@@ -30,12 +30,12 @@ class OriginalsStore(private val store: DataStore<Preferences>) {
             (ns to name) to (v as String).takeUnless { it == NULL }
         }.toMap()
 
-    suspend fun putAll(values: Map<String, String>) {
-        store.edit { prefs -> values.forEach { (k, v) -> prefs[stringPreferencesKey(k)] = v } }
-    }
+    suspend fun contains(ns: ShellCommands.Namespace, name: String): Boolean = store.data.first().contains(key(ns, name))
 
-    suspend fun rawAll(): Map<String, String> =
-        store.data.first().asMap().mapKeys { it.key.name }.mapValues { it.value.toString() }
+    /** Forgets one recorded original (after it was restored successfully). */
+    suspend fun remove(ns: ShellCommands.Namespace, name: String) {
+        store.edit { it.remove(key(ns, name)) }
+    }
 
     suspend fun clear() {
         store.edit { it.clear() }

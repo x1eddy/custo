@@ -1,7 +1,9 @@
 package app.custo.feature.themes
 
 import app.custo.data.Keys
+import app.custo.data.LenientList
 import app.custo.data.Prefs
+import app.custo.data.updateList
 import app.custo.feature.icons.IconStyle
 import app.custo.feature.systemui.MonetStyle
 import kotlinx.coroutines.flow.Flow
@@ -45,25 +47,18 @@ val BUILT_IN_LOOKS = listOf(
 /** JSON for looks; tolerant of fields and styles added or removed between versions. */
 object LookCodec {
     val json = Json { ignoreUnknownKeys = true; coerceInputValues = true }
-    fun decodeList(s: String): List<Look> = runCatching { json.decodeFromString<List<Look>>(s) }.getOrDefault(emptyList())
+    /** Per element: a broken or outdated look is skipped, the rest still load. */
+    fun decodeList(s: String): List<Look> = LenientList.decode(Look.serializer(), s)
     fun encode(look: Look): String = json.encodeToString(look)
     fun decode(s: String?): Look? = s?.let { runCatching { json.decodeFromString<Look>(it) }.getOrNull() }
 }
 
 class LooksRepository(private val prefs: Prefs) {
-    private val json = LookCodec.json
+    val saved: Flow<List<Look>> = prefs.flow(Keys.looks, "[]").map { LookCodec.decodeList(it) }
 
-    val saved: Flow<List<Look>> = prefs.flow(Keys.looks, "[]").map { decode(it) }
+    suspend fun save(look: Look) =
+        prefs.updateList(Keys.looks, Look.serializer(), "looks") { list -> list.filterNot { it.name == look.name } + look }
 
-    private fun decode(s: String): List<Look> = LookCodec.decodeList(s)
-
-    suspend fun save(look: Look) {
-        val list = decode(prefs.get(Keys.looks, "[]")).filterNot { it.name == look.name } + look
-        prefs.set(Keys.looks, json.encodeToString(list))
-    }
-
-    suspend fun delete(name: String) {
-        val list = decode(prefs.get(Keys.looks, "[]")).filterNot { it.name == name }
-        prefs.set(Keys.looks, json.encodeToString(list))
-    }
+    suspend fun delete(name: String) =
+        prefs.updateList(Keys.looks, Look.serializer(), "looks") { list -> list.filterNot { it.name == name } }
 }
