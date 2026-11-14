@@ -25,6 +25,7 @@ fun NotificationLightScreen(onBack: () -> Unit) {
     val apps = OverlayLogic.csv(p[OverlayKeys.notifLightApps])
 
     ScreenScaffold("Notification light", onBack) {
+        item { NotificationAccessCard("The notification light needs it to know what's unread.") }
         item {
             SectionCard(subtitle = "A ring pulses around the camera while you have unread notifications. Phones without a camera hole get a dot at the top.") {
                 SwitchRow("Enabled", "Needs notification access", p[OverlayKeys.notifLight] == true) { ui.set(OverlayKeys.notifLight, it) }

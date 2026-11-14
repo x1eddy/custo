@@ -12,6 +12,7 @@ fun IslandScreen(onBack: () -> Unit) {
     val p = ui.p
 
     ScreenScaffold("Dynamic island", onBack) {
+        item { NotificationAccessCard("The island needs it for music, timers and alerts.") }
         item {
             SectionCard(subtitle = "A black pill at the top of the screen. Tap it to expand or collapse.") {
                 SwitchRow("Enabled", "Needs notification access for music, timers and alerts", p[OverlayKeys.island] == true) { ui.set(OverlayKeys.island, it) }

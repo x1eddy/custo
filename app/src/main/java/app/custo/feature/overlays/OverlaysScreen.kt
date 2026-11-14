@@ -81,14 +81,7 @@ fun OverlaysScreen(nav: Navigator) {
                 }
             }
         }
-        if (!listenerOn) item {
-            SectionCard("Notification access", Icons.Rounded.NotificationsActive, "Needed for edge lighting, the notification light and the island.") {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (shizuku == ShizukuState.READY) Button(onClick = { ui.runner.run("Notification access granted") { c.tweaks.allowNotificationListener(listenerComponent); kotlinx.coroutines.delay(600); tick++ } }) { Text("Grant instantly") }
-                    OutlinedButton(onClick = { open(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS) }) { Text("Open settings") }
-                }
-            }
-        }
+        if (!listenerOn) item { NotificationAccessCard("Needed for edge lighting, the notification light and the island's music and alerts.") }
 
         item { SectionLabel("Notifications") }
         item { HubCard("Edge lighting", Icons.Rounded.BorderOuter, "Glow around the screen for new notifications", p, Keys.edgeEnabled) { nav.push(Route.OverlayEdge) } }

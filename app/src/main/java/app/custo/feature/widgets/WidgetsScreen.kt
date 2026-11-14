@@ -83,13 +83,7 @@ fun WidgetsScreen(nav: Navigator) {
                     }
                 }
             }
-            if (cat == WidgetCategory.MEDIA && !listenerOn) item(key = "listener") {
-                SectionCard("Notification access", Icons.Rounded.NotificationsActive, "Needed for Now playing. Nothing is stored or sent.") {
-                    FilledTonalButton(onClick = {
-                        ctx.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                    }) { Text("Open settings") }
-                }
-            }
+            if (cat == WidgetCategory.MEDIA && !listenerOn) item(key = "listener") { app.custo.feature.overlays.NotificationAccessCard("Needed for the Now playing widget. Nothing is stored or sent.") }
         }
         item { Hint("Widgets follow your palette unless you pick colors. Tap a placed widget to style it.") }
     }

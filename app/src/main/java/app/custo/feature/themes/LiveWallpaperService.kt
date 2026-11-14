@@ -77,7 +77,12 @@ class LiveWallpaperService : WallpaperService() {
         private var lastFrame = 0L
         private var paletteMinute = -1
         private var drawSpec = spec
+        /** The scene recorded once per animation step; page swipes only re-position it. */
         private var node: RenderNode? = null
+        private var sceneDirty = true
+        private var sceneW = 0f
+        private var sceneH = 0f
+        private var sceneSpec: WallSpec? = null
         private val frame = Runnable { drawFrame() }
 
         private val receiver = object : BroadcastReceiver() {
@@ -103,6 +108,7 @@ class LiveWallpaperService : WallpaperService() {
                     spec = WallSpec.decode(p[ThemeKeys.liveSpec]) ?: WallSpec(WallStyle.AURORA, BUILT_IN_LOOKS.first().wall.colors)
                     opts = LiveOptions.from(p)
                     paletteMinute = -1
+                    sceneDirty = true
                     notifyColorsChanged()
                     drawFrame()
                 }
@@ -132,6 +138,7 @@ class LiveWallpaperService : WallpaperService() {
 
         override fun onSurfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
             super.onSurfaceChanged(holder, format, width, height)
+            sceneDirty = true
             drawFrame()
         }
 
@@ -144,7 +151,8 @@ class LiveWallpaperService : WallpaperService() {
         override fun onOffsetsChanged(xOffset: Float, yOffset: Float, xStep: Float, yStep: Float, xPixels: Int, yPixels: Int) {
             if (this.xOffset != xOffset) {
                 this.xOffset = xOffset
-                if (opts.parallax && !animating()) drawFrame()
+                // Re-uses the recorded scene: just a GPU blit, not a full redraw.
+                if (opts.parallax) present()
             }
         }
 
@@ -202,35 +210,39 @@ class LiveWallpaperService : WallpaperService() {
                 val slow = if (opts.battery && battery <= 20) 0.5f else 1f
                 if (lastFrame != 0L) animTime += min(now - lastFrame, 200L) / 1000f * opts.speed * slow
                 lastFrame = now
+                sceneDirty = true
             } else lastFrame = 0L
+            present()
+            if (anim) handler.postDelayed(frame, 1000L / opts.fps.coerceIn(5, 20))
+        }
 
+        /** Puts the (cached) scene on screen at the current parallax offset. */
+        private fun present() {
+            val holder = surfaceHolder ?: return
+            if (holder.surface?.isValid != true) return
             val canvas = runCatching { holder.lockHardwareCanvas() }.getOrNull() ?: return
             try {
                 render(canvas, holder.surfaceFrame.width().toFloat(), holder.surfaceFrame.height().toFloat())
             } finally {
                 runCatching { holder.unlockCanvasAndPost(canvas) }
             }
-            if (anim) handler.postDelayed(frame, 1000L / opts.fps.coerceIn(5, 20))
         }
 
         private fun render(canvas: Canvas, w: Float, h: Float) {
             val s = currentSpec()
             val extra = if (opts.parallax && !isPreview) w * 0.18f else 0f
             val sw = w + extra
-            canvas.withTranslation(-extra * xOffset, 0f) {
-                if (s.blur > 0.01f && canvas.isHardwareAccelerated) {
-                    val n = node ?: RenderNode("custo-wall").also { node = it }
-                    n.setPosition(0, 0, sw.toInt(), h.toInt())
-                    val r = s.blur * min(w, h) * 0.06f
-                    n.setRenderEffect(RenderEffect.createBlurEffect(r, r, Shader.TileMode.CLAMP))
-                    val rc = n.beginRecording()
-                    WallpaperStudio.drawScene(rc, s, sw, h, animTime)
-                    n.endRecording()
-                    canvas.drawRenderNode(n)
-                } else {
-                    WallpaperStudio.drawScene(canvas, s, sw, h, animTime)
-                }
+            val n = node ?: RenderNode("custo-wall").also { node = it }
+            if (sceneDirty || s !== sceneSpec || sw != sceneW || h != sceneH || !n.hasDisplayList()) {
+                n.setPosition(0, 0, sw.toInt(), h.toInt())
+                val r = s.blur * min(w, h) * 0.06f
+                n.setRenderEffect(if (s.blur > 0.01f) RenderEffect.createBlurEffect(r, r, Shader.TileMode.CLAMP) else null)
+                val rc = n.beginRecording()
+                WallpaperStudio.drawScene(rc, s, sw, h, animTime)
+                n.endRecording()
+                sceneDirty = false; sceneSpec = s; sceneW = sw; sceneH = h
             }
+            canvas.withTranslation(-extra * xOffset, 0f) { drawRenderNode(n) }
             WallpaperStudio.drawGrain(canvas, s.grain, w, h)
         }
     }

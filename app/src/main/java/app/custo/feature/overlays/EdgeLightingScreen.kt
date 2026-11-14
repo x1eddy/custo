@@ -45,6 +45,7 @@ fun EdgeLightingScreen(onBack: () -> Unit) {
     fun saveRules(r: Map<String, Int>) = ui.set(OverlayKeys.edgeAppRules, OverlayLogic.encodeRules(r))
 
     ScreenScaffold("Edge lighting", onBack) {
+        item { NotificationAccessCard("Edge lighting needs it to know when something arrives.") }
         item {
             SectionCard {
                 SwitchRow("Enabled", "Needs notification access", p[Keys.edgeEnabled] == true) { ui.set(Keys.edgeEnabled, it) }

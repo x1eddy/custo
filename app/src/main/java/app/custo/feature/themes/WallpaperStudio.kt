@@ -120,14 +120,17 @@ class WallpaperStudio(private val context: Context) {
             Bitmap.createBitmap(px, n, n, Bitmap.Config.ARGB_8888)
         }
 
-        fun drawGrain(canvas: Canvas, amount: Float, w: Float, h: Float) {
-            if (amount <= 0.01f) return
-            val p = Paint().apply {
+        private val grainPaint by lazy {
+            Paint().apply {
                 shader = BitmapShader(grainTile, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT)
-                alpha = (amount.coerceIn(0f, 1f) * 0.6f * 255).roundToInt()
                 blendMode = BlendMode.OVERLAY
             }
-            canvas.drawRect(0f, 0f, w, h, p)
+        }
+
+        fun drawGrain(canvas: Canvas, amount: Float, w: Float, h: Float) {
+            if (amount <= 0.01f) return
+            grainPaint.alpha = (amount.coerceIn(0f, 1f) * 0.6f * 255).roundToInt()
+            canvas.drawRect(0f, 0f, w, h, grainPaint)
         }
 
         /** Three-pass separable box blur (≈ Gaussian) on a small bitmap. */
