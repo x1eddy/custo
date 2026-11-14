@@ -97,9 +97,10 @@ data class IconShortcut(
 
 object IconStyleCodec {
     val json = Json { ignoreUnknownKeys = true; coerceInputValues = true }
-    fun decodeStyles(s: String?): List<SavedStyle> = s?.let { runCatching { json.decodeFromString<List<SavedStyle>>(it) }.getOrNull() } ?: emptyList()
+    /** Per element: one broken entry is skipped, the rest still load. */
+    fun decodeStyles(s: String?): List<SavedStyle> = app.custo.data.LenientList.decode(SavedStyle.serializer(), s)
     fun encodeStyles(list: List<SavedStyle>): String = json.encodeToString(list)
-    fun decodeHistory(s: String?): List<IconShortcut> = s?.let { runCatching { json.decodeFromString<List<IconShortcut>>(it) }.getOrNull() } ?: emptyList()
+    fun decodeHistory(s: String?): List<IconShortcut> = app.custo.data.LenientList.decode(IconShortcut.serializer(), s)
     fun encodeHistory(list: List<IconShortcut>): String = json.encodeToString(list)
 }
 

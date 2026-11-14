@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.net.Uri
 import app.custo.data.Prefs
+import app.custo.data.updateList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,15 +22,11 @@ class IconRepository(private val context: Context, private val prefs: Prefs) {
     val styles: Flow<List<SavedStyle>> = prefs.flow(IconKeys.styles, "[]").map { IconStyleCodec.decodeStyles(it) }
     val history: Flow<List<IconShortcut>> = prefs.flow(IconKeys.history, "[]").map { IconStyleCodec.decodeHistory(it) }
 
-    suspend fun saveStyle(s: SavedStyle) {
-        val list = IconStyleCodec.decodeStyles(prefs.get(IconKeys.styles, "[]")).filterNot { it.name == s.name } + s
-        prefs.set(IconKeys.styles, IconStyleCodec.encodeStyles(list))
-    }
+    suspend fun saveStyle(s: SavedStyle) =
+        prefs.updateList(IconKeys.styles, SavedStyle.serializer(), "icon styles") { list -> list.filterNot { it.name == s.name } + s }
 
-    suspend fun deleteStyle(name: String) {
-        val list = IconStyleCodec.decodeStyles(prefs.get(IconKeys.styles, "[]")).filterNot { it.name == name }
-        prefs.set(IconKeys.styles, IconStyleCodec.encodeStyles(list))
-    }
+    suspend fun deleteStyle(name: String) =
+        prefs.updateList(IconKeys.styles, SavedStyle.serializer(), "icon styles") { list -> list.filterNot { it.name == name } }
 
     suspend fun draft(): IconStyle = IconStyle.decode(prefs.get(IconKeys.draft, "")) ?: IconStyle()
     suspend fun saveDraft(s: IconStyle) = prefs.set(IconKeys.draft, s.encode())
@@ -41,14 +38,12 @@ class IconRepository(private val context: Context, private val prefs: Prefs) {
 
     suspend fun record(entry: IconShortcut, icon: Bitmap) = withContext(Dispatchers.IO) {
         shortcutIcon(entry.id).outputStream().use { icon.compress(Bitmap.CompressFormat.PNG, 100, it) }
-        val list = IconStyleCodec.decodeHistory(prefs.get(IconKeys.history, "[]")).filterNot { it.id == entry.id } + entry
-        prefs.set(IconKeys.history, IconStyleCodec.encodeHistory(list))
+        prefs.updateList(IconKeys.history, IconShortcut.serializer(), "shortcut history") { list -> list.filterNot { it.id == entry.id } + entry }
     }
 
     suspend fun forget(id: String) = withContext(Dispatchers.IO) {
         shortcutIcon(id).delete()
-        val list = IconStyleCodec.decodeHistory(prefs.get(IconKeys.history, "[]")).filterNot { it.id == id }
-        prefs.set(IconKeys.history, IconStyleCodec.encodeHistory(list))
+        prefs.updateList(IconKeys.history, IconShortcut.serializer(), "shortcut history") { list -> list.filterNot { it.id == id } }
     }
 
     suspend fun loadShortcutIcon(id: String): Bitmap? = withContext(Dispatchers.IO) {

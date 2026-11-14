@@ -74,6 +74,10 @@ class CustoAccessibilityService : AccessibilityService(), OverlayHost {
             island, edge, ChargingAnimationOverlay(this), volume, controlCenter,
         )
         OverlayBus.serviceRunning.value = true
+        // Engine start: put back values a profile left behind (e.g. after process death) unless its app is in front.
+        runCatching { rootInActiveWindow?.packageName?.toString() }.getOrNull()
+            ?.takeUnless { it in transientPkgs }
+            .let { container.profileEngine.onForegroundApp(it) }
         scope.launch { container.prefs.data.collectLatest { p -> prefs = p; applyPrefs(p) } }
         scope.launch { OverlayBus.edge.collect { edge.play(it) } }
         scope.launch { OverlayBus.preview.collect { k -> overlays.forEach { it.preview(k) } } }

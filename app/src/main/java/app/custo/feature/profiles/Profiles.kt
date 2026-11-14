@@ -1,12 +1,13 @@
 package app.custo.feature.profiles
 
+import app.custo.data.LenientList
 import app.custo.data.Prefs
+import app.custo.data.updateList
 import app.custo.shizuku.ShellCommands.Namespace
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 
 /** One system setting a profile can control. null in a profile = "don't change". */
 enum class ProfileSetting(val label: String, val ns: Namespace, val key: String, val on: String, val off: String) {
@@ -54,20 +55,16 @@ object ProfileLogic {
 
 class ProfilesRepository(private val prefs: Prefs) {
     private val key = stringPreferencesKey("app_profiles_json")
-    private val json = Json { ignoreUnknownKeys = true }
 
     val profiles: Flow<List<AppProfile>> = prefs.flow(key, "[]").map(::decode)
 
-    private fun decode(s: String) = runCatching { json.decodeFromString<List<AppProfile>>(s) }.getOrDefault(emptyList())
+    private fun decode(s: String) = LenientList.decode(AppProfile.serializer(), s)
 
     suspend fun all(): List<AppProfile> = decode(prefs.get(key, "[]"))
 
-    suspend fun save(p: AppProfile) {
-        val list = all().filterNot { it.id == p.id } + p
-        prefs.set(key, json.encodeToString(list))
-    }
+    suspend fun save(p: AppProfile) =
+        prefs.updateList(key, AppProfile.serializer(), "profiles") { list -> list.filterNot { it.id == p.id } + p }
 
-    suspend fun delete(id: String) {
-        prefs.set(key, json.encodeToString(all().filterNot { it.id == id }))
-    }
+    suspend fun delete(id: String) =
+        prefs.updateList(key, AppProfile.serializer(), "profiles") { list -> list.filterNot { it.id == id } }
 }
