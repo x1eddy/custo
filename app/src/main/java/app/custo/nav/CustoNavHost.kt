@@ -106,6 +106,8 @@ fun CustoNavHost(initialRoute: Route? = null) {
                     Route.QsEditor -> QsEditorScreen(onBack = { nav.pop() })
                     Route.Backup -> BackupScreen(onBack = { nav.pop() })
                     is Route.WidgetEditor -> WidgetEditorScreen(target.appWidgetId, onBack = { nav.pop() })
+                    Route.Profiles -> app.custo.feature.profiles.ProfilesScreen(nav, onBack = { nav.pop() })
+                    is Route.ProfileEditor -> app.custo.feature.profiles.ProfileEditorScreen(target.profileId, onBack = { nav.pop() })
                     else -> Unit
                 }
             }

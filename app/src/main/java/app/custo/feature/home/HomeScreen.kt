@@ -208,7 +208,14 @@ fun HomeScreen(nav: Navigator) {
         }
 
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.enterAnimation(4)) {
+            Tile(cs.secondaryContainer, cs.onSecondaryContainer, Modifier.fillMaxWidth().enterAnimation(4), onClick = { nav.push(Route.Profiles) }) {
+                Text("Per-app profiles", style = MaterialTheme.typography.titleLarge)
+                Text("Grayscale for social apps, fast motion for games. Switches back when you leave.", style = MaterialTheme.typography.bodySmall)
+            }
+        }
+
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.enterAnimation(5)) {
                 Tile(cs.surfaceContainerLow, cs.onSurface, Modifier.weight(1f), onClick = { nav.push(Route.Backup) }) {
                     Icon(Icons.Rounded.Backup, null)
                     Text("Backup", style = MaterialTheme.typography.titleMedium)

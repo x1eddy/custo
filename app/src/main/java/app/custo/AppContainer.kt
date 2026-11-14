@@ -5,6 +5,8 @@ import app.custo.data.Prefs
 import app.custo.data.custoStore
 import app.custo.data.originalsStore
 import app.custo.feature.backup.BackupManager
+import app.custo.feature.profiles.ProfileEngine
+import app.custo.feature.profiles.ProfilesRepository
 import app.custo.feature.themes.LooksRepository
 import app.custo.feature.themes.WallpaperStudio
 import app.custo.feature.systemui.SystemTweaks
@@ -21,4 +23,6 @@ class AppContainer(context: Context) {
     val wallpapers = WallpaperStudio(app)
     val looks = LooksRepository(prefs)
     val backup = BackupManager(app, prefs, originals)
+    val profiles = ProfilesRepository(prefs)
+    val profileEngine = ProfileEngine(profiles, tweaks, shizuku)
 }
