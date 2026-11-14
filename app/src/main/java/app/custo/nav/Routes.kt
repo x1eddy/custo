@@ -56,4 +56,8 @@ sealed interface Route {
     data class IconPack(val pkg: String) : Route
     data object ImportedIcons : Route
     data object IconShortcuts : Route
+    data object OverlayControlCenter : Route
+    data object OverlayStickers : Route
+    data object VideoWallpaper : Route
+    data object Collage : Route
 }

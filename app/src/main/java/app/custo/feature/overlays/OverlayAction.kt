@@ -26,14 +26,15 @@ enum class OverlayAction(val label: String, val icon: Int, val forKeys: Boolean 
     CAMERA("Open camera", R.drawable.ov_camera),
     BACK("Back", R.drawable.ov_back, forKeys = false),
     HOME("Home", R.drawable.ov_home, forKeys = false),
-    RECENTS("Recents", R.drawable.ov_recents, forKeys = false);
+    RECENTS("Recents", R.drawable.ov_recents, forKeys = false),
+    CONTROL_CENTER("Open Control Center", R.drawable.ov_control);
 
     companion object {
         fun of(name: String?): OverlayAction = enumOr(name, NONE)
         val forButtons get() = entries.filter { it.forKeys }
 
         /** Quick actions offered in the sidebar. */
-        val sidebarChoices = listOf(FLASHLIGHT, SCREENSHOT, LOCK, NOTIFICATIONS, QUICK_SETTINGS, PLAY_PAUSE, CAMERA)
+        val sidebarChoices = listOf(FLASHLIGHT, SCREENSHOT, LOCK, NOTIFICATIONS, QUICK_SETTINGS, PLAY_PAUSE, CAMERA, CONTROL_CENTER)
     }
 }
 
@@ -46,6 +47,12 @@ class ActionPerformer(private val service: AccessibilityService) {
     private var torchId: String? = null
     private var torchOn = false
     private var torchCallback: CameraManager.TorchCallback? = null
+
+    /** Set by the service: opens the Control Center. */
+    var onControlCenter: (() -> Unit)? = null
+
+    /** Last known flashlight state. Call [watchTorch] first for it to follow outside changes. */
+    val isTorchOn: Boolean get() = torchOn
 
     fun perform(action: OverlayAction): Boolean = when (action) {
         OverlayAction.NONE -> false
@@ -64,6 +71,7 @@ class ActionPerformer(private val service: AccessibilityService) {
         OverlayAction.BACK -> service.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK)
         OverlayAction.HOME -> service.performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME)
         OverlayAction.RECENTS -> service.performGlobalAction(AccessibilityService.GLOBAL_ACTION_RECENTS)
+        OverlayAction.CONTROL_CENTER -> onControlCenter?.let { it(); true } ?: false
     }
 
     fun launchApp(pkg: String): Boolean = runCatching {
@@ -79,7 +87,13 @@ class ActionPerformer(private val service: AccessibilityService) {
     }
 
     private fun toggleTorch(): Boolean {
-        val id = torchId ?: findTorch()?.also { torchId = it } ?: return false
+        val id = watchTorch() ?: return false
+        return runCatching { camera.setTorchMode(id, !torchOn); torchOn = !torchOn }.isSuccess
+    }
+
+    /** Starts following the flashlight state. Returns the torch camera id, or null if there is none. */
+    fun watchTorch(): String? {
+        val id = torchId ?: findTorch()?.also { torchId = it } ?: return null
         if (torchCallback == null) {
             // Keeps torchOn right when the flashlight is toggled elsewhere, e.g. from Quick Settings.
             val cb = object : CameraManager.TorchCallback() {
@@ -88,7 +102,7 @@ class ActionPerformer(private val service: AccessibilityService) {
             torchCallback = cb
             camera.registerTorchCallback(cb, handler)
         }
-        return runCatching { camera.setTorchMode(id, !torchOn); torchOn = !torchOn }.isSuccess
+        return id
     }
 
     private fun findTorch(): String? = runCatching {

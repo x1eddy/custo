@@ -39,6 +39,8 @@ abstract class Overlay(protected val host: OverlayHost) {
     open fun onScreen(on: Boolean) = Unit
     open fun onPowerConnected(level: Int) = Unit
     open fun preview(kind: Preview) = Unit
+    /** A different app (or the launcher) came to the front. */
+    open fun onForegroundApp(pkg: String) = Unit
 
     /** Rotation or size change: rebuild from current prefs. */
     open fun onConfigChanged() { host.prefs?.let { remove(); apply(it) } }
