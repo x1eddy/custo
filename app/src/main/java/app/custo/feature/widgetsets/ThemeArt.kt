@@ -48,7 +48,7 @@ object ThemeArt {
         theme.decorationsFor(kind, slot).forEach { dec ->
             val size = SetLayout.stickerSize(card.width(), card.height(), dec.scale, MAX_STICKER_DP * d * dec.scale.coerceAtLeast(1f))
             val (cx, cy) = SetLayout.stickerCenter(box, dec.anchor.x, dec.anchor.y, size, w, h)
-            drawSticker(c, dec.sticker, cx, cy, size, ink, dec.rotate)
+            drawSticker(c, dec.sticker, cx, cy, size, ink, dec.rotate, dec.art)
         }
     }
 
@@ -76,6 +76,7 @@ object ThemeArt {
     fun drawFrame(c: Canvas, theme: WidgetTheme, card: RectF, d: Float, seed: Int = 0) {
         val p = theme.palette
         val r = min(theme.corner * d, min(card.width(), card.height()) / 2f)
+        theme.framePainter?.let { it.paint(c, theme, card, r, d, seed); return }
         when (theme.frame) {
             FrameStyle.PLAIN -> {
                 c.drawRoundRect(card, r, r, paint(p.background))
@@ -273,14 +274,17 @@ object ThemeArt {
     // ---------- Stickers ----------
 
     /** Draws [sticker] centered at ([cx], [cy]) in a box of [size] px. */
-    fun drawSticker(c: Canvas, sticker: Sticker, cx: Float, cy: Float, size: Float, ink: StickerInk, rotate: Float = 0f) {
+    fun drawSticker(c: Canvas, sticker: Sticker, cx: Float, cy: Float, size: Float, ink: StickerInk, rotate: Float = 0f, art: StickerArt? = null) {
         if (size < 3f) return
-        c.withRotation(rotate, cx, cy) { Pen(this, cx, cy, size, ink).draw(sticker) }
+        c.withRotation(rotate, cx, cy) {
+            val pen = Pen(this, cx, cy, size, ink)
+            if (art != null) pen.art() else pen.draw(sticker)
+        }
     }
 }
 
 /** Sticker drawing in unit coordinates: (0,0) is the center, ±0.5 the box edges. */
-private class Pen(val c: Canvas, val cx: Float, val cy: Float, val s: Float, val ink: StickerInk) {
+class Pen(val c: Canvas, val cx: Float, val cy: Float, val s: Float, val ink: StickerInk) {
     val colorful = ink.style == InkStyle.COLOR
     val lineW = (s * if (colorful) 0.045f else 0.05f).coerceAtLeast(1.2f)
     private val fillP = Paint(Paint.ANTI_ALIAS_FLAG)

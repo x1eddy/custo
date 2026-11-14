@@ -11,7 +11,8 @@ import app.custo.feature.widgets.WidgetStyle
 import java.time.LocalDate
 
 enum class ThemeCategory(val label: String) {
-    CUTE("Cute"), CHRISTMAS("Christmas"), MINIMAL("Minimal"), NATURE("Nature"), SEASONS("Seasons"), FUN("Fun"),
+    CUTE("Cute"), SWEET("Sweet"), CHRISTMAS("Christmas"), GAMES("Games"), HEROES("Anime & heroes"), MUSIC("Music"),
+    MINIMAL("Minimal"), NATURE("Nature"), SEASONS("Seasons"), FUN("Fun"),
 }
 
 /**
@@ -59,7 +60,26 @@ enum class Sticker {
  * One sticker on a widget. [scale] is relative to the default sticker size
  * (about a third of the card's short side); [rotate] in degrees.
  */
-data class Decoration(val sticker: Sticker, val anchor: Anchor, val scale: Float = 1f, val rotate: Float = 0f)
+data class Decoration(
+    val sticker: Sticker,
+    val anchor: Anchor,
+    val scale: Float = 1f,
+    val rotate: Float = 0f,
+    /** Theme-pack sticker drawn instead of [sticker] (see [custom]). */
+    val art: StickerArt? = null,
+)
+
+/** A sticker drawn by a theme pack with the [Pen] helpers (unit coords: center 0,0, edges ±0.5). */
+typealias StickerArt = Pen.() -> Unit
+
+/** A decoration using a theme pack's own sticker art. */
+fun custom(art: StickerArt, anchor: Anchor, scale: Float = 1f, rotate: Float = 0f) =
+    Decoration(Sticker.STAR, anchor, scale, rotate, art)
+
+/** Lets a theme pack draw its own card frame. [r] = corner radius px, [d] = density. */
+fun interface FramePainter {
+    fun paint(c: Canvas, theme: WidgetTheme, card: android.graphics.RectF, r: Float, d: Float, seed: Int)
+}
 
 /** How stickers are inked: full color with an outline, or line art in one color. */
 enum class InkStyle { COLOR, LINE }
@@ -107,6 +127,8 @@ data class WidgetTheme(
     val shadowColor: Int = 0x66000000,
     /** Card corner radius in dp. */
     val corner: Float = 22f,
+    /** Overrides how [frame] is drawn (its insets still come from [frame]). */
+    val framePainter: FramePainter? = null,
 ) {
     fun decorationsFor(kind: WidgetKind?, slot: Int): List<Decoration> {
         val variants = kind?.let { decorations[it] } ?: fallbackDecorations

@@ -176,7 +176,8 @@ object WidgetThemes {
     val DOODLE_RED = doodle("doodle_red", "Doodle notes", 0xFFC62828.toInt(), 0xFFEF8A8A.toInt(), 0xFFC62828.toInt(), 0xFFB71C1C.toInt(), 31)
     val DOODLE_GREEN = doodle("doodle_green", "Doodle notes, green", 0xFF2E7D32.toInt(), 0xFFEF8A8A.toInt(), 0xFF2E6B3F.toInt(), 0xFF285E37.toInt(), 47)
 
-    val all: List<WidgetTheme> = listOf(GOOD_LUCK, FROSTED_CHRISTMAS, DOODLE_RED, DOODLE_GREEN)
+    val all: List<WidgetTheme> = listOf(GOOD_LUCK, FROSTED_CHRISTMAS, DOODLE_RED, DOODLE_GREEN) +
+        ThemePackA.themes + ThemePackB.themes + ThemePackC.themes
 
     fun byId(id: String?): WidgetTheme? = id?.let { i -> all.firstOrNull { it.id == i } }
 
