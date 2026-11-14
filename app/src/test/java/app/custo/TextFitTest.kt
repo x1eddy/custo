@@ -20,8 +20,8 @@ class TextFitTest {
     }
 
     @Test fun hiddenLinesDontTakeSpace() {
-        val withDate = TextFit.stack(DpSize(280.dp, 80.dp), 1f, TextFit.Line(56f, 5), TextFit.Line(15f, 17))
-        val without = TextFit.stack(DpSize(280.dp, 80.dp), 1f, TextFit.Line(56f, 5), TextFit.Line(15f, 17, shown = false))
+        val withDate = TextFit.stack(DpSize(280.dp, 60.dp), 1f, TextFit.Line(56f, 5), TextFit.Line(15f, 17))
+        val without = TextFit.stack(DpSize(280.dp, 60.dp), 1f, TextFit.Line(56f, 5), TextFit.Line(15f, 17, shown = false))
         assertTrue(without > withDate)
     }
 
