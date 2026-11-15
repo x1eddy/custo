@@ -14,17 +14,21 @@
 </p>
 
 <p align="center">
-  <img src="docs/screens/home.png" width="200" alt="Home" />
-  <img src="docs/screens/sets.png" width="200" alt="Widget sets" />
   <img src="docs/screens/blocky.png" width="200" alt="Blocky widget set" />
   <img src="docs/screens/battle.png" width="200" alt="Battle Royale widget set" />
+  <img src="docs/screens/sets.png" width="200" alt="Widget sets gallery" />
+</p>
+<p align="center">
+  <img src="docs/screens/home.png" width="200" alt="Home" />
+  <img src="docs/screens/overlays.png" width="200" alt="Overlays" />
+  <img src="docs/screens/systemui.png" width="200" alt="System UI" />
 </p>
 
 ## What it does
 
 **Widget sets** – 35 themed bundles of a wallpaper plus matching widgets, applied in one tap: pixel-block worlds, item-shop rarity cards, Christmas, teddy bears, cake, rock, sakura, synthwave, matrix code and many more. All art is drawn in code, so everything works offline.
 
-**Widgets** – 30+ widget types: clocks (big, stacked, minimal, analog, world, big hour), calendar, countdowns, battery, steps, screen time, water tracker, mood calendar, to-do list, moon & sun, prayer times, now playing, photo carousel, app shortcuts, and fun tap widgets (wooden fish, bubble wrap). Every widget has a full style editor (colors, gradients, borders, fonts, shadow) and fits its text to any size.
+**Widgets** – 30+ widget types that animate when you tap them: clocks (big, stacked, minimal, analog, world, big hour), calendar, countdowns, battery, steps, screen time, water tracker, mood calendar, to-do list, moon & sun, prayer times, now playing, photo carousel, app shortcuts, and fun tap widgets (wooden fish, bubble wrap). Every widget has a full style editor (colors, gradients, borders, fonts, shadow) and fits its text to any size.
 
 **System UI** (with [Shizuku](https://shizuku.rikka.app/), no root) – system color palette and style, status bar icons and clock, Quick Settings tile layout, navigation mode, animation speed, display size and resolution, extra dim, night light, grayscale, lock screen and always-on display, notifications and Do Not Disturb, gestures, sounds and haptics, extra Quick Settings tiles, and a raw settings editor. **Undo all** puts every system change back.
 

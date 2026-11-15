@@ -154,8 +154,17 @@ class MiniColors(val body: Color, val top: Color, val bottom: Color, val ink: Co
 @Composable
 fun miniColors(): MiniColors {
     val cs = MaterialTheme.colorScheme
-    return remember(cs.primaryContainer, cs.tertiaryContainer) {
-        MiniColors(Color(0xFF26262B), cs.primaryContainer, cs.tertiaryContainer, Color.White)
+    return remember(cs.primary, cs.tertiary) {
+        // Deep, saturated mock wallpaper so white previews (glow, bars, text) stand out. A grey
+        // palette (e.g. Mono) would make every preview look empty, so fall back to Custo's colors.
+        fun chroma(c: Color) = maxOf(c.red, c.green, c.blue) - minOf(c.red, c.green, c.blue)
+        val (a, b) = if (chroma(cs.primary) < 0.12f && chroma(cs.tertiary) < 0.12f) MarkIndigo to MarkTeal else cs.primary to cs.tertiary
+        MiniColors(
+            Color(0xFF26262B),
+            androidx.compose.ui.graphics.lerp(a, Color.Black, 0.35f),
+            androidx.compose.ui.graphics.lerp(b, Color.Black, 0.55f),
+            Color.White,
+        )
     }
 }
 
