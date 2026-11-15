@@ -13,7 +13,6 @@ import app.custo.feature.widgets.WidgetFonts
 import app.custo.feature.widgets.WidgetKind
 import app.custo.feature.widgets.WidgetLogic
 import app.custo.feature.widgets.WidgetStyle
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -36,10 +35,14 @@ object SetPreviews {
         val w = widthPx.coerceIn(120, 900)
         val key = "${theme.id}@$w@${LocalDate.now()}"
         cache.get(key)?.let { return it }
-        val bmp = withContext(Dispatchers.Default) { render(theme, w) }
-        cache.put(key, bmp)
-        return bmp
+        // Cached inside the render block so a render that outlives its (scrolled-away) caller still counts.
+        return withContext(app.custo.ui.components.PreviewRender) {
+            cache.get(key) ?: render(theme, w).also { it.prepareToDraw(); cache.put(key, it) }
+        }
     }
+
+    /** The cached preview, if there is one; cheap enough to call during composition. */
+    fun peek(theme: WidgetTheme, widthPx: Int): Bitmap? = cache.get("${theme.id}@${widthPx.coerceIn(120, 900)}@${LocalDate.now()}")
 
     fun render(theme: WidgetTheme, w: Int): Bitmap {
         val h = (w * ASPECT).roundToInt()

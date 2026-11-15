@@ -53,10 +53,14 @@ object IconRenderer {
     @Volatile private var font: Typeface? = null
 
     suspend fun render(context: Context, style: IconStyle, pkg: String?, label: String = "", size: Int = SIZE): Bitmap =
-        withContext(Dispatchers.Default) {
+        peek(style, pkg, label, size) ?: withContext(Dispatchers.Default) {
             val key = "${style.hashCode()}|$pkg|$label|$size"
             cache.get(key) ?: draw(context, style, pkg, label, size).also { cache.put(key, it) }
         }
+
+    /** The cached render, if any; cheap enough to call during composition. */
+    fun peek(style: IconStyle, pkg: String?, label: String = "", size: Int = SIZE): Bitmap? =
+        cache.get("${style.hashCode()}|$pkg|$label|$size")
 
     fun draw(context: Context, style: IconStyle, pkg: String?, label: String, size: Int): Bitmap {
         val s = size.toFloat()

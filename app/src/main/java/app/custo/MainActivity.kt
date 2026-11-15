@@ -9,6 +9,8 @@ import app.custo.nav.CustoNavHost
 import app.custo.nav.Route
 import app.custo.ui.theme.CustoTheme
 import android.appwidget.AppWidgetManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -48,6 +50,11 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         container.shizuku.refresh()
-        lifecycleScope.launch { app.custo.feature.widgets.Widgets.refreshAll(this@MainActivity) }
+        // Off the main thread and after the first frames: it's ~35 binder calls plus a Glance
+        // re-render per placed widget, which used to compete with the screen opening.
+        lifecycleScope.launch(Dispatchers.Default) {
+            delay(1_500)
+            app.custo.feature.widgets.Widgets.refreshAll(this@MainActivity)
+        }
     }
 }

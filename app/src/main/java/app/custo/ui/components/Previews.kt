@@ -61,6 +61,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -128,8 +129,10 @@ fun IconNote(icon: ImageVector, text: String, color: Color = MaterialTheme.color
 @Composable
 fun SkeletonBlock(modifier: Modifier = Modifier, height: Dp = 16.dp) {
     val t = rememberInfiniteTransition(label = "skeleton")
-    val a by t.animateFloat(0.35f, 0.7f, infiniteRepeatable(tween(800, easing = LinearEasing), RepeatMode.Reverse), label = "skeletonAlpha")
-    Box(modifier.height(height).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.onSurface.copy(alpha = a * 0.16f)))
+    val a = t.animateFloat(0.35f, 0.7f, infiniteRepeatable(tween(800, easing = LinearEasing), RepeatMode.Reverse), label = "skeletonAlpha")
+    val ink = MaterialTheme.colorScheme.onSurface
+    // The pulse is read while drawing, so it redraws each frame without recomposing every block.
+    Box(modifier.height(height).clip(RoundedCornerShape(8.dp)).drawBehind { drawRect(ink.copy(alpha = a.value * 0.16f)) })
 }
 
 /** A card-shaped skeleton: title bar and [rows] row placeholders. */

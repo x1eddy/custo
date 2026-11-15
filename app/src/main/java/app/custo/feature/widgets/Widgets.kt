@@ -1,5 +1,7 @@
 package app.custo.feature.widgets
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
@@ -110,9 +112,10 @@ object Widgets {
     /** Bumped on refresh so a running Glance session recomposes and re-reads live data. */
     internal val TICK_KEY = longPreferencesKey("tick")
 
-    suspend fun placed(context: Context): List<PlacedWidget> {
+    /** One AppWidgetManager binder call per kind, so it runs on IO rather than the caller's (often main) thread. */
+    suspend fun placed(context: Context): List<PlacedWidget> = withContext(Dispatchers.IO) {
         val gm = GlanceAppWidgetManager(context)
-        return WidgetKind.entries.flatMap { kind ->
+        WidgetKind.entries.flatMap { kind ->
             gm.getGlanceIds(kind.widget().javaClass).map { PlacedWidget(kind, it, gm.getAppWidgetId(it)) }
         }
     }
@@ -146,7 +149,7 @@ object Widgets {
 
     suspend fun refresh(context: Context, kind: WidgetKind) = runCatching { refreshWidget(context, kind.widget()) }
 
-    suspend fun refreshAll(context: Context) {
+    suspend fun refreshAll(context: Context) = withContext(Dispatchers.Default) {
         WidgetKind.entries.forEach { refresh(context, it) }
     }
 }

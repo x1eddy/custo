@@ -100,7 +100,7 @@ fun SetPreviewImage(theme: WidgetTheme, modifier: Modifier = Modifier, corner: I
             .border(2.dp, MaterialTheme.colorScheme.outlineVariant, shape),
     ) {
         val px = with(LocalDensity.current) { maxWidth.roundToPx() }
-        val bmp by produceState<Bitmap?>(null, theme.id, px) { value = SetPreviews.get(theme, px) }
+        val bmp by produceState(SetPreviews.peek(theme, px), theme.id, px) { value = SetPreviews.get(theme, px) }
         Crossfade(bmp, label = "set") { b ->
             if (b != null) Image(b.asImageBitmap(), theme.name, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
         }

@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -42,6 +43,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -74,6 +76,8 @@ import app.custo.ui.components.ScreenScaffold
 import app.custo.ui.components.SupportBadge
 import app.custo.ui.components.rememberActionRunner
 import app.custo.ui.components.enterAnimation
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
 fun HomeScreen(nav: Navigator) {
@@ -97,15 +101,19 @@ fun HomeScreen(nav: Navigator) {
         c.consumeUndoResult()
     }
 
-    var widgetCount by remember { mutableIntStateOf(0) }
+    var widgetCount by remember { mutableIntStateOf(lastWidgetCount) }
     LaunchedEffect(tick, state) {
-        widgetCount = runCatching { Widgets.placed(ctx).size }.getOrDefault(0)
+        widgetCount = runCatching { Widgets.placed(ctx).size }.getOrDefault(0).also { lastWidgetCount = it }
     }
     // The user's real wallpaper colors (no storage permission needed), drawn as a mesh.
-    val wallSpec = remember(tick) {
-        val wc = WallpaperManager.getInstance(ctx).getWallpaperColors(WallpaperManager.FLAG_SYSTEM)
-        val colors = listOfNotNull(wc?.primaryColor, wc?.secondaryColor, wc?.tertiaryColor).map { it.toArgb() }
-        WallSpec(WallStyle.MESH, (listOf(0xFF101014.toInt()) + colors).ifEmpty { WallSpec().colors }, seed = 4)
+    // getWallpaperColors is a binder call that can be slow, so it runs on IO; the last result is
+    // kept for the process so coming back to Home shows the preview at once.
+    val wallSpec by produceState(lastHomeWall, tick) {
+        value = withContext(Dispatchers.IO) {
+            val wc = WallpaperManager.getInstance(ctx).getWallpaperColors(WallpaperManager.FLAG_SYSTEM)
+            val colors = listOfNotNull(wc?.primaryColor, wc?.secondaryColor, wc?.tertiaryColor).map { it.toArgb() }
+            WallSpec(WallStyle.MESH, (listOf(0xFF101014.toInt()) + colors).ifEmpty { WallSpec().colors }, seed = 4)
+        }.also { lastHomeWall = it }
     }
     val ready = state == ShizukuState.READY
 
@@ -160,7 +168,9 @@ fun HomeScreen(nav: Navigator) {
         item {
             Tile(cs.primaryContainer, cs.onPrimaryContainer, Modifier.fillMaxWidth().height(208.dp).enterAnimation(1), onClick = { nav.goTab(Tab.THEMES) }) {
                 Row(Modifier.fillMaxHeight()) {
-                    WallPreview(wallSpec, Modifier.fillMaxHeight())
+                    val spec = wallSpec
+                    if (spec != null) WallPreview(spec, Modifier.fillMaxHeight())
+                    else Box(Modifier.fillMaxHeight().aspectRatio(9f / 19.5f).clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.surfaceVariant))
                     Spacer(Modifier.width(18.dp))
                     Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.SpaceBetween) {
                         Column {
@@ -250,6 +260,10 @@ fun HomeScreen(nav: Navigator) {
         )
     }
 }
+
+/** Last values Home showed, so returning to it doesn't flash placeholders. */
+private var lastHomeWall: WallSpec? = null
+private var lastWidgetCount = 0
 
 @Composable
 private fun Tile(

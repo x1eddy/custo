@@ -229,9 +229,11 @@ fun ThemesScreen(nav: Navigator) {
 @Composable
 private fun StyleThumb(spec: WallSpec) {
     val key = spec.copy(grain = 0f, blur = 0f)
-    val bmp by produceState<Bitmap?>(null, key) {
-        delay(60)
-        value = withContext(Dispatchers.Default) { WallpaperStudio.render(key, 72, 120) }
+    val bmp by produceState(WallThumbs.peek(key, 72, 120), key) {
+        value = WallThumbs.peek(key, 72, 120) ?: run {
+            delay(60)
+            WallThumbs.get(key, 72, 120)
+        }
     }
     Box(Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant)) {
         bmp?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
@@ -246,9 +248,11 @@ private fun SmallSlider(label: String, value: Float, onChange: (Float) -> Unit) 
 
 @Composable
 fun WallPreview(spec: WallSpec, modifier: Modifier = Modifier) {
-    val bmp by produceState<Bitmap?>(null, spec) {
-        delay(40) // let slider drags settle before rendering
-        value = withContext(Dispatchers.Default) { WallpaperStudio.render(spec, 270, 585) }
+    val bmp by produceState(WallThumbs.peek(spec, 270, 585), spec) {
+        value = WallThumbs.peek(spec, 270, 585) ?: run {
+            delay(40) // let slider drags settle before rendering
+            WallThumbs.get(spec, 270, 585)
+        }
     }
     Box(modifier.aspectRatio(9f / 19.5f).clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.surfaceVariant)) {
         Crossfade(bmp, label = "wall") { b ->

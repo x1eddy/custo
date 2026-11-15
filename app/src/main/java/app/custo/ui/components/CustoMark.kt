@@ -6,7 +6,11 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.geometry.CornerRadius
@@ -60,12 +64,19 @@ fun CustoMark(modifier: Modifier = Modifier, animate: Boolean = false) {
     }
 }
 
-/** Fade + rise in, staggered by [index], the first time an item appears. */
+/**
+ * Fade + rise in, staggered by [index], the first time an item appears. Lazy lists keep the
+ * "played" flag while an item is scrolled away, so scrolling back doesn't replay it (an alpha
+ * layer over a whole tile is costly to animate on slow GPUs).
+ */
 fun Modifier.enterAnimation(index: Int): Modifier = composed {
-    val p = remember { Animatable(0f) }
+    var played by rememberSaveable { mutableStateOf(false) }
+    val p = remember { Animatable(if (played) 1f else 0f) }
     LaunchedEffect(Unit) {
+        if (played) return@LaunchedEffect
         delay(45L * index.coerceAtMost(8))
         p.animateTo(1f, spring(Spring.DampingRatioNoBouncy, Spring.StiffnessLow))
+        played = true
     }
     graphicsLayer {
         alpha = p.value
