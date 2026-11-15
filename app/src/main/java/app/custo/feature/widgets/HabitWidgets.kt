@@ -96,13 +96,16 @@ internal fun ringSide(style: WidgetStyle, max: Float): Float {
     return (min(size.width.value, size.height.value) - style.padding * 2).coerceIn(48f, max)
 }
 
-/** A rounded pill button. */
+/** A rounded pill button; [pop] scales its label (a tap effect). */
 @Composable
-internal fun Pill(style: WidgetStyle, label: String, action: androidx.glance.action.Action, modifier: GlanceModifier = GlanceModifier) {
-    Box(
-        modifier.cornerRadius(18.dp).background(fgProvider(style)).clickable(action).padding(horizontal = 14.dp, vertical = 7.dp),
-        contentAlignment = Alignment.Center,
-    ) { WText(label, style = style.text(14f, bold = true).copy(color = bgProvider(style, 1f), textAlign = TextAlign.Center), maxLines = 1) }
+internal fun Pill(style: WidgetStyle, label: String, tap: Tap, modifier: GlanceModifier = GlanceModifier, pop: Float = 1f) {
+    PressButton(
+        style, tap, modifier,
+        ButtonLook(
+            label = label, labelSp = 14f * style.textScale * pop, labelColor = bgArgb(style), bold = true,
+            shape = R.drawable.tap_shape_round, shapeColor = fgArgb(style), padH = 14f, padV = 7f,
+        ),
+    )
 }
 
 // ---------- Water ----------
@@ -123,14 +126,23 @@ class WaterWidget : ResponsiveWidget() {
         val today = LocalDate.now().toEpochDay()
         val n = data.count(today)
         val frac = n.toFloat() / data.goal.coerceAtLeast(1)
-        val add = actionRunCallback<AddSipAction>()
+        val add = tapRun<AddSipAction>()
         val cls = sizeClass()
+        // A sip pops the count and floats a "+1" up out of the ring; undo just pops the count.
+        val sip = tapFrame("sip")
+        val pop = TapFrames.pop(maxOf(sip, tapFrame("unsip")), 0.6f)
         Frame(style, if (cls == SizeClass.SMALL) add else null) {
             val ring = @Composable { side: Float ->
                 Ring(style, frac, side) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         WText(style.drink.emoji, style = style.text(side / 5f).copy(textAlign = TextAlign.Center))
-                        WText("$n/${data.goal}", style = style.text(side / 6.5f, bold = true).copy(textAlign = TextAlign.Center))
+                        WText("$n/${data.goal}", style = style.text(side / 6.5f * pop, bold = true).copy(textAlign = TextAlign.Center))
+                    }
+                    Box(GlanceModifier.size(side.dp), contentAlignment = Alignment.TopCenter) {
+                        WText(
+                            "+1", GlanceModifier.padding(top = (side * 0.28f * (1f - TapFrames.rise(sip))).dp),
+                            style = style.text(side / 7f / style.textScale, bold = true, alpha = TapFrames.fade(sip)).copy(textAlign = TextAlign.Center), maxLines = 1,
+                        )
                     }
                 }
             }
@@ -144,7 +156,7 @@ class WaterWidget : ResponsiveWidget() {
                         WText(data.today(today).takeLast(8).joinToString("") { it.drink.emoji }.ifEmpty { "Nothing yet today" }, style = style.text(13f, alpha = 0.8f).copy(textAlign = TextAlign.Start), maxLines = 1)
                         Spacer(GlanceModifier.height(8.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Pill(style, "+1 ${style.drink.emoji}", add)
+                            Pill(style, "+1 ${style.drink.emoji}", add, pop = TapFrames.pop(sip, 0.4f))
                             if (n > 0) UndoButton(style)
                         }
                     }
@@ -158,7 +170,7 @@ class WaterWidget : ResponsiveWidget() {
                     )
                     Spacer(GlanceModifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Pill(style, "+1 ${style.drink.label.lowercase()}", add)
+                        Pill(style, "+1 ${style.drink.label.lowercase()}", add, pop = TapFrames.pop(sip, 0.4f))
                         if (n > 0) UndoButton(style)
                     }
                 }
@@ -168,23 +180,21 @@ class WaterWidget : ResponsiveWidget() {
 
     @Composable
     private fun UndoButton(style: WidgetStyle) {
-        Image(
-            ImageProvider(R.drawable.ic_undo), "Undo",
-            GlanceModifier.size(36.dp).padding(8.dp).clickable(actionRunCallback<UndoSipAction>()),
-            colorFilter = ColorFilter.tint(fgProvider(style)),
-        )
+        PressButton(style, tapRun<UndoSipAction>(), GlanceModifier.size(36.dp), ButtonLook(icon = R.drawable.ic_undo, iconDp = 20f, tint = fgArgb(style), desc = "Undo"))
     }
 }
 
 class AddSipAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         context.container.habits.addSip(Widgets.style(context, glanceId).drink)
+        TapFx.play(context, glanceId, WaterWidget(), "sip")
     }
 }
 
 class UndoSipAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         context.container.habits.updateWater { it.undo(LocalDate.now().toEpochDay()) }
+        TapFx.play(context, glanceId, WaterWidget(), "unsip")
     }
 }
 
@@ -219,7 +229,7 @@ class MoodWidget : ResponsiveWidget() {
         val mood = data.days[today.toEpochDay()]
         val cls = sizeClass()
         val loc = context.resources.configuration.locales[0]
-        Frame(style, actionStartActivity(editIntent(context, id))) {
+        Frame(style, tapStart(editIntent(context, id))) {
             when (cls) {
                 SizeClass.SMALL -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Face(style, mood, 56f)
@@ -247,15 +257,18 @@ class MoodWidget : ResponsiveWidget() {
     private fun MoodPicker(style: WidgetStyle, current: Mood?) {
         Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Mood.entries.forEach { m ->
-                val pick = actionRunCallback<LogMoodAction>(actionParametersOf(LogMoodAction.MOOD to m.name))
-                var mod = GlanceModifier.defaultWeight().height(30.dp).cornerRadius(15.dp).clickable(pick)
-                if (m == current) mod = mod.background(fgProvider(style, 0.18f))
-                Box(mod, contentAlignment = Alignment.Center) {
-                    if (style.moodFaces) {
-                        val bmp = remember(m) { WidgetArt.moodFace(m, 64) }
-                        Image(ImageProvider(bmp), m.label, GlanceModifier.size(22.dp))
-                    } else WText(m.emoji, style = style.text(16f).copy(textAlign = TextAlign.Center))
-                }
+                val pick = tapRun<LogMoodAction>("mood" to m.name)
+                // The face you pick pops.
+                val pop = TapFrames.pop(tapFrame("mood:${m.name}"))
+                val bmp = if (style.moodFaces) remember(m) { WidgetArt.moodFace(m, 64) } else null
+                PressButton(
+                    style, pick, GlanceModifier.defaultWeight().height(30.dp),
+                    ButtonLook(
+                        bitmap = bmp, iconDp = 22f * pop, label = if (bmp == null) m.emoji else null, labelSp = 16f * style.textScale * pop,
+                        labelColor = fgArgb(style), fill = true, desc = m.label,
+                        shape = if (m == current) R.drawable.tap_shape_round else 0, shapeColor = fgArgb(style, 0.18f),
+                    ),
+                )
             }
         }
     }
@@ -289,6 +302,7 @@ class LogMoodAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         val mood = parameters[MOOD]?.let { runCatching { Mood.valueOf(it) }.getOrNull() } ?: return
         context.container.habits.setMood(LocalDate.now(), mood)
+        TapFx.play(context, glanceId, MoodWidget(), "mood:${mood.name}")
     }
 
     companion object { val MOOD = ActionParameters.Key<String>("mood") }
@@ -311,17 +325,17 @@ class TodoWidget : CustoWidget() {
     @Composable
     private fun Body(context: Context, id: GlanceId, data: TodoData) {
         val style = currentStyle()
-        val edit = actionStartActivity(editIntent(context, id))
+        val edit = tapStart(editIntent(context, id))
         Frame(style, null) {
             Column(GlanceModifier.fillMaxSize()) {
                 Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     val left = data.items.count { !it.done }
                     WText("To-do", style = style.text(17f, bold = true).copy(textAlign = TextAlign.Start), modifier = GlanceModifier.defaultWeight(), maxLines = 1)
                     if (data.items.isNotEmpty()) WText("$left left", style = style.text(12f, alpha = 0.7f), maxLines = 1)
-                    Image(ImageProvider(R.drawable.ic_add), "Add", GlanceModifier.size(36.dp).padding(6.dp).clickable(edit), colorFilter = ColorFilter.tint(fgProvider(style)))
+                    PressButton(style, edit, GlanceModifier.size(36.dp), ButtonLook(icon = R.drawable.ic_add, iconDp = 24f, tint = fgArgb(style), desc = "Add"))
                 }
                 if (data.items.isEmpty()) {
-                    Box(GlanceModifier.fillMaxSize().clickable(edit), contentAlignment = Alignment.Center) {
+                    Box(GlanceModifier.fillMaxSize().clickable(edit.glance()), contentAlignment = Alignment.Center) {
                         WText("All clear. Tap + to add something", style = style.text(13f, alpha = 0.75f).copy(textAlign = TextAlign.Center))
                     }
                 } else {
@@ -337,11 +351,14 @@ class TodoWidget : CustoWidget() {
 
     @Composable
     private fun TodoRow(style: WidgetStyle, item: Todo) {
-        val toggle = actionRunCallback<ToggleTodoAction>(actionParametersOf(ToggleTodoAction.ID to item.id))
-        Row(GlanceModifier.fillMaxWidth().padding(vertical = 5.dp).clickable(toggle), verticalAlignment = Alignment.CenterVertically) {
+        val toggle = tapRun<ToggleTodoAction>("id" to item.id)
+        // The tick pops when you tap a row (sized inside a fixed box so the row doesn't jump).
+        val pop = TapFrames.pop(tapFrame("todo:${item.id}"))
+        val box = 26 * style.textScale
+        Row(GlanceModifier.fillMaxWidth().padding(vertical = 5.dp).clickable(toggle.glance()), verticalAlignment = Alignment.CenterVertically) {
             Image(
                 ImageProvider(if (item.done) R.drawable.ic_check_circle else R.drawable.ic_circle_outline), if (item.done) "Done" else "Not done",
-                GlanceModifier.size((20 * style.textScale).dp),
+                GlanceModifier.size(box.dp).padding((box * (1.3f - pop) / 2f).coerceAtLeast(0f).dp),
                 colorFilter = ColorFilter.tint(fgProvider(style, if (item.done) 0.5f else 1f)),
             )
             Spacer(GlanceModifier.width(10.dp))
@@ -355,6 +372,7 @@ class ToggleTodoAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         val id = parameters[ID] ?: return
         context.container.habits.updateTodo { it.toggle(id) }
+        TapFx.play(context, glanceId, TodoWidget(), "todo:$id")
     }
 
     companion object { val ID = ActionParameters.Key<Long>("id") }
@@ -418,12 +436,12 @@ class StepsWidget : ResponsiveWidget() {
     @Composable
     private fun Body(context: Context, id: GlanceId, r: StepSensor.Result) {
         val style = currentStyle()
-        val refresh = actionRunCallback<BumpAction>()
+        val refresh = tapRun<BumpAction>()
         when (r) {
             StepSensor.Result.NoSensor -> Frame(style, null) {
                 WText("This phone has no step counter", style = style.text(14f).copy(textAlign = TextAlign.Center))
             }
-            StepSensor.Result.NoPermission -> Frame(style, actionStartActivity(editIntent(context, id))) {
+            StepSensor.Result.NoPermission -> Frame(style, tapStart(editIntent(context, id))) {
                 WText("Tap to allow step counting", style = style.text(14f).copy(textAlign = TextAlign.Center))
             }
             is StepSensor.Result.Steps -> Frame(style, refresh) {
@@ -455,7 +473,8 @@ class StepsWidget : ResponsiveWidget() {
 class BumpAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         val w = Widgets.placed(context).firstOrNull { it.glanceId == glanceId } ?: return
-        Widgets.bump(context, w.kind.widget(), glanceId)
+        // A flash says "refreshing"; the new tick makes the widget reload its numbers.
+        TapFx.play(context, glanceId, w.kind.widget(), TapFx.WHOLE) { it[Widgets.TICK_KEY] = System.currentTimeMillis() }
     }
 }
 
@@ -517,14 +536,14 @@ class ScreenTimeWidget : ResponsiveWidget() {
     private fun Body(context: Context, id: GlanceId, info: ScreenTimeInfo?) {
         val style = currentStyle()
         if (info == null) {
-            Frame(style, actionStartActivity(editIntent(context, id))) {
+            Frame(style, tapStart(editIntent(context, id))) {
                 WText("Tap to allow usage access", style = style.text(14f).copy(textAlign = TextAlign.Center))
             }
             return
         }
         val cls = sizeClass()
         val icons = remember(info.top.map { it.first }) { info.top.map { WidgetArt.appIcon(context, it.first, 72) to WidgetArt.appLabel(context, it.first) } }
-        Frame(style, actionRunCallback<BumpAction>()) {
+        Frame(style, tapRun<BumpAction>()) {
             Column(GlanceModifier.fillMaxWidth(), horizontalAlignment = style.hAlign.glance()) {
                 WText("Screen time today", style = style.text(13f, alpha = 0.8f), modifier = GlanceModifier.fillMaxWidth(), maxLines = 1)
                 WText(HabitLogic.durationText(info.totalMs), style = style.text(30f, bold = true), modifier = GlanceModifier.fillMaxWidth(), maxLines = 1)

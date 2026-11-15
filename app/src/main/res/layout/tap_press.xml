@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A whole widget that shrinks a little while pressed and springs back. Custo sets the click
+  PendingIntent on tap_root itself, so it's the view that gets the pressed state. The widget's
+  Glance content goes into tap_container.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/tap_root" android:layout_width="match_parent" android:layout_height="match_parent"
+    android:stateListAnimator="@animator/tap_press">
+    <FrameLayout android:id="@+id/tap_container" android:layout_width="match_parent" android:layout_height="match_parent" />
+</FrameLayout>

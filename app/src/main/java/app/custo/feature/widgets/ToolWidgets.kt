@@ -61,7 +61,7 @@ class MediaWidget : CustoWidget() {
         val np = MediaRepo.nowPlaying(context)
         val open = np?.pkg?.let { context.packageManager.getLaunchIntentForPackage(it) }
         val fg = fgProvider(style)
-        Frame(style, open?.let { actionStartActivity(it) } ?: actionStartActivity(editIntent(context, id))) {
+        Frame(style, open?.let { tapStart(it) } ?: tapStart(editIntent(context, id))) {
             Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 if (np?.art != null) {
                     Image(ImageProvider(np.art), "Album art", GlanceModifier.size(56.dp).cornerRadius(14.dp))
@@ -87,18 +87,19 @@ class MediaWidget : CustoWidget() {
 
     @Composable
     private fun MediaButton(icon: Int, cmd: String, style: WidgetStyle) {
-        Image(
-            ImageProvider(icon), cmd,
-            GlanceModifier.size(40.dp).padding(8.dp).clickable(actionRunCallback<MediaAction>(actionParametersOf(MediaAction.CMD to cmd))),
-            colorFilter = ColorFilter.tint(fgProvider(style)),
-        )
+        val label = when (cmd) { "prev" -> "Previous"; "next" -> "Next"; else -> "Play or pause" }
+        val pop = TapFrames.pop(tapFrame("media:$cmd"))
+        PressButton(style, tapRun<MediaAction>("cmd" to cmd), GlanceModifier.size(40.dp), ButtonLook(icon = icon, iconDp = 24f * pop, tint = fgArgb(style), desc = label))
     }
 }
 
 class MediaAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
-        MediaRepo.command(context, parameters[CMD] ?: return)
-        kotlinx.coroutines.delay(350)
+        val cmd = parameters[CMD] ?: return
+        MediaRepo.command(context, cmd)
+        // The button pops while the player catches up, then the widget re-reads what's playing.
+        TapFx.play(context, glanceId, MediaWidget(), "media:$cmd")
+        kotlinx.coroutines.delay((350 - TapFrames.TOTAL_MS).coerceAtLeast(0))
         Widgets.bump(context, MediaWidget(), glanceId)
     }
 
@@ -113,7 +114,7 @@ class NoteWidget : CustoWidget() {
     @Composable
     override fun Content(context: Context, id: GlanceId) {
         val style = currentStyle()
-        Frame(style, actionStartActivity(editIntent(context, id))) {
+        Frame(style, tapStart(editIntent(context, id))) {
             WText(style.note, style = style.text(17f), modifier = GlanceModifier.fillMaxWidth())
         }
     }
@@ -128,7 +129,7 @@ class PhotoWidget : CustoWidget() {
     override fun Content(context: Context, id: GlanceId) {
         val style = currentStyle()
         val bmp = remember(style.photoUri) { WidgetArt.photo(context, style.photoUri) }
-        Frame(style, actionStartActivity(editIntent(context, id)), padded = bmp == null) {
+        Frame(style, tapStart(editIntent(context, id)), padded = bmp == null) {
             if (bmp != null) {
                 val inset = style.borderWidth.dp
                 Image(
@@ -167,7 +168,7 @@ class AppsWidget : CustoWidget() {
         val iconDp = ((size.width.value - style.padding * 2) / apps.size.coerceAtLeast(1) - 12f).coerceIn(28f, 56f) * style.textScale.coerceAtMost(1.3f)
         val theme = WidgetThemes.byId(style.themeId)
         val slotted = theme?.hudMode(WidgetKind.APPS) == HudMode.SLOTS
-        Frame(style, if (apps.isEmpty()) actionStartActivity(editIntent(context, id)) else null) {
+        Frame(style, if (apps.isEmpty()) tapStart(editIntent(context, id)) else null) {
             if (slotted && theme != null) {
                 // The set draws a row of slots; each app sits centered in its slot.
                 val f = theme.frame
@@ -179,12 +180,13 @@ class AppsWidget : CustoWidget() {
                     for (i in 0 until n) {
                         val pair = icons.getOrNull(i)
                         val launch = pair?.let { context.packageManager.getLaunchIntentForPackage(it.first) }
-                        Box(
-                            GlanceModifier.defaultWeight().then(if (launch != null) GlanceModifier.clickable(actionStartActivity(launch)) else GlanceModifier),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            val icon = pair?.second
-                            if (icon != null) Image(ImageProvider(icon), labels[i], GlanceModifier.size(slotDp.dp))
+                        val icon = pair?.second
+                        if (launch != null && icon != null) {
+                            PressButton(style, tapStart(launch), GlanceModifier.defaultWeight(), ButtonLook(bitmap = icon, iconDp = slotDp, desc = labels[i]))
+                        } else {
+                            Box(GlanceModifier.defaultWeight(), contentAlignment = Alignment.Center) {
+                                if (icon != null) Image(ImageProvider(icon), labels[i], GlanceModifier.size(slotDp.dp))
+                            }
                         }
                     }
                 }
@@ -193,15 +195,18 @@ class AppsWidget : CustoWidget() {
             } else {
                 Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     icons.forEachIndexed { i, (pkg, icon) ->
-                        val launch = context.packageManager.getLaunchIntentForPackage(pkg)
-                        Column(
-                            GlanceModifier.defaultWeight().then(if (launch != null) GlanceModifier.clickable(actionStartActivity(launch)) else GlanceModifier),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            if (icon != null) Image(ImageProvider(icon), labels[i], GlanceModifier.size(iconDp.dp))
+                        val launch = context.packageManager.getLaunchIntentForPackage(pkg)?.let { tapStart(it) }
+                        Column(GlanceModifier.defaultWeight(), horizontalAlignment = Alignment.CenterHorizontally) {
+                            // The icon squishes when tapped; the label (in the widget's font) opens the app too.
+                            if (icon != null && launch != null) {
+                                PressButton(style, launch, GlanceModifier.size(iconDp.dp), ButtonLook(bitmap = icon, iconDp = iconDp, desc = labels[i]))
+                            } else if (icon != null) Image(ImageProvider(icon), labels[i], GlanceModifier.size(iconDp.dp))
                             if (style.showLabels) {
                                 Spacer(GlanceModifier.height(4.dp))
-                                WText(labels[i], maxLines = 1, style = style.text(11f).copy(textAlign = TextAlign.Center))
+                                WText(
+                                    labels[i], maxLines = 1, style = style.text(11f).copy(textAlign = TextAlign.Center),
+                                    modifier = if (launch != null) GlanceModifier.clickable(launch.glance()) else GlanceModifier,
+                                )
                             }
                         }
                     }
@@ -242,8 +247,7 @@ class TorchAction : ActionCallback {
         val id = Torch.cameraId(cm) ?: return
         val target = !(Torch.isOn(cm, id) ?: false)
         runCatching { cm.setTorchMode(id, target) }
-        updateAppWidgetState(context, glanceId) { it[Torch.ON] = target }
-        TogglesWidget().update(context, glanceId)
+        TapFx.play(context, glanceId, TogglesWidget(), "torch") { it[Torch.ON] = target }
     }
 }
 
@@ -254,25 +258,24 @@ class TogglesWidget : CustoWidget() {
         val torchOn = currentState(Torch.ON) == true
         Frame(style, null) {
             Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Toggle(style, R.drawable.ic_flashlight, "Torch", torchOn, actionRunCallback<TorchAction>())
-                Toggle(style, R.drawable.ic_wifi, "Internet", false, actionStartActivity(Intent(Settings.Panel.ACTION_INTERNET_CONNECTIVITY)))
-                Toggle(style, R.drawable.ic_bluetooth, "Bluetooth", false, actionStartActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS)))
-                Toggle(style, R.drawable.ic_volume, "Sound", false, actionStartActivity(Intent(Settings.Panel.ACTION_VOLUME)))
+                Toggle(style, R.drawable.ic_flashlight, "Torch", torchOn, tapRun<TorchAction>(), TapFrames.pop(tapFrame("torch")))
+                Toggle(style, R.drawable.ic_wifi, "Internet", false, tapStart(Intent(Settings.Panel.ACTION_INTERNET_CONNECTIVITY)))
+                Toggle(style, R.drawable.ic_bluetooth, "Bluetooth", false, tapStart(Intent(Settings.ACTION_BLUETOOTH_SETTINGS)))
+                Toggle(style, R.drawable.ic_volume, "Sound", false, tapStart(Intent(Settings.Panel.ACTION_VOLUME)))
             }
         }
     }
 
     @Composable
-    private fun androidx.glance.layout.RowScope.Toggle(style: WidgetStyle, icon: Int, label: String, on: Boolean, action: Action) {
-        val d = (44 * style.textScale).dp
-        Box(GlanceModifier.defaultWeight(), contentAlignment = Alignment.Center) {
-            Box(
-                GlanceModifier.size(d).cornerRadius(d / 2).background(if (on) fgProvider(style) else fgProvider(style, 0.14f)).clickable(action),
-                contentAlignment = Alignment.Center,
-            ) {
-                Image(ImageProvider(icon), label, GlanceModifier.size(d * 0.5f), colorFilter = ColorFilter.tint(if (on) bgProvider(style, 1f) else fgProvider(style)))
-            }
-        }
+    private fun androidx.glance.layout.RowScope.Toggle(style: WidgetStyle, icon: Int, label: String, on: Boolean, tap: Tap, pop: Float = 1f) {
+        val d = 44 * style.textScale
+        PressButton(
+            style, tap, GlanceModifier.defaultWeight().height(d.dp),
+            ButtonLook(
+                icon = icon, iconDp = d * 0.5f * pop, tint = if (on) bgArgb(style) else fgArgb(style), desc = label,
+                shape = R.drawable.tap_shape_circle, shapeColor = if (on) fgArgb(style) else fgArgb(style, 0.14f), shapeDp = d,
+            ),
+        )
     }
 }
 
@@ -286,8 +289,7 @@ object Quotes {
 
 class NextQuoteAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
-        updateAppWidgetState(context, glanceId) { it[Quotes.SKIP] = (it[Quotes.SKIP] ?: 0) + 1 }
-        QuoteWidget().update(context, glanceId)
+        TapFx.play(context, glanceId, QuoteWidget(), "quote") { it[Quotes.SKIP] = (it[Quotes.SKIP] ?: 0) + 1 }
     }
 }
 
@@ -298,12 +300,14 @@ class QuoteWidget : CustoWidget() {
         val skip = currentState(Quotes.SKIP) ?: 0
         val offset = androidx.glance.appwidget.GlanceAppWidgetManager(context).getAppWidgetId(id) + skip
         val (quote, author) = WidgetLogic.QUOTES[WidgetLogic.quoteIndex(LocalDate.now(), offset, WidgetLogic.QUOTES.size)]
-        Frame(style, actionRunCallback<NextQuoteAction>()) {
+        // The next quote fades in.
+        val reveal = TapFrames.reveal(tapFrame("quote"))
+        Frame(style, tapRun<NextQuoteAction>()) {
             Column(GlanceModifier.fillMaxWidth(), horizontalAlignment = style.hAlign.glance()) {
-                WText("“$quote”", style = style.text(17f).copy(fontStyle = FontStyle.Italic), modifier = GlanceModifier.fillMaxWidth())
+                WText("“$quote”", style = style.text(17f, alpha = reveal).copy(fontStyle = FontStyle.Italic), modifier = GlanceModifier.fillMaxWidth())
                 if (style.showAuthor) {
                     Spacer(GlanceModifier.height(6.dp))
-                    WText("— $author", style = style.text(13f, alpha = 0.75f), modifier = GlanceModifier.fillMaxWidth())
+                    WText("— $author", style = style.text(13f, alpha = 0.75f * reveal), modifier = GlanceModifier.fillMaxWidth())
                 }
             }
         }

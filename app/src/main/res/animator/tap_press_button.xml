@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tap feedback for widgets: runs in the launcher on the view's pressed state, so it costs nothing until tapped. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_pressed="true">
+        <set>
+            <objectAnimator android:propertyName="scaleX" android:valueTo="0.82" android:duration="90" android:interpolator="@android:interpolator/fast_out_slow_in" />
+            <objectAnimator android:propertyName="scaleY" android:valueTo="0.82" android:duration="90" android:interpolator="@android:interpolator/fast_out_slow_in" />
+            <objectAnimator android:propertyName="alpha" android:valueTo="1" android:duration="90" />
+        </set>
+    </item>
+    <item>
+        <set>
+            <objectAnimator android:propertyName="scaleX" android:valueTo="1" android:duration="260" android:interpolator="@android:anim/overshoot_interpolator" />
+            <objectAnimator android:propertyName="scaleY" android:valueTo="1" android:duration="260" android:interpolator="@android:anim/overshoot_interpolator" />
+            <objectAnimator android:propertyName="alpha" android:valueTo="1" android:duration="200" />
+        </set>
+    </item>
+</selector>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A small widget control (icon and/or label on an optional tinted shape) that squishes while
+  pressed. Custo fills and sizes it from code; unused parts stay gone.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/tap_btn" android:layout_width="match_parent" android:layout_height="match_parent"
+    android:stateListAnimator="@animator/tap_press_button">
+    <FrameLayout android:id="@+id/tap_btn_body" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center">
+        <ImageView android:id="@+id/tap_btn_shape" android:layout_width="match_parent" android:layout_height="match_parent"
+            android:scaleType="fitXY" android:visibility="gone" android:importantForAccessibility="no" />
+        <LinearLayout android:id="@+id/tap_btn_content" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_gravity="center" android:gravity="center" android:orientation="vertical">
+            <ImageView android:id="@+id/tap_btn_icon" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:scaleType="fitCenter" android:visibility="gone" android:importantForAccessibility="no" />
+            <TextView android:id="@+id/tap_btn_label" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:visibility="gone" />
+        </LinearLayout>
+    </FrameLayout>
+</FrameLayout>

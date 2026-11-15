@@ -184,6 +184,11 @@ fun WidgetEditorScreen(appWidgetId: Int, onBack: () -> Unit) {
             }
         }
         item {
+            SectionCard("Motion") {
+                SwitchRow("Tap animation", "A quick press pulse or pop when you tap the widget", style.tapAnim) { style = style.copy(tapAnim = it) }
+            }
+        }
+        item {
             SectionCard("Alignment") {
                 Segments(HAlign.entries, style.hAlign, { it.label }) { style = style.copy(hAlign = it) }
                 Segments(VAlign.entries, style.vAlign, { it.label }) { style = style.copy(vAlign = it) }
