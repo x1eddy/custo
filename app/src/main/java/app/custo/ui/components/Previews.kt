@@ -111,24 +111,6 @@ fun IconSwitchRow(icon: ImageVector?, title: String, checked: Boolean, enabled: 
     }
 }
 
-/** Small "ⓘ" that opens the explanation in a bottom sheet, so it isn't on the page. */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun InfoButton(title: String, text: String, modifier: Modifier = Modifier) {
-    var open by remember { mutableStateOf(false) }
-    IconButton(onClick = { open = true }, modifier = modifier.size(36.dp)) {
-        Icon(Icons.Outlined.Info, contentDescription = "About $title", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
-    }
-    if (open) {
-        ModalBottomSheet(onDismissRequest = { open = false }) {
-            Column(Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(title, style = MaterialTheme.typography.titleLarge)
-                Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-    }
-}
-
 /** Icon + one word, for warnings that must stay visible (e.g. auto-revert). */
 @Composable
 fun IconNote(icon: ImageVector, text: String, color: Color = MaterialTheme.colorScheme.onSurfaceVariant) {
