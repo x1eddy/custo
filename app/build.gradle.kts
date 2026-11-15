@@ -35,6 +35,10 @@ android {
     }
 
     buildTypes {
+        getByName("debug") {
+            // Match the release key locally so debug builds also install over the released app.
+            signingConfigs.findByName("release")?.let { signingConfig = it }
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -46,7 +50,9 @@ android {
         // ./gradlew assembleStaging && adb install -r app/build/outputs/apk/staging/app-staging.apk
         create("staging") {
             initWith(getByName("release"))
-            signingConfig = signingConfigs.getByName("debug")
+            // Same key as release when available: phones that installed a release (or were rotated
+            // to the release key) only accept updates signed by it.
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
             matchingFallbacks += "release"
         }
     }

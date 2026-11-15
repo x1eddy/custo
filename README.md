@@ -42,11 +42,13 @@
 
 ## Install
 
-1. Download `custo-<version>.apk` from [Releases](../../releases/latest) and open it on your phone.
-2. Android will ask to allow installs from your browser/files app – allow it once.
-3. Optional: install [Shizuku](https://shizuku.rikka.app/) to unlock the System UI features (start it with Wireless debugging; Custo walks you through it).
+1. On your phone, open [the latest release](../../releases/latest) and download `custo-<version>.apk`.
+2. Open the downloaded file. If Android asks, allow installs from your browser or Files app (**Settings → Install unknown apps**).
+3. If **Google Play Protect** says the app is unknown or blocks it, tap **More details → Install anyway**. This shows up for any app that isn't from the Play Store.
+4. Updating? Just install the new APK over the old one – your settings stay. (Releases are signed with key rotation, so they also install over earlier test builds.)
+5. Optional: install [Shizuku](https://shizuku.rikka.app/) to unlock the System UI features (start it with Wireless debugging; Custo walks you through it).
 
-Requires Android 12 or newer.
+Requires Android 12 or newer. If Android says *"App not installed as package conflicts with an existing package"*, you have a Custo signed with a different key (for example a build you made yourself) – uninstall it first, then install the release.
 
 ### Permissions, plainly
 
