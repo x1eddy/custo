@@ -30,6 +30,7 @@ import androidx.compose.material.icons.rounded.DoNotDisturbOn
 import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.InvertColors
 import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.SignalCellularAlt
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material3.AlertDialog
@@ -120,6 +121,9 @@ fun HomeScreen(nav: Navigator) {
         actions = {
             Box(Modifier.clip(CircleShape).clickable { nav.push(Route.ShizukuSetup) }.padding(8.dp)) {
                 SupportBadge(if (ready) "System access" else "No system access", ready)
+            }
+            androidx.compose.material3.IconButton(onClick = { nav.push(Route.AppSettings) }) {
+                Icon(Icons.Rounded.Settings, "Settings")
             }
         },
     ) {
@@ -262,7 +266,8 @@ private fun Tile(
     val interaction = remember { MutableInteractionSource() }
     val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
     val pressed by interaction.collectIsPressedAsState()
-    val s by animateFloatAsState(if (pressed) 0.96f else 1f, spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessMediumLow), label = "tile")
+    val bounce = !app.custo.ui.theme.LocalReduceMotion.current
+    val s by animateFloatAsState(if (pressed && bounce) 0.96f else 1f, spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessMediumLow), label = "tile")
     Column(
         modifier.scale(s).clip(RoundedCornerShape(28.dp)).background(container)
             .clickable(interaction, null) {

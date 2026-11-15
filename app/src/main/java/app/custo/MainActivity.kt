@@ -17,6 +17,11 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.custo.data.Keys
 import app.custo.feature.home.Onboarding
+import app.custo.ui.theme.AppAppearance
+import androidx.activity.SystemBarStyle
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.flow.map
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -30,7 +35,17 @@ class MainActivity : ComponentActivity() {
             else -> null
         }
         setContent {
-            CustoTheme {
+            val appearance by remember { container.prefs.data.map(AppAppearance::read) }.collectAsStateWithLifecycle(AppAppearance())
+            val dark = appearance.isDark(isSystemInDarkTheme())
+            // Status/navigation bar icons follow Custo's own light/dark choice, not just the system's.
+            LaunchedEffect(dark) {
+                enableEdgeToEdge(
+                    statusBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT) { dark },
+                    // The same scrims enableEdgeToEdge() uses by default (seen only with 3-button navigation).
+                    navigationBarStyle = SystemBarStyle.auto(android.graphics.Color.argb(0xE6, 0xFF, 0xFF, 0xFF), android.graphics.Color.argb(0x80, 0x1B, 0x1B, 0x1B)) { dark },
+                )
+            }
+            CustoTheme(appearance, dark) {
                 val onboarded by container.prefs.flow(Keys.onboarded, false).collectAsStateWithLifecycle(initialValue = null)
                 var startRoute by remember { mutableStateOf<Route?>(initial) }
                 when (onboarded) {

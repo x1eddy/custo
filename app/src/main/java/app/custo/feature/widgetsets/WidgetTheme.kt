@@ -12,7 +12,7 @@ import java.time.LocalDate
 
 enum class ThemeCategory(val label: String) {
     CUTE("Cute"), SWEET("Sweet"), CHRISTMAS("Christmas"), GAMES("Games"), HEROES("Anime & heroes"), MUSIC("Music"),
-    MINIMAL("Minimal"), NATURE("Nature"), SEASONS("Seasons"), FUN("Fun"),
+    MINIMAL("Minimal"), NATURE("Nature"), SEASONS("Seasons"), FUN("Fun"), LUXE("Dark luxe"),
 }
 
 /**

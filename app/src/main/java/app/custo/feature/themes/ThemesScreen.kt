@@ -156,9 +156,10 @@ fun ThemesScreen(nav: Navigator) {
                         }) { Icon(Icons.Rounded.Casino, null); Text("  Shuffle") }
                     }
                 }
-                app.custo.ui.components.ThumbPicker(WallStyle.entries, spec.style, { it.label }, { spec = spec.copy(style = it) }, thumbWidth = 60, thumbHeight = 96) { st, _ ->
+                app.custo.ui.components.ThumbPicker(WallStyle.entries.filter { !it.premium }, spec.style, { it.label }, { spec = spec.copy(style = it) }, thumbWidth = 60, thumbHeight = 96) { st, _ ->
                     StyleThumb(spec.copy(style = st))
                 }
+                PremiumWallPicker(spec) { spec = it }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                     spec.colors.forEachIndexed { i, col ->
                         Box(

@@ -134,7 +134,7 @@ fun SectionCard(
 ) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
-    val s by animateFloatAsState(if (pressed) 0.975f else 1f, spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessMedium), label = "press")
+    val s by animateFloatAsState(if (pressed && !app.custo.ui.theme.LocalReduceMotion.current) 0.975f else 1f, spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessMedium), label = "press")
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -168,7 +168,7 @@ fun SectionCard(
 fun HubTile(title: String, icon: ImageVector, modifier: Modifier = Modifier, badge: (@Composable () -> Unit)? = null, onClick: () -> Unit) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
-    val s by animateFloatAsState(if (pressed) 0.95f else 1f, spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessMedium), label = "hub")
+    val s by animateFloatAsState(if (pressed && !app.custo.ui.theme.LocalReduceMotion.current) 0.95f else 1f, spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessMedium), label = "hub")
     Column(
         modifier.scale(s).clip(MaterialTheme.shapes.large)
             .background(MaterialTheme.colorScheme.surfaceContainerLow)

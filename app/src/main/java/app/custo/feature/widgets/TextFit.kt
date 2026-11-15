@@ -34,6 +34,26 @@ object TextFit {
         return clamp(area, needW, needH)
     }
 
+    /** Smallest factor [box] and the others return; below it text may be cropped rather than unreadable. */
+    const val MIN_FIT = MIN
+
+    /** Width of [line] at full size, in dp (0 when hidden). */
+    fun width(line: Line): Float = if (line.shown) line.size * CHAR_W * line.chars else 0f
+
+    /** Height of [line] at full size, in dp (0 when hidden). */
+    fun height(line: Line): Float = if (line.shown) line.size * LINE_H else 0f
+
+    /**
+     * Content that needs [needW] × [needH] dp at full size (text that scales) plus [fixedW] × [fixedH] dp
+     * that never scales (paddings, gaps, card insets).
+     */
+    fun box(area: DpSize, textScale: Float, needW: Float, needH: Float, fixedW: Float = 0f, fixedH: Float = 0f): Float {
+        if (needW <= 0f || needH <= 0f) return 1f
+        val w = (area.width.value - fixedW).coerceAtLeast(0f)
+        val h = (area.height.value - fixedH).coerceAtLeast(0f)
+        return min(1f, min(w / (needW * textScale), h / (needH * textScale))).coerceAtLeast(MIN)
+    }
+
     private fun clamp(area: DpSize, needW: Float, needH: Float): Float {
         if (needW <= 0f || needH <= 0f) return 1f
         return min(1f, min(area.width.value / needW, area.height.value / needH)).coerceAtLeast(MIN)

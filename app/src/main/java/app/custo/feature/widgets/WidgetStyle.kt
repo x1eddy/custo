@@ -3,9 +3,28 @@ package app.custo.feature.widgets
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-enum class ClockLook(val label: String) { BIG("Big"), STACKED("Stacked"), MINIMAL("Minimal") }
-/** Widget text faces. [PIXEL] and [HEAVY] are bundled fonts (see [WidgetFonts]); the rest are system families. */
-enum class WidgetFont(val label: String) { SANS("Sans"), SERIF("Serif"), MONO("Mono"), CURSIVE("Script"), PIXEL("Pixel"), HEAVY("Heavy") }
+/** Digital clock faces. Entries after MINIMAL are drawn by [ClockFaces]. Never reorder: styles store the name. */
+enum class ClockLook(val label: String) {
+    BIG("Big"), STACKED("Stacked"), MINIMAL("Minimal"),
+    FLIP("Flip"), LED("LED"), NEON("Neon"), VERTICAL("Vertical"), WORDS("Words"),
+}
+
+/**
+ * Widget text faces. [PIXEL], [HEAVY] and the faces after it are bundled fonts (see [WidgetFonts]);
+ * the first four are system families. [charWidth] is roughly how wide a digit is, in em, for [TextFit].
+ */
+enum class WidgetFont(val label: String, val charWidth: Float = 0.62f) {
+    SANS("Sans"), SERIF("Serif"), MONO("Mono"), CURSIVE("Script"), PIXEL("Pixel"), HEAVY("Heavy"),
+    ROUNDED("Rounded", 0.6f), TECH("Tech", 0.8f), HAND("Hand", 0.5f), ELEGANT("Elegant", 0.6f),
+}
+
+/** The outline of a plain (non-set) widget. [ROUNDED] uses the corner slider; the rest are drawn as a bitmap. */
+enum class WidgetShape(val label: String) {
+    ROUNDED("Rounded"), PILL("Pill"), CIRCLE("Circle"), SQUIRCLE("Squircle"), TICKET("Ticket"), BLOB("Blob"),
+}
+
+/** How a plain widget's background is filled. */
+enum class BgLook(val label: String) { SOLID("Color"), GLASS("Frosted glass"), OUTLINE("Outline"), PHOTO("Photo") }
 enum class HAlign(val label: String) { START("Left"), CENTER("Center"), END("Right") }
 enum class VAlign(val label: String) { TOP("Top"), CENTER("Middle"), BOTTOM("Bottom") }
 enum class DialStyle(val label: String) { MINIMAL("Minimal"), CLASSIC("Classic"), DOTS("Dots"), BOLD("Bold"), RING("Ring") }
@@ -88,11 +107,23 @@ data class WidgetStyle(
     // Added in 0.5
     /** Press pulse, pops and other short effects when the widget is tapped. Old widgets get them too. */
     val tapAnim: Boolean = true,
+    // Added in 1.1: shapes and backgrounds
+    val shape: WidgetShape = WidgetShape.ROUNDED,
+    val bgLook: BgLook = BgLook.SOLID,
+    /** Background photo for [BgLook.PHOTO] (a persisted content URI). */
+    val bgPhoto: String? = null,
+    /** How much the background photo is darkened, 0..1. */
+    val bgDim: Float = 0.25f,
+    /** How much the background photo is blurred, 0..1. */
+    val bgBlur: Float = 0f,
 ) {
     fun encode(): String = json.encodeToString(this)
 
     /** True when the background can't be a flat Glance color and needs a drawn bitmap. */
-    val needsBitmapBg: Boolean get() = (gradient && !themed) || borderWidth > 0
+    val needsBitmapBg: Boolean get() = (gradient && !themed) || borderWidth > 0 || drawnShape
+
+    /** True when the outline or fill can't be a Glance rounded rectangle: the whole background is one drawn bitmap. */
+    val drawnShape: Boolean get() = shape != WidgetShape.ROUNDED || bgLook != BgLook.SOLID
 
     fun place(): Place = findCity(city) ?: Place("Custom", lat.coerceIn(-90.0, 90.0), lon.coerceIn(-180.0, 180.0), zone)
 
@@ -103,6 +134,9 @@ data class WidgetStyle(
         borderColor = other.borderColor, padding = other.padding, hAlign = other.hAlign, vAlign = other.vAlign,
         textScale = other.textScale, textShadow = other.textShadow, shadowColor = other.shadowColor,
         themeId = other.themeId, tapAnim = other.tapAnim,
+        shape = other.shape, bgDim = other.bgDim, bgBlur = other.bgBlur,
+        // Photos never travel with a look; keep this widget's own photo background if it has one.
+        bgLook = if (other.bgLook == BgLook.PHOTO && bgPhoto == null) BgLook.SOLID else other.bgLook,
     )
 
     companion object {

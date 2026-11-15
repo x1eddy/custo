@@ -94,10 +94,13 @@ fun CustoNavHost(initialRoute: Route? = null) {
     CompositionLocalProvider(LocalSnackbar provides snackbar) {
         Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             val top = nav.stack.lastOrNull()
+            val reduceMotion = app.custo.ui.theme.LocalReduceMotion.current
             AnimatedContent(
                 targetState = top ?: nav.tab,
                 transitionSpec = {
-                    if (targetState is Tab && initialState is Tab) {
+                    if (reduceMotion) {
+                        fadeIn(tween(120)) togetherWith fadeOut(tween(90))
+                    } else if (targetState is Tab && initialState is Tab) {
                         val dir = if ((targetState as Tab).ordinal > (initialState as Tab).ordinal) 1 else -1
                         (slideInHorizontally(tween(260)) { dir * it / 8 } + fadeIn(tween(260))) togetherWith
                             (slideOutHorizontally(tween(200)) { -dir * it / 8 } + fadeOut(tween(160)))
@@ -155,6 +158,7 @@ fun CustoNavHost(initialRoute: Route? = null) {
                     Route.VideoWallpaper -> app.custo.feature.themes.VideoWallpaperScreen(onBack = { nav.pop() })
                     Route.Collage -> app.custo.feature.themes.CollageScreen(onBack = { nav.pop() })
                     Route.WidgetSets -> app.custo.feature.widgetsets.WidgetSetsScreen(nav)
+                    Route.AppSettings -> app.custo.feature.settings.AppSettingsScreen(onBack = { nav.pop() })
                     is Route.WidgetSet -> app.custo.feature.widgetsets.WidgetSetScreen(target.id, nav)
                     else -> Unit
                 }

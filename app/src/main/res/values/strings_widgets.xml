@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Unlit segments behind the LED clock face. -->
+    <string name="led_ghost" translatable="false">88:88</string>
+</resources>

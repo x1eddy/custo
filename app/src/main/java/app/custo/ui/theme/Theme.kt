@@ -1,13 +1,13 @@
 package app.custo.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
@@ -16,7 +16,6 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.custo.R
 
@@ -51,20 +50,25 @@ private val CustoType = Base.copy(
     labelLarge = Base.labelLarge.copy(fontFamily = Display, fontWeight = FontWeight(600), fontSize = 15.sp),
 )
 
-private val CustoShapes = Shapes(
-    extraSmall = RoundedCornerShape(6.dp),
-    small = RoundedCornerShape(10.dp),
-    medium = RoundedCornerShape(16.dp),
-    large = RoundedCornerShape(22.dp),
-    extraLarge = RoundedCornerShape(32.dp),
-)
-
+/**
+ * Custo's theme. [appearance] (Settings → App appearance) picks light/dark, AMOLED black, the accent
+ * source, corner roundness and reduced motion.
+ */
 @Composable
-fun CustoTheme(dark: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
+fun CustoTheme(
+    appearance: AppAppearance = AppAppearance(),
+    dark: Boolean = appearance.isDark(isSystemInDarkTheme()),
+    content: @Composable () -> Unit,
+) {
     val ctx = LocalContext.current
+    val seed = appearance.seed
     // minSdk 31: Material You is always available, so Custo previews whatever palette the user applies.
-    var scheme = if (dark) dynamicDarkColorScheme(ctx) else dynamicLightColorScheme(ctx)
-    if (dark) {
+    var scheme = remember(seed, dark, ctx) {
+        if (seed != null) schemeFromSeed(seed, dark) else if (dark) dynamicDarkColorScheme(ctx) else dynamicLightColorScheme(ctx)
+    }
+    if (dark && appearance.amoled) {
+        scheme = scheme.amoled()
+    } else if (dark && seed == null) {
         // Deeper, inkier surfaces than stock Material so color tiles and previews pop.
         scheme = scheme.copy(
             background = lerp(scheme.background, Color.Black, 0.55f),
@@ -74,5 +78,8 @@ fun CustoTheme(dark: Boolean = isSystemInDarkTheme(), content: @Composable () ->
             surfaceContainer = lerp(scheme.surfaceContainer, Color.Black, 0.3f),
         )
     }
-    MaterialTheme(colorScheme = scheme, typography = CustoType, shapes = CustoShapes, content = content)
+    val shapes = remember(appearance.corners) { shapesFor(appearance.corners) }
+    CompositionLocalProvider(LocalReduceMotion provides appearance.reduceMotion) {
+        MaterialTheme(colorScheme = scheme, typography = CustoType, shapes = shapes, content = content)
+    }
 }

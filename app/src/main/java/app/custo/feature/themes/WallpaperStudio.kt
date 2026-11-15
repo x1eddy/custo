@@ -119,6 +119,8 @@ class WallpaperStudio(private val context: Context) {
                 WallStyle.SUNBURST -> g.sunburst()
                 WallStyle.MOSAIC -> g.mosaic()
                 WallStyle.RINGS -> g.rings()
+                WallStyle.CARBON, WallStyle.HEX, WallStyle.BRUSHED, WallStyle.WEAVE, WallStyle.MARBLE, WallStyle.OBSIDIAN ->
+                    PremiumWalls.draw(canvas, spec, w, h)
             }
         }
 

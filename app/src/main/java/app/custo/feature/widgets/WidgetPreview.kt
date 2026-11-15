@@ -99,8 +99,13 @@ import kotlin.math.sin
 
 private val pixelFamily = FontFamily(Font(R.font.custo_pixel, FontWeight.Normal), Font(R.font.custo_pixel, FontWeight.Bold))
 private val heavyFamily = FontFamily(Font(R.font.custo_heavy, FontWeight.Normal), Font(R.font.custo_heavy, FontWeight.Bold))
+private fun bundled(res: Int) = FontFamily(Font(res, FontWeight.Normal), Font(res, FontWeight.Bold))
+private val roundFamily = bundled(R.font.custo_round)
+private val techFamily = bundled(R.font.custo_tech)
+private val handFamily = bundled(R.font.custo_hand)
+private val elegantFamily = bundled(R.font.custo_elegant)
 
-private fun WidgetFont.compose(): FontFamily = when (this) {
+internal fun WidgetFont.compose(): FontFamily = when (this) {
     WidgetFont.SANS -> FontFamily.SansSerif
     WidgetFont.SERIF -> FontFamily.Serif
     WidgetFont.MONO -> FontFamily.Monospace
@@ -108,6 +113,10 @@ private fun WidgetFont.compose(): FontFamily = when (this) {
     // The same file for both weights, so bold never gets a smeared synthetic outline.
     WidgetFont.PIXEL -> pixelFamily
     WidgetFont.HEAVY -> heavyFamily
+    WidgetFont.ROUNDED -> roundFamily
+    WidgetFont.TECH -> techFamily
+    WidgetFont.HAND -> handFamily
+    WidgetFont.ELEGANT -> elegantFamily
 }
 
 private fun HAlign.compose(): Alignment.Horizontal = when (this) {
@@ -129,14 +138,21 @@ internal class P(val s: WidgetStyle, val fg: Color, val bg: Color) {
     var fit = 1f
 
     @Composable
-    fun T(text: String, size: Float, modifier: Modifier = Modifier, bold: Boolean = false, alpha: Float = 1f, align: TextAlign = s.hAlign.textAlign(), italic: Boolean = false, color: Color = fg) {
+    fun T(
+        text: String, size: Float, modifier: Modifier = Modifier, bold: Boolean = false, alpha: Float = 1f, align: TextAlign = s.hAlign.textAlign(),
+        italic: Boolean = false, color: Color = fg, family: FontFamily = font, glow: Color? = null, maxLines: Int = 4,
+    ) {
         Text(
-            text, modifier, color = color.copy(alpha = color.alpha * alpha), fontFamily = font,
+            text, modifier, color = color.copy(alpha = color.alpha * alpha), fontFamily = family,
             fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal,
             fontStyle = if (italic) FontStyle.Italic else FontStyle.Normal,
             fontSize = (size * s.textScale * fit).sp, lineHeight = (size * s.textScale * fit * 1.15f).sp,
-            textAlign = align, maxLines = 4, overflow = TextOverflow.Ellipsis,
-            style = if (s.textShadow) TextStyle(shadow = Shadow(Color(s.shadowColor), Offset(2f, 2f), 3f)) else TextStyle.Default,
+            textAlign = align, maxLines = maxLines, overflow = TextOverflow.Ellipsis,
+            style = when {
+                glow != null -> TextStyle(shadow = Shadow(glow, Offset.Zero, 28f))
+                s.textShadow -> TextStyle(shadow = Shadow(Color(s.shadowColor), Offset(2f, 2f), 3f))
+                else -> TextStyle.Default
+            },
         )
     }
 }
@@ -203,6 +219,10 @@ private fun SlotApps(p: P, theme: WidgetTheme) {
 }
 
 /** Measures the content area and scales preview text so it never wraps or overflows. */
+/** [FitBody] for previews drawn in other files. */
+@Composable
+internal fun PreviewBody(p: P, kind: WidgetKind) = FitBody(p, kind)
+
 @Composable
 private fun FitBody(p: P, kind: WidgetKind) {
     androidx.compose.foundation.layout.BoxWithConstraints(contentAlignment = BiasAlignment(p.s.hAlign.bias(), p.s.vAlign.bias())) {
@@ -217,6 +237,10 @@ private fun PlainPreview(kind: WidgetKind, style: WidgetStyle, modifier: Modifie
     val bg = if (style.themed) colorResource(if (dark) android.R.color.system_accent1_800 else android.R.color.system_accent1_100) else Color(style.bg)
     val fg = if (style.themed) colorResource(if (dark) android.R.color.system_accent1_100 else android.R.color.system_accent1_900) else Color(style.fg)
     val p = P(style, fg, bg)
+    if (style.drawnShape) {
+        DrawnShapePreview(kind, style, p, modifier)
+        return
+    }
     val shape = RoundedCornerShape(style.corner.dp)
     val background = if (style.gradient && !style.themed) {
         val a = style.alpha
@@ -268,6 +292,7 @@ private fun P.Body(kind: WidgetKind) {
                 if (s.showDate) T(fmt("EEEE"), 14f, alpha = 0.8f)
                 T(fmt("h:mm a"), 34f)
             }
+            else -> FacePreview(now) { pattern -> fmt(pattern) }
         }
         WidgetKind.HOUR -> Row(verticalAlignment = Alignment.CenterVertically) {
             T(fmt("HH"), 96f, bold = true)

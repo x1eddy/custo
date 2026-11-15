@@ -133,7 +133,7 @@ fun WidgetEditorScreen(appWidgetId: Int, onBack: () -> Unit) {
         item {
             SectionCard("Text") {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    WidgetFont.entries.forEach { f -> FilterChip(style.font == f, { style = style.copy(font = f) }, { Text(f.label) }) }
+                    WidgetFont.entries.forEach { f -> FilterChip(style.font == f, { style = style.copy(font = f) }, { Text(f.label, fontFamily = f.compose()) }) }
                 }
                 LabeledSlider("Size · ${(style.textScale * 100).roundToInt()}%", style.textScale, 0.6f..1.8f) { style = style.copy(textScale = (it * 20).roundToInt() / 20f) }
                 SwitchRow("Text shadow", "Easier to read on busy wallpapers", style.textShadow) { style = style.copy(textShadow = it) }
@@ -178,11 +178,20 @@ fun WidgetEditorScreen(appWidgetId: Int, onBack: () -> Unit) {
         }
         item {
             SectionCard("Shape") {
-                LabeledSlider("Corner radius · ${style.corner} dp", style.corner.toFloat(), 0f..48f) { style = style.copy(corner = it.roundToInt()) }
+                if (style.themeId == null) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        WidgetShape.entries.forEach { sh -> FilterChip(style.shape == sh, { style = style.copy(shape = sh) }, { Text(sh.label) }) }
+                    }
+                    if (style.shape == WidgetShape.CIRCLE) Hint("Best on small square widgets (2×2).")
+                }
+                if (style.shape == WidgetShape.ROUNDED || style.shape == WidgetShape.TICKET) {
+                    LabeledSlider("Corner radius · ${style.corner} dp", style.corner.toFloat(), 0f..48f) { style = style.copy(corner = it.roundToInt()) }
+                }
                 LabeledSlider("Border · ${style.borderWidth} dp", style.borderWidth.toFloat(), 0f..8f, steps = 7) { style = style.copy(borderWidth = it.roundToInt()) }
                 LabeledSlider("Padding · ${style.padding} dp", style.padding.toFloat(), 0f..32f) { style = style.copy(padding = it.roundToInt()) }
             }
         }
+        if (style.themeId == null) item { BackgroundOptions(style) { style = it } }
         item {
             SectionCard("Motion") {
                 SwitchRow("Tap animation", "A quick press pulse or pop when you tap the widget", style.tapAnim) { style = style.copy(tapAnim = it) }
@@ -227,8 +236,16 @@ private fun KindOptions(kind: WidgetKind, style: WidgetStyle, onChange: (WidgetS
     val ctx = LocalContext.current
     when (kind) {
         WidgetKind.CLOCK -> SectionCard("Clock") {
-            Segments(ClockLook.entries, style.clock, { it.label }) { onChange(style.copy(clock = it)) }
-            SwitchRow("Show date", null, style.showDate) { onChange(style.copy(showDate = it)) }
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ClockLook.entries.forEach { l -> FilterChip(style.clock == l, { onChange(style.copy(clock = l)) }, { Text(l.label) }) }
+            }
+            when (style.clock) {
+                ClockLook.LED -> Hint("LED digits always use the pixel face.")
+                ClockLook.WORDS -> Hint("Reads like “half past ten”. Updates about once a minute while the screen is on.")
+                ClockLook.VERTICAL -> Hint("Made for narrow widgets. In a short, wide one the hours sit over the minutes.")
+                else -> Unit
+            }
+            if (style.clock != ClockLook.WORDS) SwitchRow("Show date", null, style.showDate) { onChange(style.copy(showDate = it)) }
         }
         WidgetKind.HOUR -> SectionCard("Clock") {
             SwitchRow("Show date", null, style.showDate) { onChange(style.copy(showDate = it)) }

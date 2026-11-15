@@ -29,6 +29,7 @@ object WidgetArt {
         val d = min(ctx.resources.displayMetrics.density, 2f)
         val w = (wDp.takeIf { it > 0 } ?: 200f).times(d).toInt().coerceIn(8, 1000)
         val h = (hDp.takeIf { it > 0 } ?: 200f).times(d).toInt().coerceIn(8, 1000)
+        if (style.drawnShape) return shaped(ctx, style, w, h, d)
         val bmp = createBitmap(w, h)
         val c = Canvas(bmp)
         val r = style.corner * d
@@ -55,6 +56,133 @@ object WidgetArt {
             c.drawRoundRect(rect, max(0f, r - sw / 2), max(0f, r - sw / 2), p)
         }
         return bmp
+    }
+
+    private fun isNight(ctx: Context) =
+        (ctx.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+
+    /** The widget's background color (Material You resolved for the current day/night). */
+    fun bgColor(ctx: Context, style: WidgetStyle): Int =
+        if (style.themed) ctx.getColor(if (isNight(ctx)) android.R.color.system_accent1_800 else android.R.color.system_accent1_100) else style.bg
+
+    /** The widget's text color (Material You resolved for the current day/night). */
+    fun fgColor(ctx: Context, style: WidgetStyle): Int =
+        if (style.themed) ctx.getColor(if (isNight(ctx)) android.R.color.system_accent1_100 else android.R.color.system_accent1_900) else style.fg
+
+    private fun withAlpha(col: Int, a: Float) = (col and 0x00FFFFFF) or ((((col ushr 24) * a.coerceIn(0f, 1f))).toInt() shl 24)
+
+    /**
+     * A background with a [WidgetShape] outline and/or a [BgLook] fill (glass, outline, photo),
+     * [w] × [h] px at [d] px per dp. Everything outside the shape stays transparent.
+     */
+    private fun shaped(ctx: Context, style: WidgetStyle, w: Int, h: Int, d: Float): Bitmap {
+        val bmp = createBitmap(w, h)
+        val c = Canvas(bmp)
+        val rect = RectF(0f, 0f, w.toFloat(), h.toFloat())
+        val r = style.corner * d
+        val path = WidgetShapes.path(style.shape, rect, r)
+        val p = Paint(Paint.ANTI_ALIAS_FLAG or Paint.DITHER_FLAG or Paint.FILTER_BITMAP_FLAG)
+        val bg = bgColor(ctx, style)
+        val fg = fgColor(ctx, style)
+        val a = style.alpha.coerceIn(0f, 1f)
+        when (style.bgLook) {
+            BgLook.PHOTO -> {
+                val photo = style.bgPhoto?.let { photoCached(ctx, it, max(w, h).coerceAtMost(900)) }
+                if (photo != null) {
+                    val src = blurred(photo, style.bgBlur)
+                    val scale = max(w / src.width.toFloat(), h / src.height.toFloat())
+                    val m = android.graphics.Matrix().apply {
+                        setScale(scale, scale)
+                        postTranslate((w - src.width * scale) / 2f, (h - src.height * scale) / 2f)
+                    }
+                    p.shader = android.graphics.BitmapShader(src, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP).apply { setLocalMatrix(m) }
+                    p.alpha = (a * 255).toInt().coerceAtLeast(40)
+                    c.drawPath(path, p)
+                    p.shader = null; p.alpha = 255
+                    p.color = withAlpha(0xFF000000.toInt(), style.bgDim.coerceIn(0f, 1f) * 0.85f)
+                    c.drawPath(path, p)
+                } else {
+                    p.color = withAlpha(bg, a)
+                    c.drawPath(path, p)
+                }
+            }
+            BgLook.GLASS -> {
+                // Translucent tint, a light sheen from the top, a thin bright rim and a darker lower edge.
+                p.color = withAlpha(bg, a * 0.38f)
+                c.drawPath(path, p)
+                p.shader = LinearGradient(0f, 0f, 0f, h.toFloat(), intArrayOf(0x40FFFFFF, 0x0DFFFFFF, 0x00FFFFFF), floatArrayOf(0f, 0.45f, 1f), Shader.TileMode.CLAMP)
+                c.drawPath(path, p)
+                p.shader = null
+                val sw = max(1f, d)
+                p.style = Paint.Style.STROKE; p.strokeWidth = sw
+                p.shader = LinearGradient(0f, 0f, 0f, h.toFloat(), 0x80FFFFFF.toInt(), 0x26FFFFFF, Shader.TileMode.CLAMP)
+                c.drawPath(WidgetShapes.path(style.shape, RectF(sw / 2, sw / 2, w - sw / 2, h - sw / 2), max(0f, r - sw / 2)), p)
+                p.shader = null; p.style = Paint.Style.FILL
+            }
+            BgLook.OUTLINE -> Unit
+            BgLook.SOLID -> {
+                if (style.gradient && !style.themed) {
+                    val rad = style.gradientAngle * PI.toFloat() / 180f
+                    val cx = w / 2f; val cy = h / 2f
+                    val len = (kotlin.math.abs(cos(rad)) * w + kotlin.math.abs(sin(rad)) * h) / 2f
+                    p.shader = LinearGradient(cx - cos(rad) * len, cy - sin(rad) * len, cx + cos(rad) * len, cy + sin(rad) * len,
+                        withAlpha(style.bg, a), withAlpha(style.bg2, a), Shader.TileMode.CLAMP)
+                } else p.color = withAlpha(bg, a)
+                c.drawPath(path, p)
+                p.shader = null
+            }
+        }
+        // Outline style: a line in the text color; otherwise the optional border.
+        val lineW = when {
+            style.bgLook == BgLook.OUTLINE -> max(style.borderWidth, 2) * d
+            style.borderWidth > 0 -> style.borderWidth * d
+            else -> 0f
+        }
+        if (lineW > 0f) {
+            p.style = Paint.Style.STROKE; p.strokeWidth = lineW
+            p.color = if (style.bgLook == BgLook.OUTLINE && style.borderWidth == 0) withAlpha(fg, 0.9f) else style.borderColor
+            c.drawPath(WidgetShapes.path(style.shape, RectF(lineW / 2, lineW / 2, w - lineW / 2, h - lineW / 2), max(0f, r - lineW / 2)), p)
+        }
+        return bmp
+    }
+
+    private var photoCache: Triple<String, Int, Bitmap>? = null
+
+    /** [photo], remembering the last one so dim/blur changes don't decode it again. */
+    private fun photoCached(ctx: Context, uri: String, maxSide: Int): Bitmap? = synchronized(this) {
+        photoCache?.let { (u, s, b) -> if (u == uri && s >= maxSide) return b }
+        photo(ctx, uri, maxSide)?.also { photoCache = Triple(uri, maxSide, it) }
+    }
+
+    /** A cheap blur: shrink a lot, box-blur the tiny copy, let the shader scale it back up smoothly. */
+    private fun blurred(src: Bitmap, amount: Float): Bitmap {
+        if (amount < 0.02f) return src
+        val f = 1f / (1f + amount * 14f)
+        val small = Bitmap.createScaledBitmap(src, (src.width * f).toInt().coerceAtLeast(2), (src.height * f).toInt().coerceAtLeast(2), true)
+        boxBlur(small, 1 + (amount * 2).toInt())
+        return small
+    }
+
+    private fun boxBlur(b: Bitmap, r: Int) {
+        val w = b.width; val h = b.height
+        val px = IntArray(w * h)
+        val out = IntArray(w * h)
+        b.getPixels(px, 0, w, 0, 0, w, h)
+        fun pass(src: IntArray, dst: IntArray, horizontal: Boolean) {
+            for (y in 0 until h) for (x in 0 until w) {
+                var ra = 0; var rr = 0; var rg = 0; var rb = 0; var n = 0
+                for (k in -r..r) {
+                    val xx = if (horizontal) (x + k).coerceIn(0, w - 1) else x
+                    val yy = if (horizontal) y else (y + k).coerceIn(0, h - 1)
+                    val c = src[yy * w + xx]
+                    ra += c ushr 24; rr += c shr 16 and 0xFF; rg += c shr 8 and 0xFF; rb += c and 0xFF; n++
+                }
+                dst[y * w + x] = ((ra / n) shl 24) or ((rr / n) shl 16) or ((rg / n) shl 8) or (rb / n)
+            }
+        }
+        pass(px, out, true)
+        pass(out, px, false)
+        b.setPixels(px, 0, w, 0, 0, w, h)
     }
 
     /** White ring (track at low alpha + progress arc); tint it with the widget's text color. */

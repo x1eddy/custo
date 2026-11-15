@@ -29,6 +29,7 @@ val MarkIndigo = Color(0xFF5B6CFF)
  */
 @Composable
 fun CustoMark(modifier: Modifier = Modifier, animate: Boolean = false) {
+    @Suppress("NAME_SHADOWING") val animate = animate && !app.custo.ui.theme.LocalReduceMotion.current
     val parts = remember { List(4) { Animatable(if (animate) 0f else 1f) } }
     val tilt = remember { Animatable(if (animate) -40f else 18f) }
     LaunchedEffect(animate) {
@@ -62,6 +63,8 @@ fun CustoMark(modifier: Modifier = Modifier, animate: Boolean = false) {
 
 /** Fade + rise in, staggered by [index], the first time an item appears. */
 fun Modifier.enterAnimation(index: Int): Modifier = composed {
+    // Reduce motion: content is simply there.
+    if (app.custo.ui.theme.LocalReduceMotion.current) return@composed Modifier
     val p = remember { Animatable(0f) }
     LaunchedEffect(Unit) {
         delay(45L * index.coerceAtMost(8))

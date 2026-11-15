@@ -112,7 +112,7 @@ internal fun WidgetFont.typeface(bold: Boolean): Typeface {
         WidgetFont.MONO -> Typeface.create(Typeface.MONOSPACE, style)
         WidgetFont.CURSIVE -> Typeface.create("cursive", style)
         // Bundled faces are already as heavy as they get; never fake-bold them.
-        WidgetFont.PIXEL, WidgetFont.HEAVY -> WidgetFonts.typeface(this)
+        else -> WidgetFonts.typeface(this)
     }
 }
 

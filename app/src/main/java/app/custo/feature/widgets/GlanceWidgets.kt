@@ -106,18 +106,15 @@ internal fun WidgetFont.glance(): FontFamily = when (this) {
     WidgetFont.MONO -> FontFamily.Monospace
     WidgetFont.CURSIVE -> FontFamily.Cursive
     // Glance can't load app fonts: these names are markers that [WText] draws with a font TextView.
-    WidgetFont.PIXEL -> PIXEL_FAMILY
-    WidgetFont.HEAVY -> HEAVY_FAMILY
+    else -> FontFamily(MARKER + name)
 }
 
-private val PIXEL_FAMILY = FontFamily("custo-pixel")
-private val HEAVY_FAMILY = FontFamily("custo-heavy")
+private const val MARKER = "custo-font-"
 
 /** The RemoteViews text layout for a bundled-font marker family, or null for system families. */
-private fun FontFamily?.fontTextLayout(): Int? = when (this?.family) {
-    PIXEL_FAMILY.family -> R.layout.text_pixel
-    HEAVY_FAMILY.family -> R.layout.text_heavy
-    else -> null
+private fun FontFamily?.fontTextLayout(): Int? {
+    val name = this?.family?.takeIf { it.startsWith(MARKER) }?.removePrefix(MARKER) ?: return null
+    return WidgetFont.entries.firstOrNull { it.name == name }?.let { FontLayouts.text[it] }
 }
 
 /** Text in a bundled font: a RemoteViews TextView whose layout names the font. */
@@ -307,14 +304,17 @@ private fun PlainFrame(style: WidgetStyle, onClick: Tap?, padded: Boolean, conte
     val ctx = LocalContext.current
     val size = LocalSize.current
     var m = GlanceModifier.fillMaxSize().cornerRadius(style.corner.dp)
-    if (!(style.gradient && !style.themed)) m = m.background(bgProvider(style))
+    // Drawn shapes and fills (pill, circle, glass, photo...) come entirely from the bitmap.
+    if (!(style.gradient && !style.themed) && !style.drawnShape) m = m.background(bgProvider(style))
+    val (insetX, insetY) = if (style.drawnShape) WidgetShapes.contentInset(style.shape, size.width.value, size.height.value) else 0f to 0f
     TapSurface(style, onClick, GlanceModifier.fillMaxSize().cornerRadius(style.corner.dp)) { Box(m) {
         if (style.needsBitmapBg) {
             val bmp = remember(style, size) { WidgetArt.background(ctx, style, size.width.value, size.height.value) }
             Image(ImageProvider(bmp), null, GlanceModifier.fillMaxSize(), contentScale = ContentScale.FillBounds)
         }
+        val pad = (if (padded) style.padding else 0).toFloat()
         Box(
-            GlanceModifier.fillMaxSize().padding((if (padded) style.padding else 0).dp),
+            GlanceModifier.fillMaxSize().padding(horizontal = (pad + insetX).dp, vertical = (pad + insetY).dp),
             contentAlignment = Alignment(style.hAlign.glance(), style.vAlign.glance()),
         ) {
             CompositionLocalProvider(LocalShadow provides (if (style.textShadow) style.shadowColor else null)) { content() }
@@ -352,7 +352,8 @@ internal fun contentSize(style: WidgetStyle): DpSize {
         (f.outerSide + f.innerSide) * 2 to (f.outerTop + f.innerTop + f.outerBottom + f.innerBottom)
     } else {
         val p = (style.padding + style.borderWidth + 4).toFloat()
-        p * 2 to p * 2
+        val (ix, iy) = if (style.drawnShape) WidgetShapes.contentInset(style.shape, size.width.value, size.height.value) else 0f to 0f
+        (p + ix) * 2 to (p + iy) * 2
     }
     return DpSize((size.width.value - padW).coerceAtLeast(1f).dp, (size.height.value - padH).coerceAtLeast(1f).dp)
 }
@@ -360,6 +361,7 @@ internal fun contentSize(style: WidgetStyle): DpSize {
 internal fun fontLayout(font: WidgetFont, sans: Int, serif: Int, mono: Int, cursive: Int, pixel: Int, heavy: Int) = when (font) {
     WidgetFont.SANS -> sans; WidgetFont.SERIF -> serif; WidgetFont.MONO -> mono; WidgetFont.CURSIVE -> cursive
     WidgetFont.PIXEL -> pixel; WidgetFont.HEAVY -> heavy
+    else -> FontLayouts.extra(sans, font)
 }
 
 /** Every Custo widget: exact sizing (for drawn backgrounds) and one composable body. */
@@ -408,7 +410,11 @@ class ClockWidget : CustoWidget() {
     @Composable
     override fun Content(context: Context, id: GlanceId) {
         val style = currentStyle()
-        val area = contentSize(style)
+        if (style.clock.ordinal > ClockLook.MINIMAL.ordinal) {
+            ClockFaceContent(context, id, style)
+            return
+        }
+        val area = ClockFaces.forFont(contentSize(style), style.font)
         val rv = RemoteViews(context.packageName, clockLayout(style)).apply {
             val h12 = !android.text.format.DateFormat.is24HourFormat(context)
             when (style.clock) {
@@ -418,6 +424,7 @@ class ClockWidget : CustoWidget() {
                     TextFit.Line(64f, 2), TextFit.Line(64f, 2), TextFit.Line(14f, 6, style.showDate)))
                 ClockLook.MINIMAL -> styleText(style, R.id.date to 14f, R.id.time to 34f, fit = TextFit.stack(area, style.textScale,
                     TextFit.Line(14f, 9, style.showDate), TextFit.Line(34f, if (h12) 8 else 5)))
+                else -> Unit
             }
             setViewVisibility(R.id.date, if (style.showDate) View.VISIBLE else View.GONE)
             setInt(R.id.root, "setGravity", style.gravity())
@@ -428,6 +435,8 @@ class ClockWidget : CustoWidget() {
     }
 
     private fun clockLayout(s: WidgetStyle): Int = when (s.clock) {
+        // Drawn by ClockFaceContent; never reached.
+        ClockLook.FLIP, ClockLook.LED, ClockLook.NEON, ClockLook.VERTICAL, ClockLook.WORDS -> R.layout.clock_big_sans
         ClockLook.BIG -> fontLayout(s.font, R.layout.clock_big_sans, R.layout.clock_big_serif, R.layout.clock_big_mono, R.layout.clock_big_cursive, R.layout.clock_big_pixel, R.layout.clock_big_heavy)
         ClockLook.STACKED -> fontLayout(s.font, R.layout.clock_stacked_sans, R.layout.clock_stacked_serif, R.layout.clock_stacked_mono, R.layout.clock_stacked_cursive, R.layout.clock_stacked_pixel, R.layout.clock_stacked_heavy)
         ClockLook.MINIMAL -> fontLayout(s.font, R.layout.clock_minimal_sans, R.layout.clock_minimal_serif, R.layout.clock_minimal_mono, R.layout.clock_minimal_cursive, R.layout.clock_minimal_pixel, R.layout.clock_minimal_heavy)
