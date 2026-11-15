@@ -65,7 +65,7 @@ class DateWidget : CustoWidget() {
         val today = LocalDate.now()
         val loc = context.resources.configuration.locales[0]
         val calendar = Intent(Intent.ACTION_VIEW, CalendarContract.CONTENT_URI.buildUpon().appendPath("time").build())
-        Frame(style, actionStartActivity(calendar)) {
+        Frame(style, tapStart(calendar)) {
             Column(GlanceModifier.fillMaxWidth(), horizontalAlignment = style.hAlign.glance()) {
                 WText(today.dayOfWeek.getDisplayName(TextStyle.FULL, loc), style = style.text(15f, alpha = 0.8f), modifier = GlanceModifier.fillMaxWidth())
                 WText("${today.dayOfMonth}", style = style.text(54f, bold = true), modifier = GlanceModifier.fillMaxWidth())
@@ -95,7 +95,7 @@ class CalendarWidget : CustoWidget() {
         val rows = WidgetLogic.monthGrid(today, style.mondayFirst)
         val cell = style.text(13f).copy(textAlign = TextAlign.Center)
         val calendar = Intent(Intent.ACTION_VIEW, CalendarContract.CONTENT_URI.buildUpon().appendPath("time").build())
-        Frame(style, actionStartActivity(calendar)) {
+        Frame(style, tapStart(calendar)) {
             Column(GlanceModifier.fillMaxWidth()) {
                 WText(today.format(DateTimeFormatter.ofPattern("MMMM yyyy", loc)), style = style.text(16f, bold = true), modifier = GlanceModifier.fillMaxWidth())
                 Spacer(GlanceModifier.height(6.dp))
@@ -136,7 +136,7 @@ class CountdownWidget : CustoWidget() {
         val today = LocalDate.now()
         val target = WidgetLogic.countdownTarget(style.countdownDay, today)
         val days = WidgetLogic.daysUntil(target, today)
-        Frame(style, actionStartActivity(editIntent(context, id))) {
+        Frame(style, tapStart(editIntent(context, id))) {
             Column(GlanceModifier.fillMaxWidth(), horizontalAlignment = style.hAlign.glance()) {
                 WText(style.countdownTitle.ifBlank { "Countdown" }, maxLines = 1, style = style.text(15f, alpha = 0.8f), modifier = GlanceModifier.fillMaxWidth())
                 if (days > 1) {
@@ -172,7 +172,7 @@ class BatteryWidget : CustoWidget() {
     override fun Content(context: Context, id: GlanceId) {
         val style = currentStyle()
         val b = readBattery(context)
-        Frame(style, actionStartActivity(Intent(Intent.ACTION_POWER_USAGE_SUMMARY))) {
+        Frame(style, tapStart(Intent(Intent.ACTION_POWER_USAGE_SUMMARY))) {
             Column(GlanceModifier.fillMaxWidth(), horizontalAlignment = style.hAlign.glance()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     WText("${b.level}%", style = style.text(30f, bold = true))
@@ -198,7 +198,7 @@ class BatteryRingWidget : CustoWidget() {
         val size = LocalSize.current
         val side = (min(size.width.value, size.height.value) - style.padding * 2).coerceAtLeast(48f)
         val ring = remember(b.level) { WidgetArt.ring(b.level / 100f) }
-        Frame(style, actionStartActivity(Intent(Intent.ACTION_POWER_USAGE_SUMMARY))) {
+        Frame(style, tapStart(Intent(Intent.ACTION_POWER_USAGE_SUMMARY))) {
             Box(GlanceModifier.size(side.dp), contentAlignment = Alignment.Center) {
                 Image(ImageProvider(ring), "Battery ${b.level}%", GlanceModifier.size(side.dp), colorFilter = ColorFilter.tint(accentProvider(style)))
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -219,7 +219,7 @@ class AlarmWidget : CustoWidget() {
     override fun Content(context: Context, id: GlanceId) {
         val style = currentStyle()
         val next = context.getSystemService(AlarmManager::class.java).nextAlarmClock?.triggerTime
-        Frame(style, actionStartActivity(Intent(AlarmClock.ACTION_SHOW_ALARMS))) {
+        Frame(style, tapStart(Intent(AlarmClock.ACTION_SHOW_ALARMS))) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Image(ImageProvider(R.drawable.ic_alarm), null, GlanceModifier.size((30 * style.textScale).dp), colorFilter = ColorFilter.tint(fgProvider(style)))
                 Spacer(GlanceModifier.width(12.dp))
@@ -263,7 +263,7 @@ class StorageWidget : CustoWidget() {
     override fun Content(context: Context, id: GlanceId) {
         val style = currentStyle()
         val s = readStorage()
-        Frame(style, actionStartActivity(Intent(Settings.ACTION_INTERNAL_STORAGE_SETTINGS))) {
+        Frame(style, tapStart(Intent(Settings.ACTION_INTERNAL_STORAGE_SETTINGS))) {
             Column(GlanceModifier.fillMaxWidth(), horizontalAlignment = style.hAlign.glance()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Image(ImageProvider(R.drawable.ic_storage), null, GlanceModifier.size((18 * style.textScale).dp), colorFilter = ColorFilter.tint(fgProvider(style)))

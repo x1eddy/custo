@@ -85,6 +85,9 @@ data class WidgetStyle(
     val themeSlot: Int = 0,
     val bannerText: String = "Have a nice day",
     val bannerSub: String = "",
+    // Added in 0.5
+    /** Press pulse, pops and other short effects when the widget is tapped. Old widgets get them too. */
+    val tapAnim: Boolean = true,
 ) {
     fun encode(): String = json.encodeToString(this)
 
@@ -99,7 +102,7 @@ data class WidgetStyle(
         gradient = other.gradient, bg2 = other.bg2, gradientAngle = other.gradientAngle, borderWidth = other.borderWidth,
         borderColor = other.borderColor, padding = other.padding, hAlign = other.hAlign, vAlign = other.vAlign,
         textScale = other.textScale, textShadow = other.textShadow, shadowColor = other.shadowColor,
-        themeId = other.themeId,
+        themeId = other.themeId, tapAnim = other.tapAnim,
     )
 
     companion object {

@@ -75,7 +75,7 @@ class WorkWidget : ResponsiveWidget() {
         RefreshAt(context, id, WidgetKind.WORK, st.until.millis())
         val loc = context.resources.configuration.locales[0]
         val big = if (sizeClass() == SizeClass.SMALL) 30f else 40f
-        Frame(style, actionStartActivity(editIntent(context, id))) {
+        Frame(style, tapStart(editIntent(context, id))) {
             Column(GlanceModifier.fillMaxWidth(), horizontalAlignment = style.hAlign.glance()) {
                 when (st.phase) {
                     HabitLogic.WorkPhase.WORKING -> {
@@ -115,7 +115,7 @@ class WeekWidget : ResponsiveWidget() {
         val (top, bottom) = HabitLogic.weekText(today, style.weekDay)
         val n = HabitLogic.daysUntilWeekday(today, style.weekDay)
         val loc = context.resources.configuration.locales[0]
-        Frame(style, actionStartActivity(editIntent(context, id))) {
+        Frame(style, tapStart(editIntent(context, id))) {
             Column(GlanceModifier.fillMaxWidth(), horizontalAlignment = style.hAlign.glance()) {
                 val showBig = n > 1 && !(style.weekDay == 6 && today.dayOfWeek.value >= 6)
                 if (showBig) {
@@ -166,7 +166,7 @@ class MoonWidget : ResponsiveWidget() {
         val bmp = remember((moon.fraction * 200).toInt()) { WidgetArt.moon(moon.fraction) }
         val tf = timeFormat(context)
         val cls = sizeClass()
-        Frame(style, actionStartActivity(editIntent(context, id))) {
+        Frame(style, tapStart(editIntent(context, id))) {
             val moonSide = when (cls) { SizeClass.SMALL -> 64f; SizeClass.WIDE -> 80f; else -> 110f }
             val info = @Composable {
                 Column(horizontalAlignment = if (cls == SizeClass.WIDE) Alignment.Start else Alignment.CenterHorizontally) {
@@ -217,7 +217,7 @@ class PrayerWidget : ResponsiveWidget() {
         if (next != null) RefreshAt(context, id, WidgetKind.PRAYER, next.second.toInstant().toEpochMilli())
         val tf = timeFormat(context)
         val cls = sizeClass()
-        Frame(style, actionStartActivity(editIntent(context, id))) {
+        Frame(style, tapStart(editIntent(context, id))) {
             if (times == null || next == null) {
                 WText("Times can't be worked out for ${place.name} today", style = style.text(13f).copy(textAlign = TextAlign.Center))
                 return@Frame

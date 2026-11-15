@@ -244,7 +244,7 @@ internal fun currentStyle(): WidgetStyle = WidgetStyle.decode(currentState(Widge
  * padding, alignment and the tap action.
  */
 @Composable
-internal fun Frame(style: WidgetStyle, onClick: Action?, padded: Boolean = true, content: @Composable () -> Unit) {
+internal fun Frame(style: WidgetStyle, onClick: Tap?, padded: Boolean = true, content: @Composable () -> Unit) {
     val theme = WidgetThemes.byId(style.themeId)
     val fit = frameFit(style)
     androidx.compose.runtime.CompositionLocalProvider(LocalTextFit provides fit) {
@@ -263,17 +263,15 @@ internal fun accentProvider(style: WidgetStyle): ColorProvider {
 
 /** A widget from a set: the theme's frame and stickers as one bitmap, live content on top. */
 @Composable
-private fun ThemedFrame(style: WidgetStyle, theme: WidgetTheme, onClick: Action?, padded: Boolean, content: @Composable () -> Unit) {
+private fun ThemedFrame(style: WidgetStyle, theme: WidgetTheme, onClick: Tap?, padded: Boolean, content: @Composable () -> Unit) {
     val ctx = LocalContext.current
     val size = LocalSize.current
     val kind = remember(style.themeKind) { WidgetKind.entries.firstOrNull { it.name == style.themeKind } }
-    var m = GlanceModifier.fillMaxSize()
-    if (onClick != null) m = m.clickable(onClick)
     // A HUD draws some kinds' content into the bitmap (hearts, hotbars...), from live values.
     val mode = if (padded) theme.hudMode(kind) else null
     val hud = if (mode != null) readBattery(ctx).let { b -> HudData(java.time.LocalDate.now(), b.level, b.charging, ctx.resources.configuration.locales[0]) } else null
     val hudStyle = if (mode != null) style else null
-    Box(m) {
+    TapSurface(style, onClick, GlanceModifier.fillMaxSize()) {
         val bmp = remember(theme.id, kind, style.themeSlot, size, hud, hudStyle) {
             ThemeArt.widgetBitmap(ctx, theme, kind, style.themeSlot, size.width.value, size.height.value, hudStyle, hud)
         }
@@ -292,17 +290,25 @@ private fun ThemedFrame(style: WidgetStyle, theme: WidgetTheme, onClick: Action?
                 CompositionLocalProvider(LocalShadow provides (if (style.textShadow) style.shadowColor else null)) { content() }
             }
         }
+        TapFlash(style, theme.corner.toInt())
     }
 }
 
+/** A light flash over the whole widget while a [TapFx.WHOLE] effect plays (a still view otherwise). */
 @Composable
-private fun PlainFrame(style: WidgetStyle, onClick: Action?, padded: Boolean, content: @Composable () -> Unit) {
+private fun TapFlash(style: WidgetStyle, corner: Int) {
+    if (!style.tapAnim) return
+    val a = TapFrames.flash(tapFrame(TapFx.WHOLE))
+    Box(GlanceModifier.fillMaxSize().cornerRadius(corner.dp).background(fgProvider(style, a))) {}
+}
+
+@Composable
+private fun PlainFrame(style: WidgetStyle, onClick: Tap?, padded: Boolean, content: @Composable () -> Unit) {
     val ctx = LocalContext.current
     val size = LocalSize.current
     var m = GlanceModifier.fillMaxSize().cornerRadius(style.corner.dp)
     if (!(style.gradient && !style.themed)) m = m.background(bgProvider(style))
-    if (onClick != null) m = m.clickable(onClick)
-    Box(m) {
+    TapSurface(style, onClick, GlanceModifier.fillMaxSize().cornerRadius(style.corner.dp)) { Box(m) {
         if (style.needsBitmapBg) {
             val bmp = remember(style, size) { WidgetArt.background(ctx, style, size.width.value, size.height.value) }
             Image(ImageProvider(bmp), null, GlanceModifier.fillMaxSize(), contentScale = ContentScale.FillBounds)
@@ -313,7 +319,8 @@ private fun PlainFrame(style: WidgetStyle, onClick: Action?, padded: Boolean, co
         ) {
             CompositionLocalProvider(LocalShadow provides (if (style.textShadow) style.shadowColor else null)) { content() }
         }
-    }
+        TapFlash(style, style.corner)
+    } }
 }
 
 internal fun editIntent(ctx: Context, glanceId: GlanceId): Intent {
@@ -415,7 +422,7 @@ class ClockWidget : CustoWidget() {
             setViewVisibility(R.id.date, if (style.showDate) View.VISIBLE else View.GONE)
             setInt(R.id.root, "setGravity", style.gravity())
         }
-        Frame(style, actionStartActivity(Intent(AlarmClock.ACTION_SHOW_ALARMS))) {
+        Frame(style, tapStart(Intent(AlarmClock.ACTION_SHOW_ALARMS))) {
             AndroidRemoteViews(rv, GlanceModifier.fillMaxSize())
         }
     }
@@ -447,7 +454,7 @@ class HourWidget : CustoWidget() {
             setViewVisibility(R.id.date, if (style.showDate) View.VISIBLE else View.GONE)
             setInt(R.id.root, "setGravity", style.gravity())
         }
-        Frame(style, actionStartActivity(Intent(AlarmClock.ACTION_SHOW_ALARMS))) {
+        Frame(style, tapStart(Intent(AlarmClock.ACTION_SHOW_ALARMS))) {
             AndroidRemoteViews(rv, GlanceModifier.fillMaxSize())
         }
     }
@@ -484,7 +491,7 @@ class AnalogWidget : CustoWidget() {
                 else setColorStateList(v, "setSecondHandTintList", ColorStateList.valueOf(style.fg))
             }
         }
-        Frame(style, actionStartActivity(Intent(AlarmClock.ACTION_SHOW_ALARMS))) {
+        Frame(style, tapStart(Intent(AlarmClock.ACTION_SHOW_ALARMS))) {
             AndroidRemoteViews(rv, GlanceModifier.fillMaxSize())
         }
     }
@@ -506,7 +513,7 @@ class WorldWidget : CustoWidget() {
             TextFit.row(rowArea, style.textScale, TextFit.Line(15f, 10), TextFit.Line(26f, 5)),
             TextFit.stack(rowArea, style.textScale, TextFit.Line(26f, 5)),
         )
-        Frame(style, actionStartActivity(Intent(AlarmClock.ACTION_SHOW_ALARMS))) {
+        Frame(style, tapStart(Intent(AlarmClock.ACTION_SHOW_ALARMS))) {
             Column(GlanceModifier.fillMaxWidth(), verticalAlignment = style.vAlign.glance()) {
                 style.zones.take(3).forEach { zone ->
                     val rv = RemoteViews(context.packageName, layout).apply {
@@ -545,8 +552,9 @@ class StopwatchWidget : CustoWidget() {
         val now = SystemClock.elapsedRealtime()
         val base = (currentState(Stopwatch.BASE) ?: now).coerceAtMost(now)
         val elapsed = currentState(Stopwatch.ELAPSED) ?: 0L
-        val toggle = actionRunCallback<StopwatchAction>(actionParametersOf(StopwatchAction.CMD to "toggle"))
-        val reset = actionRunCallback<StopwatchAction>(actionParametersOf(StopwatchAction.CMD to "reset"))
+        val toggle = tapRun<StopwatchAction>("cmd" to "toggle")
+        val reset = tapRun<StopwatchAction>("cmd" to "reset")
+        val pop = TapFrames.pop(tapFrame("sw"), 0.5f)
         Frame(style, toggle) {
             Column(horizontalAlignment = style.hAlign.glance()) {
                 if (running) {
@@ -555,21 +563,17 @@ class StopwatchWidget : CustoWidget() {
                         setChronometer(R.id.chrono, base, null, true)
                         // Leave room for the buttons under the time.
                         val area = contentSize(style)
-                        styleText(style, R.id.chrono to 44f, fit = TextFit.stack(DpSize(area.width, area.height * 0.6f), style.textScale, TextFit.Line(44f, 5)))
+                        styleText(style, R.id.chrono to 44f, fit = TextFit.stack(DpSize(area.width, area.height * 0.6f), style.textScale, TextFit.Line(44f, 5)) * pop)
                         setInt(R.id.root, "setGravity", style.gravity())
                     }
                     AndroidRemoteViews(rv, GlanceModifier.fillMaxWidth())
                 } else {
-                    WText(Stopwatch.format(elapsed), style = style.text(44f, bold = true))
+                    WText(Stopwatch.format(elapsed), style = style.text(44f * pop, bold = true))
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     WText(if (running) "Tap to pause" else if (elapsed > 0) "Paused" else "Tap to start", style = style.text(13f, alpha = 0.75f))
                     if (!running && elapsed > 0) {
-                        Image(
-                            ImageProvider(R.drawable.ic_reset), "Reset",
-                            GlanceModifier.size(36.dp).padding(8.dp).clickable(reset),
-                            colorFilter = ColorFilter.tint(fgProvider(style)),
-                        )
+                        PressButton(style, reset, GlanceModifier.size(36.dp), ButtonLook(icon = R.drawable.ic_reset, iconDp = 20f, tint = fgArgb(style), desc = "Reset"))
                     }
                 }
             }
@@ -580,7 +584,7 @@ class StopwatchWidget : CustoWidget() {
 class StopwatchAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         val now = SystemClock.elapsedRealtime()
-        updateAppWidgetState(context, glanceId) { p ->
+        TapFx.play(context, glanceId, StopwatchWidget(), "sw") { p ->
             when (parameters[CMD]) {
                 "toggle" -> if (p[Stopwatch.RUNNING] == true) {
                     p[Stopwatch.ELAPSED] = (now - (p[Stopwatch.BASE] ?: now)).coerceAtLeast(0)
@@ -592,7 +596,6 @@ class StopwatchAction : ActionCallback {
                 "reset" -> { p[Stopwatch.RUNNING] = false; p[Stopwatch.ELAPSED] = 0L }
             }
         }
-        StopwatchWidget().update(context, glanceId)
     }
 
     companion object { val CMD = ActionParameters.Key<String>("cmd") }

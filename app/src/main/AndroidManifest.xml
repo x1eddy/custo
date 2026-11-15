@@ -84,6 +84,8 @@
             </intent-filter>
         </service>
 
+        <!-- Taps on the widget parts Custo inflates itself (press-animated frames and buttons). -->
+        <receiver android:name=".feature.widgets.TapReceiver" android:exported="false" />
         <receiver android:name=".feature.widgets.ClockReceiver" android:exported="false" android:label="Custo clock">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /><action android:name="android.intent.action.LOCALE_CHANGED" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_clock" />

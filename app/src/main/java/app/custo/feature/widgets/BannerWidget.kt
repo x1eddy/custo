@@ -14,7 +14,7 @@ class BannerWidget : CustoWidget() {
     @Composable
     override fun Content(context: Context, id: GlanceId) {
         val style = currentStyle()
-        Frame(style, actionStartActivity(editIntent(context, id))) {
+        Frame(style, tapStart(editIntent(context, id))) {
             Column(GlanceModifier.fillMaxWidth(), horizontalAlignment = style.hAlign.glance()) {
                 WText(style.bannerText, style = style.text(28f, bold = true), modifier = GlanceModifier.fillMaxWidth(), maxLines = 2)
                 if (style.bannerSub.isNotBlank()) {
