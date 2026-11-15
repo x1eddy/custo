@@ -6,7 +6,19 @@ import android.content.Context
 import android.graphics.drawable.Icon
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.compose.material3.Button
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.ui.draw.clip
+import app.custo.ui.components.IconNote
+import app.custo.ui.components.InfoButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
@@ -15,12 +27,9 @@ import androidx.compose.ui.res.stringResource
 import app.custo.container
 import app.custo.nav.Navigator
 import app.custo.ui.components.ActionRunner
-import app.custo.ui.components.Hint
 import app.custo.ui.components.ScreenScaffold
-import app.custo.ui.components.SectionCard
 import app.custo.ui.components.rememberActionRunner
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon as M3Icon
 import androidx.compose.material3.MaterialTheme
@@ -54,22 +63,29 @@ fun TilePackScreen(nav: Navigator) {
     val runner = rememberActionRunner()
 
     ScreenScaffold(title = "Custo tiles", onBack = { nav.pop() }) {
-        item { Hint("Extra Quick Settings tiles. They need Shizuku running.") }
         CustoTileSpec.entries.forEach { spec ->
             item(key = spec.name) {
-                SectionCard(stringResource(spec.label), null, spec.desc) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        M3Icon(painterResource(spec.icon), null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
-                        Button(onClick = {
-                            if (Build.VERSION.SDK_INT >= 33) {
-                                requestAdd(ctx, spec, runner)
-                            } else if (ready) {
-                                runner.run("Added") { c.tweaks.addTile(ComponentName(ctx, spec.cls).flattenToString()) }
-                            } else {
-                                runner.message("Start Shizuku first, or add it from the Quick Settings editor.")
-                            }
-                        }) { Text("Add to Quick Settings") }
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(MaterialTheme.colorScheme.surfaceContainerLow).padding(start = 18.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(Modifier.size(40.dp).clip(RoundedCornerShape(14.dp)).background(MaterialTheme.colorScheme.primaryContainer), contentAlignment = Alignment.Center) {
+                        M3Icon(painterResource(spec.icon), null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(22.dp))
                     }
+                    Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
+                        Text(stringResource(spec.label), style = MaterialTheme.typography.titleMedium)
+                        if (spec == CustoTileSpec.WIRELESS_DEBUGGING) IconNote(Icons.Rounded.Warning, "May stop Shizuku", MaterialTheme.colorScheme.error)
+                    }
+                    InfoButton(stringResource(spec.label), spec.desc)
+                    FilledTonalIconButton(onClick = {
+                        if (Build.VERSION.SDK_INT >= 33) {
+                            requestAdd(ctx, spec, runner)
+                        } else if (ready) {
+                            runner.run("Added") { c.tweaks.addTile(ComponentName(ctx, spec.cls).flattenToString()) }
+                        } else {
+                            runner.message("Start Shizuku first")
+                        }
+                    }) { M3Icon(Icons.Rounded.Add, "Add to Quick Settings") }
                 }
             }
         }

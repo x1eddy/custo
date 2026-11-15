@@ -98,10 +98,8 @@ fun HomeScreen(nav: Navigator) {
     }
 
     var widgetCount by remember { mutableIntStateOf(0) }
-    var styleName by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(tick, state) {
         widgetCount = runCatching { Widgets.placed(ctx).size }.getOrDefault(0)
-        if (state == ShizukuState.READY) styleName = runCatching { MonetJson.styleOf(c.tweaks.monetJson())?.label }.getOrNull()
     }
     // The user's real wallpaper colors (no storage permission needed), drawn as a mesh.
     val wallSpec = remember(tick) {
@@ -112,17 +110,9 @@ fun HomeScreen(nav: Navigator) {
     val ready = state == ShizukuState.READY
 
     // Quick toggles: read the live system values once Shizuku is ready.
-    var batteryPct by remember { mutableStateOf<Boolean?>(null) }
-    var clockSecs by remember { mutableStateOf<Boolean?>(null) }
-    var snappy by remember { mutableStateOf<Boolean?>(null) }
-    LaunchedEffect(tick, state) {
-        if (state != ShizukuState.READY) return@LaunchedEffect
-        runCatching {
-            batteryPct = c.tweaks.batteryPercent()
-            clockSecs = c.tweaks.clockSeconds()
-            snappy = c.tweaks.animationScales().window <= 0.5f
-        }
-    }
+    // Quick toggles: remembered system values (instant), refreshed in the background; writes update them.
+    val quick = app.custo.feature.systemui.rememberQuickSystem()
+    val styleName = quick?.styleName
 
     ScreenScaffold(
         title = "Custo",
@@ -154,11 +144,10 @@ fun HomeScreen(nav: Navigator) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.enterAnimation(0),
             ) {
-                item { QuickToggle("Battery %", batteryPct, ready) { on -> batteryPct = on; runner.run { c.tweaks.setBatteryPercent(on) } } }
-                item { QuickToggle("Clock seconds", clockSecs, ready) { on -> clockSecs = on; runner.run { c.tweaks.setClockSeconds(on) } } }
+                item { QuickToggle("Battery %", quick?.batteryPct, ready) { on -> runner.run { c.tweaks.setBatteryPercent(on) } } }
+                item { QuickToggle("Clock seconds", quick?.clockSeconds, ready) { on -> runner.run { c.tweaks.setClockSeconds(on) } } }
                 item {
-                    QuickToggle("Snappy motion", snappy, ready) { on ->
-                        snappy = on
+                    QuickToggle("Snappy motion", quick?.snappy, ready) { on ->
                         val v = if (on) 0.5f else 1f
                         runner.run { c.tweaks.setAnimationScales(app.custo.feature.systemui.AnimationScales(v, v, v)) }
                     }

@@ -2,7 +2,9 @@ package app.custo
 
 import android.content.Context
 import app.custo.data.Prefs
+import app.custo.data.DeviceStateRepository
 import app.custo.data.custoStore
+import app.custo.data.deviceStateStore
 import app.custo.data.originalsStore
 import app.custo.data.profileStateStore
 import app.custo.feature.backup.BackupManager
@@ -31,7 +33,13 @@ class AppContainer(context: Context) {
     val prefs = Prefs(app.custoStore)
     val originals = OriginalsStore(app.originalsStore)
     val shizuku = ShizukuManager(app)
-    val tweaks = SystemTweaks(shizuku, originals)
+
+    /** Process-wide scope for fire-and-forget work (boot re-apply, tiles). */
+    val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    /** Remembered capabilities + last-known setting values, so System UI screens open instantly. */
+    val deviceState = DeviceStateRepository(app.deviceStateStore, shizuku, { DeviceStateRepository.identityOf(app) }, appScope)
+    val tweaks = SystemTweaks(shizuku, originals, deviceState)
     val wallpapers = WallpaperStudio(app)
     val looks = LooksRepository(prefs)
     val icons = IconRepository(app, prefs)
@@ -39,9 +47,6 @@ class AppContainer(context: Context) {
     val profiles = ProfilesRepository(prefs)
     val profileEngine = ProfileEngine(profiles, tweaks, shizuku, app.profileStateStore)
     val habits = HabitStore(app)
-
-    /** Process-wide scope for fire-and-forget work (boot re-apply, tiles). */
-    val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     val statusBarKeeper = StatusBarKeeper(prefs, tweaks, shizuku)
 
     private val _undoResult = MutableStateFlow<String?>(null)

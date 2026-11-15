@@ -1,6 +1,6 @@
 package app.custo.feature.systemui
 
-import android.os.Build
+import app.custo.data.DeviceStateSink
 import app.custo.shizuku.OriginalsStore
 import app.custo.shizuku.Shell
 import app.custo.shizuku.ShellCommands
@@ -23,7 +23,12 @@ data class Capabilities(
  * Every privileged system change goes through here. Before the first write to any setting,
  * its original value is saved so [restoreAll] can undo everything Custo ever did.
  */
-class SystemTweaks(private val shell: Shell, private val originals: OriginalsStore) {
+class SystemTweaks(
+    private val shell: Shell,
+    private val originals: OriginalsStore,
+    /** Kept in sync with every write (optimistic cache update); null in tests. */
+    private val sink: DeviceStateSink? = null,
+) {
 
     private suspend fun run(cmd: String): ShellResult = shell.run(cmd)
 
@@ -48,28 +53,11 @@ class SystemTweaks(private val shell: Shell, private val originals: OriginalsSto
         rememberOriginal(ns, key)
         if (value == null) runOk(ShellCommands.settingsDelete(ns, key))
         else runOk(ShellCommands.settingsPut(ns, key, value))
+        sink?.settingWritten("${ns.id}:$key", value)
     }
 
-    // ---- Capabilities -------------------------------------------------------------------------
-
-    suspend fun capabilities(): Capabilities {
-        val overlays = run(ShellCommands.OVERLAY_LIST).output
-        val help = run("cmd overlay help").output
-        val navs = NavMode.entries.filter { overlays.contains(it.overlay) }
-        val current = NavMode.entries.firstOrNull { mode ->
-            overlays.lineSequence().any { it.contains("[x]") && it.contains(mode.overlay) }
-        }
-        return Capabilities(
-            sdk = Build.VERSION.SDK_INT,
-            monetStyles = Build.VERSION.SDK_INT >= 33,
-            // Android 14+ rejects fabricated overlays from the shell uid ("Non-root shell cannot
-            // fabricate overlays"), so without root this only works on Android 12 and 13.
-            fabricatedOverlays = Build.VERSION.SDK_INT < 34 && help.contains("fabricate"),
-            navModes = navs,
-            currentNav = current,
-            oem = Build.MANUFACTURER.lowercase(),
-        )
-    }
+    /** Non-`settings` state changed (overlays, wm, …): have the device cache re-read it. */
+    private fun changed() = sink?.stateChanged()
 
     // ---- Monet --------------------------------------------------------------------------------
 
@@ -130,7 +118,9 @@ class SystemTweaks(private val shell: Shell, private val originals: OriginalsSto
             val list = runOk(ShellCommands.OVERLAY_LIST).output
             originals.rememberIfAbsent(Namespace.CUSTO, NAV_KEY, SysCmd.enabledNavOverlay(list) ?: NAV_NONE)
         }
-        runOk(ShellCommands.overlayEnableExclusiveInCategory(mode.overlay))
+        try {
+            runOk(ShellCommands.overlayEnableExclusiveInCategory(mode.overlay))
+        } finally { changed() }
     }
 
     private suspend fun restoreNav(original: String?): ShellResult {
@@ -164,7 +154,9 @@ class SystemTweaks(private val shell: Shell, private val originals: OriginalsSto
     suspend fun setDensity(dpi: Int?) {
         val (_, override) = density()
         originals.rememberIfAbsent(Namespace.SECURE, DENSITY_KEY, override?.toString())
-        runOk(ShellCommands.wmDensity(dpi))
+        try {
+            runOk(ShellCommands.wmDensity(dpi))
+        } finally { changed() }
     }
 
     suspend fun fontScale(): Float = read(Namespace.SYSTEM, "font_scale")?.toFloatOrNull() ?: 1f
@@ -177,6 +169,7 @@ class SystemTweaks(private val shell: Shell, private val originals: OriginalsSto
         Tonal.ramp(argb).forEach { (shade, color) ->
             shell.fabricate("android", ShellCommands.FABRICATED_PREFIX + "a1_$shade", "android:color/system_accent1_$shade", 0x1c, color)
         }
+        changed()
     }
 
     suspend fun custoOverlays(): List<Pair<String, Boolean>> =
@@ -192,6 +185,7 @@ class SystemTweaks(private val shell: Shell, private val originals: OriginalsSto
             val name = id.substringAfter(':')
             runCatching { shell.unfabricate(name) }.onFailure { run(ShellCommands.overlayDisable(id)) }
         }
+        changed()
     }
 
     // ---- Custo's own services (not recorded as tweaks: Restore defaults keeps them on) ----------
@@ -244,7 +238,7 @@ class SystemTweaks(private val shell: Shell, private val originals: OriginalsSto
         originals.rememberIfAbsent(Namespace.CUSTO, WM_SIZE_KEY, override?.toString())
         val (physDpi, overDpi) = density()
         val dpi = overDpi ?: physDpi
-        runOk(SysCmd.wmSize(size))
+        try { runOk(SysCmd.wmSize(size)) } finally { changed() }
         if (dpi > 0 && from != to) {
             val scaled = SysCmd.scaledDensity(dpi, from, to)
             // Back at stock size and the scaled dpi is (about) stock too: drop the override entirely.
@@ -260,7 +254,9 @@ class SystemTweaks(private val shell: Shell, private val originals: OriginalsSto
         return SysCmd.hasOverlay(list, SysCmd.NO_CUTOUT) to (SysCmd.enabledCutout(list) == SysCmd.NO_CUTOUT)
     }
 
-    suspend fun setHideCutout(hide: Boolean) {
+    suspend fun setHideCutout(hide: Boolean) = try { setHideCutoutInner(hide) } finally { changed() }
+
+    private suspend fun setHideCutoutInner(hide: Boolean) {
         val current = SysCmd.enabledCutout(run(ShellCommands.OVERLAY_LIST).output)
         originals.rememberIfAbsent(Namespace.CUSTO, CUTOUT_KEY, current)
         if (hide) {
@@ -283,14 +279,14 @@ class SystemTweaks(private val shell: Shell, private val originals: OriginalsSto
 
     suspend fun setDnd(mode: DndMode) {
         originals.rememberIfAbsent(Namespace.CUSTO, ZEN_KEY, dndMode().zen.toString())
-        runOk(SysCmd.setDnd(mode))
+        try { runOk(SysCmd.setDnd(mode)) } finally { changed() }
     }
 
     // ---- Extras: Quick Settings tile add, write-settings grant -----------------------------------
 
     suspend fun addTile(component: String) {
         rememberOriginal(Namespace.SECURE, "sysui_qs_tiles")
-        runOk(SysCmd.addTile(component))
+        try { runOk(SysCmd.addTile(component)) } finally { changed() }
     }
 
     suspend fun grantWriteSettings(pkg: String) {
@@ -333,6 +329,8 @@ class SystemTweaks(private val shell: Shell, private val originals: OriginalsSto
         disableCustoOverlays()
         run(ShellCommands.demoBroadcast("exit"))
         if (problems.isEmpty()) originals.clear()
+        // Everything may differ now: re-read the whole cached state.
+        changed()
         return problems + notes
     }
 

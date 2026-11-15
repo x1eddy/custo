@@ -9,6 +9,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material.icons.rounded.PhoneAndroid
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material3.FilledTonalButton
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.custo.ui.components.InfoButton
+import app.custo.ui.components.skeletonItems
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -52,10 +58,13 @@ fun AdvancedScreen(nav: Navigator) {
     val runner = rememberActionRunner()
     var nsIndex by rememberSaveable { mutableIntStateOf(1) }
     var query by rememberSaveable { mutableStateOf("") }
-    var reload by remember { mutableIntStateOf(0) }
     var editing by remember { mutableStateOf<Editing?>(null) }
+    var rescanning by remember { mutableStateOf(false) }
     val ns = NAMESPACES[nsIndex]
-    val all = rememberSysLoad(ready, reload * 4 + nsIndex, runner) { ns to c.tweaks.settingsList(ns) }
+    // Keeps the cached lists fresh (same batched read as every other screen).
+    rememberDeviceState("advanced", emptySet()) { }
+    val lists by c.deviceState.lists.collectAsStateWithLifecycle()
+    fun saved(msg: String, block: suspend () -> Unit) = runner.run(msg) { block(); c.deviceState.stateChanged() }
 
     ScreenScaffold(
         title = "Advanced",
@@ -64,7 +73,22 @@ fun AdvancedScreen(nav: Navigator) {
     ) {
         if (!ready) { lockedItem(nav); return@ScreenScaffold }
         item {
-            SectionCard("Raw settings", Icons.Rounded.Warning, "Wrong values can break things. Undo all reverts your edits.")
+            SectionCard("Phone scan", Icons.Rounded.PhoneAndroid, badge = {
+                InfoButton("Phone scan", "Custo remembers what your phone supports so screens open instantly. Rescan after a system update or if something looks wrong.")
+            }) {
+                FilledTonalButton(enabled = !rescanning, onClick = {
+                    rescanning = true
+                    runner.run("Phone rescanned") { try { c.deviceState.rescan() } finally { rescanning = false } }
+                }) {
+                    Icon(Icons.Rounded.Refresh, null)
+                    Text(if (rescanning) "  Scanning…" else "  Rescan phone")
+                }
+            }
+        }
+        item {
+            SectionCard("Raw settings", Icons.Rounded.Warning, badge = {
+                InfoButton("Raw settings", "Wrong values can break things. Undo all reverts your edits.")
+            })
         }
         item {
             SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
@@ -82,8 +106,8 @@ fun AdvancedScreen(nav: Navigator) {
                 placeholder = { Text("Search keys or values") },
             )
         }
-        val list = all?.takeIf { it.first == ns }?.second
-        if (list == null) { item { Hint("Loading…") }; return@ScreenScaffold }
+        val list = lists[ns.id]
+        if (list == null) { skeletonItems(1); return@ScreenScaffold }
         val q = query.trim()
         val shown = if (q.isEmpty()) list else list.filter { it.first.contains(q, true) || it.second.contains(q, true) }
         item { Hint("${shown.size} of ${list.size}") }
@@ -117,13 +141,13 @@ fun AdvancedScreen(nav: Navigator) {
             confirmButton = {
                 TextButton(enabled = key.isNotBlank(), onClick = {
                     editing = null
-                    runner.run("Saved") { c.tweaks.write(ns, key, value); reload++ }
+                    saved("Saved") { c.tweaks.write(ns, key, value) }
                 }) { Text("Save") }
             },
             dismissButton = {
                 if (!e.isNew) TextButton(onClick = {
                     editing = null
-                    runner.run("Deleted") { c.tweaks.write(ns, e.key, null); reload++ }
+                    saved("Deleted") { c.tweaks.write(ns, e.key, null) }
                 }) { Text("Delete") }
                 else TextButton(onClick = { editing = null }) { Text("Cancel") }
             },

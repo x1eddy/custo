@@ -2,66 +2,82 @@ package app.custo.feature.systemui
 
 import android.app.WallpaperManager
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.Animation
 import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.CleaningServices
 import androidx.compose.material.icons.rounded.Code
+import androidx.compose.material.icons.rounded.ColorLens
 import androidx.compose.material.icons.rounded.Contrast
+import androidx.compose.material.icons.rounded.FormatSize
 import androidx.compose.material.icons.rounded.Gesture
+import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Notifications
-import androidx.compose.material.icons.rounded.Smartphone
-import androidx.compose.material.icons.automirrored.rounded.VolumeUp
-import androidx.compose.foundation.layout.Box
-import app.custo.shizuku.ShellCommands.Namespace
-import androidx.compose.material.icons.rounded.ColorLens
-import androidx.compose.material.icons.rounded.FormatSize
-import androidx.compose.material.icons.rounded.GridView
-import androidx.compose.material.icons.rounded.Navigation
+import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.Percent
+import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.SignalCellularAlt
+import androidx.compose.material.icons.rounded.Smartphone
+import androidx.compose.material.icons.rounded.Timer
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Wallpaper
+import androidx.compose.material.icons.rounded.ZoomIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.custo.container
 import app.custo.nav.Navigator
 import app.custo.nav.Route
-import app.custo.shizuku.ShizukuState
+import app.custo.shizuku.ShellCommands.Namespace
+import app.custo.ui.components.AnimationDemo
 import app.custo.ui.components.ColorPicker
 import app.custo.ui.components.ColorStrip
-import app.custo.ui.components.Hint
+import app.custo.ui.components.HubTile
+import app.custo.ui.components.IconNote
+import app.custo.ui.components.IconSwitchRow
+import app.custo.ui.components.InfoButton
+import app.custo.ui.components.NavMockKind
+import app.custo.ui.components.NavModeCard
+import app.custo.ui.components.PalettePhone
+import app.custo.ui.components.QsTileChip
+import app.custo.ui.components.ScaledPhoneMock
 import app.custo.ui.components.ScreenScaffold
 import app.custo.ui.components.SectionCard
-import app.custo.ui.components.HubTile
 import app.custo.ui.components.SectionLabel
 import app.custo.ui.components.SupportBadge
-import app.custo.ui.components.SwitchRow
+import app.custo.ui.components.SwatchRow
 import app.custo.ui.components.rememberActionRunner
+import app.custo.ui.components.skeletonItems
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -80,9 +96,10 @@ private data class SysState(
     val colorSource: MonetJson.ColorSource?,
     /** null = not on this phone (Android 14+ only). */
     val contrast: Float?,
+    val qsTiles: List<String>,
 )
 
-private data class HubEntry(val title: String, val icon: androidx.compose.ui.graphics.vector.ImageVector, val route: Route)
+private data class HubEntry(val title: String, val icon: ImageVector, val route: Route)
 
 private val HUB = listOf(
     HubEntry("Status bar", Icons.Rounded.CleaningServices, Route.StatusBarExtras),
@@ -95,107 +112,129 @@ private val HUB = listOf(
     HubEntry("Advanced", Icons.Rounded.Code, Route.AdvancedSettings),
 )
 
+private val ANIM_KEYS = listOf("window_animation_scale", "transition_animation_scale", "animator_duration_scale")
+
+/** Every value the hub (and Home's quick toggles) show. */
+internal val HUB_KEYS: Set<String> = setOf(
+    Ids.of(Namespace.SECURE, MonetJson.SETTING),
+    Ids.of(Namespace.SECURE, "icon_blacklist"),
+    Ids.of(Namespace.SYSTEM, "status_bar_show_battery_percent"),
+    Ids.of(Namespace.SECURE, "clock_seconds"),
+    Ids.of(Namespace.SYSTEM, "font_scale"),
+    Ids.of(Namespace.SECURE, "contrast_level"),
+    Ids.of(Namespace.SECURE, "sysui_qs_tiles"),
+    Ids.WM_DENSITY,
+    Ids.OVERLAYS,
+) + ANIM_KEYS.map { Ids.of(Namespace.GLOBAL, it) }
+
+private val HUB_PROBES = setOf(ProbeKeys.NAV_MODES, ProbeKeys.FABRICATE)
+
+private fun NavMode.kind() = when (this) {
+    NavMode.GESTURAL -> NavMockKind.GESTURE
+    NavMode.THREE_BUTTON -> NavMockKind.THREE_BUTTON
+    NavMode.TWO_BUTTON -> NavMockKind.TWO_BUTTON
+}
+
+private fun MonetJson.ColorSource.icon() = when (this) {
+    MonetJson.ColorSource.HOME -> Icons.Rounded.Wallpaper
+    MonetJson.ColorSource.LOCK -> Icons.Rounded.Lock
+    MonetJson.ColorSource.PRESET -> Icons.Rounded.Palette
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SystemUiScreen(nav: Navigator) {
     val ctx = LocalContext.current
     val c = ctx.container
-    val shizuku by c.shizuku.state.collectAsStateWithLifecycle()
-    val ready = shizuku == ShizukuState.READY
+    val ready = rememberShizukuReady()
     val runner = rememberActionRunner()
-    var s by remember { mutableStateOf<SysState?>(null) }
-    var reload by remember { mutableIntStateOf(0) }
-
-    LaunchedEffect(ready, reload) {
-        if (!ready) return@LaunchedEffect
-        runCatching {
-            val t = c.tweaks
-            val json = t.monetJson()
-            val (phys, over) = t.density()
-            SysState(
-                caps = t.capabilities(),
-                seed = MonetJson.seedOf(json),
-                style = MonetJson.styleOf(json),
-                hidden = t.hiddenIcons(),
-                batteryPct = t.batteryPercent(),
-                clockSecs = t.clockSeconds(),
-                anim = t.animationScales(),
-                physicalDpi = phys,
-                overrideDpi = over,
-                fontScale = t.fontScale(),
-                exactAccentOn = t.custoOverlays().any { it.second },
-                colorSource = MonetJson.sourceOf(json),
-                contrast = t.read(Namespace.SECURE, "contrast_level")?.toFloatOrNull()
-                    ?: if (android.os.Build.VERSION.SDK_INT >= 34) 0f else null,
-            )
-        }.onSuccess { s = it }.onFailure { runner.message(it.message ?: "Could not read system settings") }
+    val st = rememberDeviceState("hub", HUB_KEYS, HUB_PROBES) { v ->
+        val json = v.v(Namespace.SECURE, MonetJson.SETTING)
+        val (phys, over) = v.density()
+        fun anim(k: String) = v.v(Namespace.GLOBAL, k)?.toFloatOrNull() ?: 1f
+        SysState(
+            caps = v.capabilities(),
+            seed = MonetJson.seedOf(json),
+            style = MonetJson.styleOf(json),
+            hidden = v.v(Namespace.SECURE, "icon_blacklist")?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }?.toSet() ?: emptySet(),
+            batteryPct = v.v(Namespace.SYSTEM, "status_bar_show_battery_percent") == "1",
+            clockSecs = v.v(Namespace.SECURE, "clock_seconds") == "1",
+            anim = AnimationScales(anim(ANIM_KEYS[0]), anim(ANIM_KEYS[1]), anim(ANIM_KEYS[2])),
+            physicalDpi = phys,
+            overrideDpi = over,
+            fontScale = v.v(Namespace.SYSTEM, "font_scale")?.toFloatOrNull() ?: 1f,
+            exactAccentOn = v.custoOverlayOn(),
+            colorSource = MonetJson.sourceOf(json),
+            contrast = v.v(Namespace.SECURE, "contrast_level")?.toFloatOrNull() ?: if (android.os.Build.VERSION.SDK_INT >= 34) 0f else null,
+            qsTiles = v.v(Namespace.SECURE, "sysui_qs_tiles")?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList(),
+        )
     }
+    val demoOn by c.prefs.flow(SysKeys.demoOn, false).collectAsStateWithLifecycle(false)
 
-    fun act(msg: String? = null, block: suspend () -> Unit) = runner.run(msg) { block(); reload++ }
+    fun act(msg: String? = null, block: suspend () -> Unit) = runner.run(msg) { block() }
 
     RevertDialog(c.appScope)
     ScreenScaffold(title = "System UI") {
         if (!ready) item {
-            SectionCard("Locked", Icons.Rounded.SignalCellularAlt, "These change the real system UI. Set up Shizuku once to unlock them.", onClick = { nav.push(Route.ShizukuSetup) })
+            SectionCard("Set up Shizuku", Icons.Rounded.SignalCellularAlt, onClick = { nav.push(Route.ShizukuSetup) })
         }
         HUB.chunked(2).forEach { pair ->
             item(key = "hub_" + pair.first().title) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    pair.forEach { e ->
-                        HubTile(e.title, e.icon, Modifier.weight(1f)) { nav.push(e.route) }
-                    }
+                    pair.forEach { e -> HubTile(e.title, e.icon, Modifier.weight(1f)) { nav.push(e.route) } }
                 }
             }
         }
-        val st = s
-        if (ready && st == null) item { Hint("Reading your system…") }
-        if (st == null) return@ScreenScaffold
-
-        if (st.caps.isSkinnedOem) item {
-            Hint("${st.caps.oem.replaceFirstChar { it.uppercase() }} skins Android, so a few tweaks may not show. Undo all on Home reverts everything.")
-        }
+        if (!ready) return@ScreenScaffold
+        if (st == null) { skeletonItems(3); return@ScreenScaffold }
 
         // ---------------- Colors ----------------
         item { SectionLabel("Color") }
         item {
             var color by remember(st.seed) { mutableStateOf(Color(st.seed ?: 0xFF6D4AFF.toInt())) }
             var style by remember(st.style) { mutableStateOf(st.style ?: MonetStyle.TONAL_SPOT) }
-            SectionCard("Palette", Icons.Rounded.ColorLens, "Recolors the shade, Settings and every Material You app.") {
-                ColorPicker(color, { color = it })
-                if (st.caps.monetStyles) {
-                    Text("Style", style = MaterialTheme.typography.labelLarge)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        MonetStyle.entries.forEach { m -> FilterChip(selected = style == m, onClick = { style = m }, label = { Text(m.label) }) }
+            val dark = isSystemInDarkTheme()
+            val preview = stylePreviewColors(color.toArgb(), if (st.caps.monetStyles) style else null, dark)
+            SectionCard("Palette", Icons.Rounded.ColorLens, badge = {
+                InfoButton("Palette", "Recolors the shade, Settings and every Material You app. Preview is approximate.")
+            }) {
+                Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    PalettePhone(preview[0], preview[1], preview[2], preview[3], preview[4], Modifier.width(84.dp))
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        SwatchRow(preview.take(4))
+                        if (st.caps.monetStyles) FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            MonetStyle.entries.forEach { m -> FilterChip(selected = style == m, onClick = { style = m }, label = { Text(m.label) }) }
+                        }
                     }
                 }
-                Text("Take colors from", style = MaterialTheme.typography.labelLarge)
+                ColorPicker(color, { color = it })
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     MonetJson.ColorSource.entries.forEach { src ->
                         FilterChip(
                             selected = (st.colorSource ?: MonetJson.ColorSource.HOME) == src,
                             onClick = {
-                                if (src == MonetJson.ColorSource.PRESET) act("System colors applied") { c.tweaks.applyMonet(color.toArgb(), if (st.caps.monetStyles) style else null) }
-                                else act("Colors follow your ${src.label.lowercase()}") { c.tweaks.applyWallpaperColors(src) }
+                                if (src == MonetJson.ColorSource.PRESET) act("Applied") { c.tweaks.applyMonet(color.toArgb(), if (st.caps.monetStyles) style else null) }
+                                else act("Applied") { c.tweaks.applyWallpaperColors(src) }
                             },
+                            leadingIcon = { Icon(src.icon(), null, Modifier.size(FilterChipDefaults.IconSize)) },
                             label = { Text(src.label) },
                         )
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { act("System colors applied") { c.tweaks.applyMonet(color.toArgb(), if (st.caps.monetStyles) style else null) } }) { Text("Apply") }
+                    Button(onClick = { act("Applied") { c.tweaks.applyMonet(color.toArgb(), if (st.caps.monetStyles) style else null) } }) { Text("Apply") }
                     OutlinedButton(onClick = {
                         val wc = WallpaperManager.getInstance(ctx).getWallpaperColors(WallpaperManager.FLAG_SYSTEM)
                         wc?.primaryColor?.toArgb()?.let { color = Color(it) }
                     }) {
-                        androidx.compose.material3.Icon(Icons.Rounded.Wallpaper, null)
-                        Text(" From wallpaper")
+                        Icon(Icons.Rounded.Wallpaper, "Pick from wallpaper")
                     }
                 }
             }
         }
         item {
             var contrast by remember(st.contrast) { mutableStateOf(st.contrast ?: 0f) }
-            SectionCard("Contrast", Icons.Rounded.Contrast, if (st.contrast == null) null else contrastLabel(contrast)) {
+            SectionCard("Contrast", Icons.Rounded.Contrast, badge = { if (st.contrast != null) Text(contrastLabel(contrast), style = MaterialTheme.typography.labelLarge) }) {
                 if (st.contrast == null) NotOnPhoneRow("Contrast")
                 else Slider(contrast, { contrast = (it * 4).roundToInt() / 4f }, valueRange = -1f..1f, steps = 7, onValueChangeFinished = {
                     act { c.tweaks.write(Namespace.SECURE, "contrast_level", contrast.toString()) }
@@ -207,17 +246,15 @@ fun SystemUiScreen(nav: Navigator) {
             SectionCard(
                 "Exact accent",
                 Icons.Rounded.ColorLens,
-                "Use this exact color as the system accent.",
                 badge = { SupportBadge(if (st.caps.fabricatedOverlays) "Supported" else "Needs root", st.caps.fabricatedOverlays) },
             ) {
-                if (!st.caps.fabricatedOverlays) Hint("Android ${android.os.Build.VERSION.RELEASE} only allows this with root. Palette above still works.")
                 if (st.caps.fabricatedOverlays) {
                     ColorPicker(accent, { accent = it })
                     ColorStrip(Tonal.ramp(accent.toArgb()).values.map { Color(it) }, Modifier.fillMaxWidth())
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { act("Exact accent applied") { c.tweaks.applyExactAccent(accent.toArgb()) } }) { Text("Apply") }
+                        Button(onClick = { act("Applied") { c.tweaks.applyExactAccent(accent.toArgb()) } }) { Text("Apply") }
                         AnimatedVisibility(st.exactAccentOn) {
-                            OutlinedButton(onClick = { act("Exact accent removed") { c.tweaks.disableCustoOverlays() } }) { Text("Remove") }
+                            OutlinedButton(onClick = { act("Removed") { c.tweaks.disableCustoOverlays() } }) { Text("Remove") }
                         }
                     }
                 }
@@ -228,55 +265,67 @@ fun SystemUiScreen(nav: Navigator) {
         item { SectionLabel("Status bar") }
         item {
             SectionCard {
-                SwitchRow("Battery percentage", null, st.batteryPct) { on -> act { c.tweaks.setBatteryPercent(on) } }
-                SwitchRow("Clock seconds", null, st.clockSecs) { on -> act { c.tweaks.setClockSeconds(on) } }
-                var demo by remember { mutableStateOf(false) }
-                SwitchRow("Screenshot mode", "12:00, full battery, no notification icons", demo) { on ->
-                    demo = on; act { c.tweaks.setDemoMode(on) }
+                LiveStatusBar(st.hidden, st.batteryPct, st.clockSecs)
+                IconSwitchRow(Icons.Rounded.Percent, "Battery %", st.batteryPct) { on -> act { c.tweaks.setBatteryPercent(on) } }
+                IconSwitchRow(Icons.Rounded.Timer, "Seconds", st.clockSecs) { on -> act { c.tweaks.setClockSeconds(on) } }
+                IconSwitchRow(Icons.Rounded.PhotoCamera, "Screenshot mode", demoOn) { on ->
+                    act {
+                        c.tweaks.setDemoMode(on)
+                        c.prefs.set(SysKeys.demoOn, on)
+                    }
                 }
-                Text("Hide icons", style = MaterialTheme.typography.labelLarge)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Hide", style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+                    InfoButton("Hide icons", "Highlighted icons are hidden from the status bar. Some phones ignore a few of them.")
+                }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     STATUS_BAR_SLOTS.forEach { (slot, label) ->
                         val hidden = slot in st.hidden
                         FilterChip(
                             selected = hidden,
                             onClick = { act { c.tweaks.setHiddenIcons(if (hidden) st.hidden - slot else st.hidden + slot) } },
+                            leadingIcon = { SLOT_ICONS[slot]?.let { Icon(it, null, Modifier.size(FilterChipDefaults.IconSize)) } },
                             label = { Text(label) },
                         )
                     }
                 }
-                Hint("Highlighted = hidden.")
             }
         }
 
         // ---------------- Quick settings ----------------
         item {
-            SectionCard("Quick Settings tiles", Icons.Rounded.GridView, "Reorder, add, remove.", onClick = { nav.push(Route.QsEditor) })
+            SectionCard("Quick Settings", Icons.Rounded.GridView, onClick = { nav.push(Route.QsEditor) }) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    st.qsTiles.take(4).forEach { spec ->
+                        QsTileChip(qsLabel(spec), qsIcon(spec), active = true, modifier = Modifier.weight(1f))
+                    }
+                }
+            }
         }
 
         // ---------------- Navigation ----------------
         if (st.caps.navModes.size > 1) {
             item { SectionLabel("Navigation") }
             item {
-                SectionCard {
-                    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                        st.caps.navModes.forEachIndexed { i, m ->
-                            SegmentedButton(
-                                selected = st.caps.currentNav == m,
-                                onClick = { act("Navigation: ${m.label}") { c.tweaks.setNavMode(m) } },
-                                shape = SegmentedButtonDefaults.itemShape(i, st.caps.navModes.size),
-                            ) { Text(m.label) }
+                SectionCard(null) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        st.caps.navModes.forEach { m ->
+                            NavModeCard(m.kind(), m.label, st.caps.currentNav == m, Modifier.weight(1f)) {
+                                if (st.caps.currentNav != m) act { c.tweaks.setNavMode(m) }
+                            }
                         }
                     }
                 }
             }
         }
 
-        // ---------------- Motion ----------------
+        // ---------------- Motion & size ----------------
         item { SectionLabel("Motion & size") }
         item {
             var anim by remember(st.anim) { mutableStateOf(st.anim) }
-            SectionCard("Animation speed", Icons.Rounded.Animation, null) {
+            var custom by remember { mutableStateOf(false) }
+            SectionCard("Animation speed", Icons.Rounded.Animation) {
+                AnimationDemo(anim.transition)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AnimationPreset.entries.forEach { p ->
                         FilterChip(
@@ -286,31 +335,41 @@ fun SystemUiScreen(nav: Navigator) {
                         )
                     }
                 }
-                ScaleSlider("Window", anim.window, { anim = anim.copy(window = it) }) { act { c.tweaks.setAnimationScales(anim) } }
-                ScaleSlider("Transition", anim.transition, { anim = anim.copy(transition = it) }) { act { c.tweaks.setAnimationScales(anim) } }
-                ScaleSlider("Animator", anim.animator, { anim = anim.copy(animator = it) }) { act { c.tweaks.setAnimationScales(anim) } }
+                TextButton(onClick = { custom = !custom }) {
+                    Icon(Icons.Rounded.Tune, null)
+                    Text("  Custom")
+                }
+                if (custom) {
+                    ScaleSlider("Window", anim.window, { anim = anim.copy(window = it) }) { act { c.tweaks.setAnimationScales(anim) } }
+                    ScaleSlider("Transition", anim.transition, { anim = anim.copy(transition = it) }) { act { c.tweaks.setAnimationScales(anim) } }
+                    ScaleSlider("Animator", anim.animator, { anim = anim.copy(animator = it) }) { act { c.tweaks.setAnimationScales(anim) } }
+                }
             }
         }
         item {
-            DensityCard(st, onApply = { dpi ->
-                // Density changes recreate this activity: run in the app scope with the revert armed first.
-                val previous = st.overrideDpi
-                RevertTimer.start(c.appScope, "Keep this display size?") { c.tweaks.setDensity(previous) }
-                c.appScope.launch {
-                    try {
-                        c.tweaks.setDensity(dpi)
-                        reload++
-                    } catch (e: Throwable) {
-                        RevertTimer.revertNow(c.appScope)
-                        runner.message(errorText(e))
+            SizeCard(
+                st,
+                onApplyDensity = { dpi ->
+                    // Density changes recreate this activity: run in the app scope with the revert armed first.
+                    val previous = st.overrideDpi
+                    RevertTimer.start(c.appScope, "Keep this display size?") { c.tweaks.setDensity(previous) }
+                    c.appScope.launch {
+                        try {
+                            c.tweaks.setDensity(dpi)
+                        } catch (e: Throwable) {
+                            RevertTimer.revertNow(c.appScope)
+                            runner.message(errorText(e))
+                        }
                     }
-                }
-            }, act = ::act)
+                },
+                onResetDensity = { act { c.tweaks.setDensity(null) } },
+                onFont = { scale -> act { c.tweaks.setFontScale(scale) } },
+            )
         }
-        item {
-            var scale by remember(st.fontScale) { mutableStateOf(st.fontScale) }
-            SectionCard("Font size", Icons.Rounded.FormatSize, "${(scale * 100).roundToInt()}%") {
-                Slider(scale, { scale = (it * 20).roundToInt() / 20f }, valueRange = 0.8f..1.5f, onValueChangeFinished = { act { c.tweaks.setFontScale(scale) } })
+        if (st.caps.isSkinnedOem) item {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(st.caps.oem.replaceFirstChar { it.uppercase() } + " skin", style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+                InfoButton("Skinned Android", "Your phone's maker changes Android, so a few tweaks may not show. Undo all on Home reverts everything.")
             }
         }
     }
@@ -322,21 +381,38 @@ private fun ScaleSlider(label: String, value: Float, onChange: (Float) -> Unit, 
     Slider(value, { onChange((it * 4).roundToInt() / 4f) }, valueRange = 0f..2f, steps = 7, onValueChangeFinished = onDone)
 }
 
+/** Display size + font size with one mini phone that scales live with both sliders. */
 @Composable
-private fun DensityCard(st: SysState, onApply: (Int) -> Unit, act: (String?, suspend () -> Unit) -> Unit) {
-    val c = LocalContext.current.container
+private fun SizeCard(st: SysState, onApplyDensity: (Int) -> Unit, onResetDensity: () -> Unit, onFont: (Float) -> Unit) {
     val current = st.overrideDpi ?: st.physicalDpi
     var dpi by remember(current) { mutableStateOf(current.toFloat()) }
-
-    SectionCard("Display size", Icons.Rounded.GridView, "${dpi.roundToInt()} dpi · stock ${st.physicalDpi}") {
-        val lo = (st.physicalDpi * 0.7f).coerceAtLeast(240f)
-        val hi = (st.physicalDpi * 1.3f)
-        Slider(dpi, { dpi = it }, valueRange = lo..hi)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { onApply(dpi.roundToInt()) }) { Text("Apply") }
-            OutlinedButton(onClick = { act("Display size reset") { c.tweaks.setDensity(null) } }) { Text("Reset") }
+    var font by remember(st.fontScale) { mutableStateOf(st.fontScale) }
+    val stock = st.physicalDpi.coerceAtLeast(1)
+    SectionCard("Size", Icons.Rounded.ZoomIn) {
+        Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            ScaledPhoneMock(dpi / stock, font, Modifier.width(96.dp))
+            Column(Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Rounded.Smartphone, "Display size", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                    Text("  ${dpi.roundToInt()} dpi", style = MaterialTheme.typography.labelLarge)
+                }
+                if (st.physicalDpi > 0) {
+                    val lo = (st.physicalDpi * 0.7f).coerceAtLeast(240f)
+                    val hi = st.physicalDpi * 1.3f
+                    Slider(dpi, { dpi = it }, valueRange = lo..hi)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = { onApplyDensity(dpi.roundToInt()) }, enabled = dpi.roundToInt() != current) { Text("Apply") }
+                        if (st.overrideDpi != null) OutlinedButton(onClick = onResetDensity) { Text("Reset") }
+                    }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Rounded.FormatSize, "Font size", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                    Text("  ${(font * 100).roundToInt()}%", style = MaterialTheme.typography.labelLarge)
+                }
+                Slider(font, { font = (it * 20).roundToInt() / 20f }, valueRange = 0.8f..1.5f, onValueChangeFinished = { onFont(font) })
+            }
         }
-        Hint("Auto-reverts in 15 s unless you keep it.")
+        IconNote(Icons.Rounded.Timer, "Display size auto-reverts in 15 s")
     }
 }
 
