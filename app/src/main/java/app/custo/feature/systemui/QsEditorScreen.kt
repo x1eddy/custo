@@ -1,26 +1,23 @@
 package app.custo.feature.systemui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.Save
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -30,13 +27,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import app.custo.container
-import app.custo.ui.components.Hint
+import app.custo.shizuku.ShellCommands.Namespace
+import app.custo.ui.components.InfoButton
+import app.custo.ui.components.QsTileChip
 import app.custo.ui.components.ScreenScaffold
 import app.custo.ui.components.SectionLabel
 import app.custo.ui.components.rememberActionRunner
+import app.custo.ui.components.skeletonItems
+
+private const val QS_KEY = "sysui_qs_tiles"
+private val QS_KEYS = setOf(Ids.of(Namespace.SECURE, QS_KEY))
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -46,11 +50,12 @@ fun QsEditorScreen(onBack: () -> Unit) {
     val tiles = remember { mutableStateListOf<String>() }
     var loaded by remember { mutableStateOf(false) }
     var dirty by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        runCatching { c.tweaks.qsTiles() }
-            .onSuccess { tiles.clear(); tiles.addAll(it); loaded = true }
-            .onFailure { runner.message(it.message ?: "Shizuku is not ready") }
+    val current = rememberDeviceState("qs", QS_KEYS) { v ->
+        v.v(Namespace.SECURE, QS_KEY)?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
+    }
+    // Take the system's list (cached first, then refreshed) until the user starts editing.
+    LaunchedEffect(current) {
+        if (current != null && !dirty) { tiles.clear(); tiles.addAll(current); loaded = true }
     }
 
     fun move(from: Int, to: Int) {
@@ -62,41 +67,45 @@ fun QsEditorScreen(onBack: () -> Unit) {
         title = "Quick Settings",
         onBack = onBack,
         actions = {
+            InfoButton("Quick Settings", "The first 4 tiles show in the collapsed shade. Some tiles only appear if your phone supports them. Tap save when done.")
             IconButton(enabled = dirty, onClick = {
-                runner.run("Quick Settings updated") { c.tweaks.setQsTiles(tiles.toList()); dirty = false }
+                runner.run("Saved") { c.tweaks.setQsTiles(tiles.toList()); dirty = false }
             }) { Icon(Icons.Rounded.Save, "Save") }
         },
     ) {
-        item { Hint("Top 4 show in the collapsed shade. Save when done.") }
-        if (!loaded) return@ScreenScaffold
+        if (!loaded) { skeletonItems(1); return@ScreenScaffold }
         item { SectionLabel("In your shade · ${tiles.size}") }
         itemsIndexed(tiles, key = { _, t -> t }) { i, spec ->
-            Surface(
-                shape = MaterialTheme.shapes.medium,
-                color = if (i < 4) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
+            QsTileChip(
+                label = qsLabel(spec),
+                icon = qsIcon(spec),
+                active = i < 4,
                 modifier = Modifier.fillMaxWidth().animateItem(),
-            ) {
-                Row(Modifier.padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("${i + 1}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.width(12.dp))
-                    Text(qsLabel(spec), Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-                    IconButton(onClick = { move(i, i - 1) }, enabled = i > 0) { Icon(Icons.Rounded.KeyboardArrowUp, "Move up") }
-                    IconButton(onClick = { move(i, i + 1) }, enabled = i < tiles.lastIndex) { Icon(Icons.Rounded.KeyboardArrowDown, "Move down") }
-                    IconButton(onClick = { tiles.removeAt(i); dirty = true }) { Icon(Icons.Rounded.Close, "Remove") }
-                }
-            }
+                trailing = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { move(i, i - 1) }, enabled = i > 0) { Icon(Icons.Rounded.KeyboardArrowUp, "Move up") }
+                        IconButton(onClick = { move(i, i + 1) }, enabled = i < tiles.lastIndex) { Icon(Icons.Rounded.KeyboardArrowDown, "Move down") }
+                        IconButton(onClick = { tiles.removeAt(i); dirty = true }) { Icon(Icons.Rounded.Close, "Remove") }
+                    }
+                },
+            )
         }
         val available = QS_TILES.keys.filter { it !in tiles }
         if (available.isNotEmpty()) {
-            item { SectionLabel("Add tiles") }
+            item { SectionLabel("Add") }
             item {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     available.forEach { spec ->
-                        AssistChip(onClick = { tiles.add(spec); dirty = true }, label = { Text(qsLabel(spec)) }, leadingIcon = { Icon(Icons.Rounded.Add, null) })
+                        QsTileChip(
+                            label = qsLabel(spec),
+                            icon = qsIcon(spec),
+                            active = false,
+                            modifier = Modifier.fillMaxWidth(0.48f).clip(RoundedCornerShape(20.dp)).clickable { tiles.add(spec); dirty = true },
+                            trailing = { Icon(Icons.Rounded.Add, "Add", Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary) },
+                        )
                     }
                 }
             }
-            item { Hint("Some tiles only show if your phone supports them.") }
         }
     }
 }
