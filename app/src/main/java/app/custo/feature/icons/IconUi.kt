@@ -168,9 +168,12 @@ fun PinQueuePanel(queue: PinQueue) {
 @Composable
 fun rememberStyledIcon(style: IconStyle, pkg: String?, label: String = "", size: Int = 192): Bitmap? {
     val ctx = LocalContext.current
-    val b by produceState<Bitmap?>(null, style, pkg, label, size) {
-        delay(30) // let slider drags settle
-        value = IconRenderer.render(ctx, style, pkg, label, size)
+    // Start from the cache so icons scrolled back into view don't flash a spinner.
+    val b by produceState(IconRenderer.peek(style, pkg, label, size), style, pkg, label, size) {
+        value = IconRenderer.peek(style, pkg, label, size) ?: run {
+            delay(30) // let slider drags settle
+            IconRenderer.render(ctx, style, pkg, label, size)
+        }
     }
     return b
 }

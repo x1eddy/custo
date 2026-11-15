@@ -1,0 +1,59 @@
+# Baseline profile for Custo (hand-written).
+#
+# ART compiles these classes/methods ahead of time when the app is installed (profileinstaller
+# writes the profile for sideloaded builds; background dexopt or `cmd package compile -m speed-profile`
+# applies it). That removes JIT warm-up from cold start, the first visit to every tab, scrolling
+# the galleries and the off-thread preview renderers.
+#
+# Flags: H = hot, S = startup, P = post-startup. `**` matches anything. R8 rewrites the names.
+
+# ---- Startup: application, container, activity, theme, navigation ----
+HSPLapp/custo/CustoApp;->**(**)**
+HSPLapp/custo/CustoAppKt;->**(**)**
+HSPLapp/custo/AppContainer;->**(**)**
+HSPLapp/custo/MainActivity;->**(**)**
+HSPLapp/custo/MainActivity$**;->**(**)**
+HSPLapp/custo/nav/**;->**(**)**
+HSPLapp/custo/ui/**;->**(**)**
+HSPLapp/custo/data/**;->**(**)**
+HSPLapp/custo/shizuku/**;->**(**)**
+Lapp/custo/CustoApp;
+Lapp/custo/AppContainer;
+Lapp/custo/MainActivity;
+Lapp/custo/nav/**;
+Lapp/custo/ui/**;
+Lapp/custo/data/**;
+
+# ---- Tabs and their sub-screens ----
+HSPLapp/custo/feature/home/**;->**(**)**
+HSPLapp/custo/feature/systemui/**;->**(**)**
+HSPLapp/custo/feature/themes/**;->**(**)**
+HSPLapp/custo/feature/widgets/**;->**(**)**
+HSPLapp/custo/feature/overlays/**;->**(**)**
+HSPLapp/custo/feature/icons/**;->**(**)**
+HSPLapp/custo/feature/profiles/**;->**(**)**
+HSPLapp/custo/feature/backup/**;->**(**)**
+Lapp/custo/feature/home/**;
+Lapp/custo/feature/systemui/**;
+Lapp/custo/feature/themes/**;
+Lapp/custo/feature/widgets/**;
+Lapp/custo/feature/overlays/**;
+Lapp/custo/feature/icons/**;
+
+# ---- Widget sets: gallery, detail and the Canvas renderers behind the previews ----
+HSPLapp/custo/feature/widgetsets/**;->**(**)**
+Lapp/custo/feature/widgetsets/**;
+
+# ---- Libraries on the hot paths (on top of the profiles the AndroidX libraries ship) ----
+HSPLandroidx/compose/runtime/**;->**(**)**
+HSPLandroidx/compose/ui/**;->**(**)**
+HSPLandroidx/compose/foundation/**;->**(**)**
+HSPLandroidx/compose/animation/**;->**(**)**
+HSPLandroidx/compose/material3/**;->**(**)**
+HSPLandroidx/activity/**;->**(**)**
+HSPLandroidx/lifecycle/**;->**(**)**
+HSPLandroidx/datastore/**;->**(**)**
+HSPLandroidx/glance/**;->**(**)**
+HSPLkotlinx/coroutines/**;->**(**)**
+HSPLkotlinx/serialization/**;->**(**)**
+HSPLkotlin/**;->**(**)**

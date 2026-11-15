@@ -41,6 +41,14 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
+        // Release-speed build (R8, not debuggable) signed with the debug key and with the same
+        // application id, so it installs over a debug build without losing data. Use it for testing:
+        // ./gradlew assembleStaging && adb install -r app/build/outputs/apk/staging/app-staging.apk
+        create("staging") {
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += "release"
+        }
     }
 
     compileOptions {
@@ -67,6 +75,8 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.material3)
+    // Installs the baseline profile (src/main/baseline-prof.txt) on sideloaded builds too.
+    implementation(libs.androidx.profileinstaller)
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
