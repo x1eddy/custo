@@ -118,10 +118,6 @@ fun WidgetSetsEntryCard(onClick: () -> Unit) {
         Row(Modifier.padding(start = 18.dp, top = 14.dp, bottom = 14.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("Widget sets", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                Text(
-                    "A wallpaper and matching widgets, in one tap.",
-                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
-                )
                 Spacer(Modifier.height(10.dp))
                 FilledTonalButton(onClick = onClick, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp)) {
                     Icon(Icons.Rounded.AutoAwesome, null, Modifier.size(18.dp)); Text(" Browse", maxLines = 1, softWrap = false)
@@ -142,8 +138,9 @@ fun WidgetSetsEntryCard(onClick: () -> Unit) {
 @Composable
 fun WidgetSetsScreen(nav: Navigator) {
     var filter by remember { mutableStateOf<ThemeCategory?>(null) }
-    ScreenScaffold(title = "Widget sets", onBack = { nav.pop() }) {
-        item { Hint("Each set is a wallpaper plus widgets drawn in one style. Tap one to see it up close.") }
+    ScreenScaffold(title = "Widget sets", onBack = { nav.pop() }, actions = {
+        app.custo.ui.components.InfoButton("Widget sets", "Each set is a wallpaper plus widgets drawn in one style. Tap one to see it up close.")
+    }) {
         item {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(filter == null, { filter = null }, { Text("All") })
@@ -162,7 +159,6 @@ fun WidgetSetsScreen(nav: Navigator) {
                 }
             }
         }
-        item { Hint("More sets are on the way.") }
     }
 }
 
@@ -172,7 +168,7 @@ private fun SetCard(theme: WidgetTheme, modifier: Modifier, onClick: () -> Unit)
         SetPreviewImage(theme, Modifier.fillMaxWidth())
         Spacer(Modifier.height(8.dp))
         Text(theme.name, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text("${theme.category.label} · ${theme.widgets.size} widgets", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("${theme.widgets.size} widgets", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -219,7 +215,13 @@ fun WidgetSetScreen(id: String, nav: Navigator) {
         }
     }
 
-    ScreenScaffold(title = theme.name, onBack = { nav.pop() }) {
+    ScreenScaffold(title = theme.name, onBack = { nav.pop() }, actions = {
+        app.custo.ui.components.InfoButton(
+            theme.name,
+            "Apply set asks your launcher to add each widget, one at a time (Android asks once for every widget; tap Add each time). Drag and resize them however you like. " +
+                "Restyle gives widgets already on your home screen this look.",
+        )
+    }) {
         item {
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 SetPreviewImage(theme, Modifier.fillMaxWidth(0.64f), corner = 26)
@@ -230,7 +232,7 @@ fun WidgetSetScreen(id: String, nav: Navigator) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = { applyOpen = true }) { Icon(Icons.Rounded.AutoAwesome, null); Text("  Apply set") }
                 OutlinedButton(onClick = { wallOpen = true }) { Icon(Icons.Rounded.Wallpaper, null); Text("  Wallpaper only") }
-                OutlinedButton(onClick = { restyleOpen = true }) { Icon(Icons.Rounded.Brush, null); Text("  Restyle my widgets") }
+                OutlinedButton(onClick = { restyleOpen = true }) { Icon(Icons.Rounded.Brush, null); Text("  Restyle mine") }
             }
         }
         item { SectionLabel("In this set") }
@@ -260,15 +262,9 @@ fun WidgetSetScreen(id: String, nav: Navigator) {
             }
         }
         if (theme.icons != null) item {
-            SectionCard("Matching icons", Icons.Rounded.Apps, "This set has its own icon style. Pick the apps to give it.") {
+            SectionCard("Matching icons", Icons.Rounded.Apps) {
                 FilledTonalButton(onClick = { nav.push(Route.IconMaker(theme.icons.encode(), pickApps = true)) }) { Text("Pick apps") }
             }
-        }
-        item {
-            Hint(
-                "Apply set asks your launcher to add each widget, one at a time. Drag and resize them however you like. " +
-                    "Restyle gives widgets already on your home screen this look.",
-            )
         }
     }
 }
@@ -299,7 +295,6 @@ private fun ApplySetDialog(theme: WidgetTheme, onDismiss: () -> Unit, onApply: (
                         Text(if (ok) "${sw.cols}×${sw.rows}" else "Not on this phone", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-                Hint("Android asks once for every widget. Tap Add each time.")
             }
         },
         confirmButton = {

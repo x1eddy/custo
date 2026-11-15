@@ -111,14 +111,17 @@ fun StickersScreen(onBack: () -> Unit) {
     }
     val screen = remember { c.wallpapers.screenSize() }
 
-    ScreenScaffold("Stickers", onBack) {
+    ScreenScaffold("Stickers", onBack, actions = {
+        app.custo.ui.components.InfoButton(
+            "Stickers",
+            "Stickers float on your home screen only. Taps go right through to your apps.\n\n" +
+                "Drag to move, pinch to resize, twist with two fingers to rotate. Arrange opens your home screen so you can drag them into place; tap Done when finished. " +
+                "Needs the overlay service. Nothing runs while you're in other apps.",
+        )
+    }) {
         item {
-            SectionCard(subtitle = "Stickers float on your home screen only. Taps go right through to your apps.") {
-                SwitchRow("Show on home screen", null, p[OverlayKeys.stickers] == true) { ui.set(OverlayKeys.stickers, it) }
-            }
-        }
-        item {
-            SectionCard(subtitle = "Drag to move. Pinch to resize. Twist with two fingers to rotate.") {
+            SectionCard {
+                SwitchRow("On home screen", null, p[OverlayKeys.stickers] == true) { ui.set(OverlayKeys.stickers, it) }
                 Box(Modifier.fillMaxWidth(0.72f).align(androidx.compose.ui.Alignment.CenterHorizontally)) {
                     StickerCanvas(stickers, selected, screen.first / screen.second.toFloat(), onSelect = { selected = it }) { i, s ->
                         edit(stickers.toMutableList().also { it[i] = s })
@@ -140,7 +143,7 @@ fun StickersScreen(onBack: () -> Unit) {
             }
         }
         item {
-            SectionCard("Add a sticker") {
+            SectionCard("Add") {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(StickerArt.names) { n ->
                         val bmp = rememberSticker("b:$n", 144)
@@ -155,7 +158,7 @@ fun StickersScreen(onBack: () -> Unit) {
             }
         }
         item {
-            SectionCard("Place them for real", subtitle = "Opens your home screen so you can drag stickers into place. Tap Done when finished.") {
+            SectionCard {
                 Button(onClick = {
                     if (!ui.running) { ui.runner.message("Turn on the overlay service first"); return@Button }
                     if (stickers.isEmpty()) { ui.runner.message("Add a sticker first"); return@Button }
@@ -169,7 +172,6 @@ fun StickersScreen(onBack: () -> Unit) {
                         ctx.startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                     }
                 }) { Icon(Icons.Rounded.Home, null); Text("  Arrange on home screen") }
-                Hint("Needs the overlay service. Nothing runs while you're in other apps.")
             }
         }
     }

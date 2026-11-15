@@ -1,6 +1,9 @@
 package app.custo.feature.overlays
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
@@ -113,24 +117,68 @@ fun <E : Enum<E>> Segmented(entries: List<E>, selected: E, label: (E) -> String,
     }
 }
 
-/** "Label ........ [Action ▾]" row. */
+/** "Label ........ [icon Action ▾]" row. */
 @Composable
 fun ActionRow(label: String, current: OverlayAction, choices: List<OverlayAction>, onPick: (OverlayAction) -> Unit) {
     var open by remember { mutableStateOf(false) }
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
         Box {
-            OutlinedButton(onClick = { open = true }) { Text(current.label) }
+            OutlinedButton(onClick = { open = true }, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp)) {
+                if (current.icon != 0) {
+                    androidx.compose.material3.Icon(painterResource(current.icon), null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                }
+                Text(current.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
             DropdownMenu(open, { open = false }) {
-                choices.forEach { a -> DropdownMenuItem({ Text(a.label) }, { onPick(a); open = false }) }
+                choices.forEach { a ->
+                    DropdownMenuItem(
+                        { Text(a.label) }, { onPick(a); open = false },
+                        leadingIcon = { if (a.icon != 0) androidx.compose.material3.Icon(painterResource(a.icon), null, Modifier.size(20.dp)) else Spacer(Modifier.size(20.dp)) },
+                    )
+                }
             }
         }
     }
 }
 
+/** Switch row led by an icon. */
 @Composable
-fun PreviewButton(text: String = "Preview", onClick: () -> Unit) {
-    FilledTonalButton(onClick = onClick) { Text(text) }
+fun IconSwitch(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        androidx.compose.material3.Icon(icon, null, Modifier.size(22.dp), tint = MaterialTheme.colorScheme.primary)
+        Spacer(Modifier.width(14.dp))
+        Box(Modifier.weight(1f)) { app.custo.ui.components.SwitchRow(label, null, checked, onChange = onChange) }
+    }
+}
+
+/** An action as a toggleable icon tile with a tiny caption. */
+@Composable
+fun ActionToggle(a: OverlayAction, on: Boolean, onClick: () -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    Column(Modifier.width(64.dp).clickable(onClick = onClick), horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            Modifier.size(48.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
+                .background(if (on) cs.primary else cs.surfaceContainerHighest),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (a.icon != 0) androidx.compose.material3.Icon(painterResource(a.icon), a.label, Modifier.size(22.dp), tint = if (on) cs.onPrimary else cs.onSurfaceVariant)
+        }
+        Text(
+            a.label.substringBefore(" /").removePrefix("Open "), style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis,
+            color = if (on) cs.onSurface else cs.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp),
+        )
+    }
+}
+
+@Composable
+fun PreviewButton(text: String = "Try", onClick: () -> Unit) {
+    FilledTonalButton(onClick = onClick) {
+        androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.PlayArrow, null, Modifier.size(18.dp))
+        Spacer(Modifier.width(6.dp))
+        Text(text)
+    }
 }
 
 @Composable

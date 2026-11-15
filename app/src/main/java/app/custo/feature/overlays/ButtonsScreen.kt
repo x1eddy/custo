@@ -1,36 +1,47 @@
 package app.custo.feature.overlays
 
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.runtime.Composable
-import app.custo.ui.components.Hint
+import androidx.compose.ui.Modifier
+import app.custo.ui.components.InfoButton
 import app.custo.ui.components.ScreenScaffold
 import app.custo.ui.components.SectionCard
-import app.custo.ui.components.SwitchRow
 
 @Composable
 fun ButtonsScreen(onBack: () -> Unit) {
     val ui = rememberOverlayUi()
     val p = ui.p
     val choices = OverlayAction.forButtons
-    ScreenScaffold("Button actions", onBack) {
+    ScreenScaffold("Button actions", onBack, actions = {
+        InfoButton(
+            "Button actions",
+            "A single press still changes the volume, and calls are never touched. With a double-press action set, a single press waits a moment to be sure. " +
+                "Works with the screen off too on most phones.",
+        )
+    }) {
         item {
-            SectionCard(subtitle = "A single press still changes the volume. Calls are never touched.") {
-                SwitchRow("Enabled", null, p[OverlayKeys.buttons] == true) { ui.set(OverlayKeys.buttons, it) }
+            OverlayHero(p[OverlayKeys.buttons] == true, { ui.set(OverlayKeys.buttons, it) }, stageHeight = 190) {
+                ButtonsPreview(
+                    OverlayAction.of(p[OverlayKeys.upDouble]), OverlayAction.of(p[OverlayKeys.upLong]),
+                    OverlayAction.of(p[OverlayKeys.downDouble]), OverlayAction.of(p[OverlayKeys.downLong]),
+                    Modifier.fillMaxWidth(),
+                )
             }
         }
         item {
-            SectionCard("Volume up") {
+            SectionCard("Volume up", Icons.Rounded.Add) {
                 ActionRow("Double press", OverlayAction.of(p[OverlayKeys.upDouble]), choices) { ui.set(OverlayKeys.upDouble, it.name) }
                 ActionRow("Hold", OverlayAction.of(p[OverlayKeys.upLong]), choices) { ui.set(OverlayKeys.upLong, it.name) }
             }
         }
         item {
-            SectionCard("Volume down") {
+            SectionCard("Volume down", Icons.Rounded.Remove) {
                 ActionRow("Double press", OverlayAction.of(p[OverlayKeys.downDouble]), choices) { ui.set(OverlayKeys.downDouble, it.name) }
                 ActionRow("Hold", OverlayAction.of(p[OverlayKeys.downLong]), choices) { ui.set(OverlayKeys.downLong, it.name) }
             }
-        }
-        item {
-            Hint("With a double-press action set, a single press waits a moment to be sure. Works with the screen off too on most phones.")
         }
     }
 }

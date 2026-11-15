@@ -84,7 +84,12 @@ fun VideoWallpaperScreen(onBack: () -> Unit) {
         value = uri?.let { u -> withContext(Dispatchers.IO) { frameOf(ctx, u.toUri()) } }
     }
 
-    ScreenScaffold(title = "Video wallpaper", onBack = onBack) {
+    ScreenScaffold(title = "Video wallpaper", onBack = onBack, actions = {
+        app.custo.ui.components.InfoButton(
+            "Video wallpaper",
+            "Loops one of your videos, quietly unless you turn on sound. It plays only while you can see it and pauses in battery saver. Short clips use the least battery.",
+        )
+    }) {
         item {
             SectionCard {
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -99,7 +104,6 @@ fun VideoWallpaperScreen(onBack: () -> Unit) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         SupportBadge(if (active) "In use" else "Not in use", active)
                         Text(if (uri == null) "No video yet" else "Your video", style = MaterialTheme.typography.titleMedium)
-                        Hint("Loops quietly. Plays only while you can see it.")
                         FilledTonalButton(onClick = { picker.launch(arrayOf("video/*")) }) {
                             Icon(Icons.Rounded.Movie, null); Text(if (uri == null) "  Pick a video" else "  Change video")
                         }
@@ -114,7 +118,7 @@ fun VideoWallpaperScreen(onBack: () -> Unit) {
         }
         item {
             SectionCard("Playback") {
-                SwitchRow("Sound", "Off keeps it silent", p[VideoKeys.sound] == true) { set(VideoKeys.sound, it) }
+                SwitchRow("Sound", null, p[VideoKeys.sound] == true) { set(VideoKeys.sound, it) }
                 Text("Scale", style = MaterialTheme.typography.labelLarge)
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                     SegmentedButton(crop, { set(VideoKeys.crop, true) }, SegmentedButtonDefaults.itemShape(0, 2)) { Text("Fill (crop)") }
@@ -122,7 +126,6 @@ fun VideoWallpaperScreen(onBack: () -> Unit) {
                 }
             }
         }
-        item { Hint("Pauses when hidden and in battery saver. Short clips use the least battery.") }
     }
 }
 

@@ -25,6 +25,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.Backup
+import androidx.compose.material.icons.rounded.Animation
+import androidx.compose.material.icons.rounded.DoNotDisturbOn
+import androidx.compose.material.icons.rounded.GridView
+import androidx.compose.material.icons.rounded.InvertColors
+import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.SignalCellularAlt
+import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -191,13 +198,13 @@ fun HomeScreen(nav: Navigator) {
                 Tile(cs.tertiaryContainer, cs.onTertiaryContainer, Modifier.weight(1f).height(168.dp), onClick = { nav.goTab(Tab.SYSTEM) }) {
                     Text("System UI", style = MaterialTheme.typography.titleLarge)
                     Spacer(Modifier.weight(1f))
-                    Text("Colors, status bar, tiles, nav, motion", style = MaterialTheme.typography.bodySmall)
+                    MiniIcons(listOf(Icons.Rounded.Palette, Icons.Rounded.SignalCellularAlt, Icons.Rounded.GridView, Icons.Rounded.Animation))
                 }
                 Tile(cs.secondaryContainer, cs.onSecondaryContainer, Modifier.weight(1f).height(168.dp), onClick = { nav.goTab(Tab.WIDGETS) }) {
                     Text("Widgets", style = MaterialTheme.typography.titleLarge)
                     Spacer(Modifier.weight(1f))
                     Text("$widgetCount", style = MaterialTheme.typography.displayMedium)
-                    Text("on your home screen", style = MaterialTheme.typography.bodySmall)
+                    Text("placed", style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
@@ -218,8 +225,10 @@ fun HomeScreen(nav: Navigator) {
 
         item {
             Tile(cs.secondaryContainer, cs.onSecondaryContainer, Modifier.fillMaxWidth().enterAnimation(4), onClick = { nav.push(Route.Profiles) }) {
-                Text("Per-app profiles", style = MaterialTheme.typography.titleLarge)
-                Text("Grayscale for social apps, fast motion for games. Switches back when you leave.", style = MaterialTheme.typography.bodySmall)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Per-app profiles", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                    MiniIcons(listOf(Icons.Rounded.InvertColors, Icons.Rounded.Speed, Icons.Rounded.DoNotDisturbOn))
+                }
             }
         }
 
@@ -298,6 +307,19 @@ private fun QuickToggle(label: String, on: Boolean?, enabled: Boolean, onChange:
         Box(Modifier.size(8.dp).clip(CircleShape).background(if (active) cs.onPrimary else fg.copy(alpha = 0.35f)))
         Spacer(Modifier.width(8.dp))
         Text(label, style = MaterialTheme.typography.labelLarge, color = fg)
+    }
+}
+
+/** A row of small icons standing in for a list of words. */
+@Composable
+private fun MiniIcons(icons: List<androidx.compose.ui.graphics.vector.ImageVector>) {
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        icons.forEach { i ->
+            Box(
+                Modifier.size(30.dp).clip(CircleShape).background(androidx.compose.material3.LocalContentColor.current.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center,
+            ) { Icon(i, null, Modifier.size(17.dp)) }
+        }
     }
 }
 

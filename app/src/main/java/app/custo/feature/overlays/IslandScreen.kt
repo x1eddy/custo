@@ -1,7 +1,14 @@
 package app.custo.feature.overlays
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.BatteryChargingFull
+import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.runtime.Composable
-import app.custo.ui.components.Hint
+import androidx.compose.ui.Modifier
+import app.custo.ui.components.InfoButton
 import app.custo.ui.components.ScreenScaffold
 import app.custo.ui.components.SectionCard
 import app.custo.ui.components.SwitchRow
@@ -10,30 +17,36 @@ import app.custo.ui.components.SwitchRow
 fun IslandScreen(onBack: () -> Unit) {
     val ui = rememberOverlayUi()
     val p = ui.p
+    val idle = p[OverlayKeys.islandIdlePill] == true
 
-    ScreenScaffold("Dynamic island", onBack) {
+    ScreenScaffold("Dynamic island", onBack, actions = {
+        InfoButton(
+            "Dynamic island",
+            "A black pill at the top of the screen. Tap it to expand or collapse. Music, timers and alerts need notification access. " +
+                "While it's visible, touches on the pill don't reach the status bar below it.",
+        )
+    }) {
         item { NotificationAccessCard("The island needs it for music, timers and alerts.") }
         item {
-            SectionCard(subtitle = "A black pill at the top of the screen. Tap it to expand or collapse.") {
-                SwitchRow("Enabled", "Needs notification access for music, timers and alerts", p[OverlayKeys.island] == true) { ui.set(OverlayKeys.island, it) }
-                SwitchRow("Small pill when idle", "Otherwise it hides when there's nothing to show", p[OverlayKeys.islandIdlePill] == true) { ui.set(OverlayKeys.islandIdlePill, it) }
-                PreviewButton { ui.preview(Preview.ISLAND) }
+            OverlayHero(p[OverlayKeys.island] == true, { ui.set(OverlayKeys.island, it) }, { ui.preview(Preview.ISLAND) }, extra = {
+                SwitchRow("Pill when idle", null, idle) { ui.set(OverlayKeys.islandIdlePill, it) }
+            }) {
+                IslandPreview(Modifier.phoneSize(), idle)
             }
         }
         item {
             SectionCard("Show") {
-                SwitchRow("Now playing", "Title, artist, art and play/pause", p[OverlayKeys.islandMedia] != false) { ui.set(OverlayKeys.islandMedia, it) }
-                SwitchRow("Charging", "Level when you plug in", p[OverlayKeys.islandCharging] != false) { ui.set(OverlayKeys.islandCharging, it) }
-                SwitchRow("New notifications", "Tap the preview to open it", p[OverlayKeys.islandNotifs] != false) { ui.set(OverlayKeys.islandNotifs, it) }
-                SwitchRow("Timers and stopwatches", "From apps that show a running clock", p[OverlayKeys.islandTimer] != false) { ui.set(OverlayKeys.islandTimer, it) }
+                IconSwitch(Icons.Rounded.MusicNote, "Now playing", p[OverlayKeys.islandMedia] != false) { ui.set(OverlayKeys.islandMedia, it) }
+                IconSwitch(Icons.Rounded.BatteryChargingFull, "Charging", p[OverlayKeys.islandCharging] != false) { ui.set(OverlayKeys.islandCharging, it) }
+                IconSwitch(Icons.Rounded.Notifications, "Notifications", p[OverlayKeys.islandNotifs] != false) { ui.set(OverlayKeys.islandNotifs, it) }
+                IconSwitch(Icons.Rounded.Timer, "Timers", p[OverlayKeys.islandTimer] != false) { ui.set(OverlayKeys.islandTimer, it) }
             }
         }
         item {
-            SectionCard("Behavior") {
+            SectionCard("Behavior", Icons.Rounded.Schedule) {
                 PrefSlider("Collapse after", (p[OverlayKeys.islandCollapseSec] ?: 4).toFloat(), 2f..10f, { "${it.toInt()} s" }, steps = 7) {
                     ui.set(OverlayKeys.islandCollapseSec, it.toInt())
                 }
-                Hint("While it's visible, touches on the pill don't reach the status bar below it.")
             }
         }
     }

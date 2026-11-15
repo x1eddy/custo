@@ -27,7 +27,15 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.custo.container
 import app.custo.shizuku.ShizukuState
-import app.custo.ui.components.Hint
+import app.custo.ui.components.IconBadge
+import app.custo.ui.components.InfoButton
+import app.custo.ui.components.InfoText
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import app.custo.ui.components.SectionCard
 import app.custo.ui.components.rememberActionRunner
 import kotlinx.coroutines.delay
@@ -73,7 +81,18 @@ fun NotificationAccessCard(reason: String) {
     val granted = remember(tick) { NotificationAccess.granted(ctx) }
     if (granted) return
 
-    SectionCard("Notification access", Icons.Rounded.NotificationsActive, reason) {
+    SectionCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconBadge(Icons.Rounded.NotificationsActive, size = 40, container = MaterialTheme.colorScheme.errorContainer, tint = MaterialTheme.colorScheme.onErrorContainer)
+            Spacer(Modifier.width(12.dp))
+            Text("Notification access", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            InfoButton("Notification access") {
+                InfoText(reason)
+                InfoText("This lets Custo see notifications. It's not about Custo sending any. Nothing is stored or sent.")
+                InfoText("If Android says \"Restricted setting\", open App info → ⋮ → Allow restricted settings, then try again.")
+                TextButton(onClick = { NotificationAccess.openAppInfo(ctx) }) { Text("Open App info") }
+            }
+        }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (shizuku == ShizukuState.READY) {
                 Button(onClick = {
@@ -81,13 +100,11 @@ fun NotificationAccessCard(reason: String) {
                         c.tweaks.allowNotificationListener(NotificationAccess.component(ctx).flattenToString())
                         delay(600); tick++
                     }
-                }) { Text("Turn on instantly") }
+                }) { Text("Turn on") }
                 OutlinedButton(onClick = { NotificationAccess.openSettings(ctx) }) { Text("Settings") }
             } else {
                 Button(onClick = { NotificationAccess.openSettings(ctx) }) { Text("Turn on") }
             }
         }
-        Hint("This lets Custo see notifications. It's not about Custo sending any. If Android says \"Restricted setting\", open App info → ⋮ → Allow restricted settings, then try again.")
-        TextButton(onClick = { NotificationAccess.openAppInfo(ctx) }) { Text("Open App info") }
     }
 }

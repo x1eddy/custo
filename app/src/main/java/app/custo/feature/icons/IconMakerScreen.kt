@@ -132,7 +132,15 @@ fun IconMakerScreen(nav: Navigator, initial: String? = null, pickApps: Boolean =
         confirmButton = { TextButton(onClick = { attaching = false }) { Text("Close") } },
     )
 
-    ScreenScaffold(title = "Icon maker", onBack = { nav.pop() }) {
+    ScreenScaffold(title = "Icon maker", onBack = { nav.pop() }, actions = {
+        app.custo.ui.components.InfoButton(
+            "Icon maker",
+            "Big: this style. Small: how your apps look with it.\n\n" +
+                "Let the launcher pick the shape fills the whole icon and lets your launcher cut it, like normal app icons. Turn it off to keep your shape.\n\n" +
+                "App icon, one color: each app's own symbol in one color, using the app's themed icon when it has one. Symbols and letters: when applied to many apps, each app gets its own symbol or initials instead.\n\n" +
+                "Your launcher asks once per app. Custo lines them up so you just tap Add each time.",
+        )
+    }) {
         item {
             SectionCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -150,7 +158,6 @@ fun IconMakerScreen(nav: Navigator, initial: String? = null, pickApps: Boolean =
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilledTonalButton(onClick = { style = shuffle(style) }) { Icon(Icons.Rounded.Casino, null); Text("  Shuffle") }
                 }
-                Hint("Big: this style. Small: how your apps look with it.")
             }
         }
 
@@ -176,14 +183,10 @@ fun IconMakerScreen(nav: Navigator, initial: String? = null, pickApps: Boolean =
         item { SectionLabel("Shape") }
         item {
             SectionCard {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    IconShape.entries.forEach { s -> FilterChip(style.shape == s, { style = style.copy(shape = s) }, label = { Text(s.label) }) }
+                app.custo.ui.components.ThumbPicker(IconShape.entries, style.shape, { it.label }, { style = style.copy(shape = it) }, thumbWidth = 64, thumbHeight = 64) { s, _ ->
+                    IconBitmap(rememberStyledIcon(style.copy(shape = s, launcherShape = false), previewPkg(style, ctx.packageName), "Custo", 112), Modifier.size(52.dp))
                 }
-                SwitchRow(
-                    "Let the launcher pick the shape",
-                    "Fills the whole icon and lets your launcher cut it, like normal app icons. Turn off to keep your shape.",
-                    style.launcherShape,
-                ) { style = style.copy(launcherShape = it) }
+                SwitchRow("Launcher shape", null, style.launcherShape) { style = style.copy(launcherShape = it) }
             }
         }
 
@@ -210,8 +213,8 @@ fun IconMakerScreen(nav: Navigator, initial: String? = null, pickApps: Boolean =
         item { SectionLabel("Pattern") }
         item {
             SectionCard {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    IconPattern.entries.forEach { p -> FilterChip(style.pattern == p, { style = style.copy(pattern = p) }, label = { Text(p.label) }) }
+                app.custo.ui.components.ThumbPicker(IconPattern.entries, style.pattern, { it.label }, { style = style.copy(pattern = it) }, thumbWidth = 64, thumbHeight = 64) { pt, _ ->
+                    IconBitmap(rememberStyledIcon(style.copy(pattern = pt, patternOpacity = if (pt == IconPattern.NONE) style.patternOpacity else style.patternOpacity.coerceAtLeast(0.5f)), previewPkg(style, ctx.packageName), "Custo", 112), Modifier.size(52.dp))
                 }
                 if (style.pattern != IconPattern.NONE) {
                     LabeledSlider("Size", style.patternSize) { style = style.copy(patternSize = it) }
@@ -224,12 +227,11 @@ fun IconMakerScreen(nav: Navigator, initial: String? = null, pickApps: Boolean =
         item { SectionLabel("Symbol") }
         item {
             SectionCard {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    FgMode.entries.forEach { m -> FilterChip(style.fg == m, { style = style.copy(fg = m) }, label = { Text(m.label) }) }
+                app.custo.ui.components.ThumbPicker(FgMode.entries, style.fg, { fgShort(it) }, { style = style.copy(fg = it) }, thumbWidth = 64, thumbHeight = 64) { m, _ ->
+                    IconBitmap(rememberStyledIcon(style.copy(fg = m), previewPkg(style.copy(fg = m), ctx.packageName), "Custo", 112), Modifier.size(52.dp))
                 }
                 when (style.fg) {
-                    FgMode.APP_TINT -> Hint("Each app's own symbol in one color. Uses the app's themed icon when it has one.")
-                    FgMode.APP_ORIGINAL -> Hint("Each app's normal icon, placed on your background.")
+                    FgMode.APP_TINT, FgMode.APP_ORIGINAL -> Unit
                     FgMode.GLYPH -> {
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             GLYPHS.forEach { (name, v) ->
@@ -242,11 +244,9 @@ fun IconMakerScreen(nav: Navigator, initial: String? = null, pickApps: Boolean =
                                 ) { Icon(v, name, Modifier.size(24.dp)) }
                             }
                         }
-                        Hint("When applied to many apps, each app gets its own symbol instead.")
                     }
                     FgMode.TEXT -> {
                         OutlinedTextField(style.text, { t -> style = style.copy(text = t.take(2)) }, label = { Text("1–2 letters") }, singleLine = true)
-                        Hint("When applied to many apps, each app gets its own initials.")
                     }
                 }
                 LabeledSlider("Size", (style.fgScale - 0.3f) / 0.6f) { style = style.copy(fgScale = 0.3f + it * 0.6f) }
@@ -264,7 +264,6 @@ fun IconMakerScreen(nav: Navigator, initial: String? = null, pickApps: Boolean =
                     OutlinedButton(onClick = { naming = true }) { Icon(Icons.Rounded.Bookmark, null); Text("  Save style") }
                     OutlinedButton(onClick = { attaching = true }) { Icon(Icons.Rounded.Palette, null); Text("  Add to a look") }
                 }
-                Hint("Your launcher asks once per app. Custo lines them up so you just tap Add each time.")
             }
         }
     }
@@ -343,4 +342,11 @@ internal fun NameDialog(title: String, initial: String, onDismiss: () -> Unit, o
         confirmButton = { TextButton(onClick = { onDone(name.trim()) }, enabled = name.isNotBlank()) { Text("Save") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
+}
+
+private fun fgShort(m: FgMode) = when (m) {
+    FgMode.APP_TINT -> "Tinted"
+    FgMode.APP_ORIGINAL -> "Original"
+    FgMode.GLYPH -> "Symbol"
+    FgMode.TEXT -> "Letters"
 }

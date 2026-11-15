@@ -52,6 +52,7 @@ import app.custo.feature.profiles.LaunchableApp
 import app.custo.nav.Navigator
 import app.custo.nav.Route
 import app.custo.ui.components.Hint
+import app.custo.ui.components.InfoButton
 import app.custo.ui.components.ScreenScaffold
 import app.custo.ui.components.SectionCard
 import app.custo.ui.components.SectionLabel
@@ -109,7 +110,13 @@ fun IconChangerScreen(nav: Navigator, pkg: String?, editId: String?) {
         app = a; label = a.label
     }
 
-    ScreenScaffold(title = if (editId != null) "Edit icon" else "Change icon", onBack = { nav.pop() }) {
+    ScreenScaffold(title = if (editId != null) "Edit icon" else "Change icon", onBack = { nav.pop() }, actions = {
+        InfoButton(
+            "Icons",
+            if (editId != null) "If the shortcut is still on your home screen it changes right away. Otherwise your launcher asks to add it again."
+            else "Your launcher will ask to add it. The original icon stays; long-press it and pick Remove if you like.",
+        )
+    }) {
         val a = app ?: return@ScreenScaffold
         item {
             SectionCard {
@@ -207,12 +214,6 @@ fun IconChangerScreen(nav: Navigator, pkg: String?, editId: String?) {
                 enabled = ready,
                 modifier = Modifier.fillMaxWidth(),
             ) { Icon(Icons.AutoMirrored.Rounded.AddToHomeScreen, null); Text(if (editId != null) "  Update icon" else "  Add to home screen") }
-        }
-        item {
-            Hint(
-                if (editId != null) "If the shortcut is still on your home screen it changes right away. Otherwise your launcher asks to add it again."
-                else "Your launcher will ask to add it. The original icon stays; long-press it and pick Remove if you like.",
-            )
         }
     }
 }

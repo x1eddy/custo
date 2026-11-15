@@ -67,7 +67,13 @@ fun LiveWallpaperScreen(onBack: () -> Unit) {
     val opts = LiveOptions.from(p)
     fun <T> set(key: Preferences.Key<T>, v: T) = runner.run { c.prefs.set(key, v) }
 
-    ScreenScaffold(title = "Live wallpaper", onBack = onBack) {
+    ScreenScaffold(title = "Live wallpaper", onBack = onBack, actions = {
+        app.custo.ui.components.InfoButton(
+            "Live wallpaper",
+            "Your wallpaper, slowly moving. It stops when hidden and pauses in battery saver, so it's easy on battery. Pick a look below, or use Make it live on the Themes tab.\n\n" +
+                "Only when unlocked: still on the lock screen. Parallax: shifts as you swipe home pages. Time of day: warmer at sunrise and sunset, darker at night. Battery: colors fade as the battery drains.",
+        )
+    }) {
         item {
             SectionCard {
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -75,17 +81,17 @@ fun LiveWallpaperScreen(onBack: () -> Unit) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         SupportBadge(if (active) "In use" else "Not in use", active)
                         Text(spec.style.label, style = MaterialTheme.typography.titleMedium)
-                        Hint(if (spec.style.animated) "Moves slowly. Stops when hidden." else "This style is still. Pick another to see motion.")
+                        if (!spec.style.animated) Hint("Still style")
                         Button(onClick = {
                             try { ctx.startActivity(LiveWallpaperService.pickerIntent(ctx)) }
                             catch (_: ActivityNotFoundException) { runner.message("Live wallpapers aren't supported here") }
-                        }) { Icon(Icons.Rounded.Wallpaper, null); Text("  Set as live wallpaper") }
+                        }) { Icon(Icons.Rounded.Wallpaper, null); Text("  Apply") }
                     }
                 }
             }
         }
         item {
-            SectionCard("Wallpaper", subtitle = "Pick a look, or use Make it live on the Themes tab.") {
+            SectionCard("Wallpaper") {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(BUILT_IN_LOOKS + saved, key = { it.name + it.builtIn }) { look ->
                         LookCard(look, onClick = { set(ThemeKeys.liveSpec, look.wall.encode()) }, selected = look.wall == spec)
@@ -96,8 +102,8 @@ fun LiveWallpaperScreen(onBack: () -> Unit) {
         item {
             SectionCard("Motion") {
                 SwitchRow("Animate", null, opts.animate) { set(ThemeKeys.liveAnimate, it) }
-                SwitchRow("Only when unlocked", "Still on the lock screen", opts.unlockedOnly, enabled = opts.animate) { set(ThemeKeys.liveUnlockedOnly, it) }
-                SwitchRow("Parallax", "Shifts as you swipe home pages", opts.parallax) { set(ThemeKeys.liveParallax, it) }
+                SwitchRow("Only when unlocked", null, opts.unlockedOnly, enabled = opts.animate) { set(ThemeKeys.liveUnlockedOnly, it) }
+                SwitchRow("Parallax", null, opts.parallax) { set(ThemeKeys.liveParallax, it) }
                 Text("Speed · ${"%.2f".format(opts.speed)}×", style = MaterialTheme.typography.labelMedium)
                 var speed by remember(opts.speed) { mutableFloatStateOf(opts.speed) }
                 Slider(speed, { speed = it }, valueRange = 0.25f..3f, onValueChangeFinished = { set(ThemeKeys.liveSpeed, speed) })
@@ -114,11 +120,10 @@ fun LiveWallpaperScreen(onBack: () -> Unit) {
         }
         item {
             SectionCard("Reactions") {
-                SwitchRow("Time of day", "Warmer at sunrise and sunset, darker at night", opts.timeOfDay) { set(ThemeKeys.liveTimeOfDay, it) }
-                SwitchRow("Battery", "Colors fade as the battery drains", opts.battery) { set(ThemeKeys.liveBattery, it) }
+                SwitchRow("Time of day", null, opts.timeOfDay) { set(ThemeKeys.liveTimeOfDay, it) }
+                SwitchRow("Battery", null, opts.battery) { set(ThemeKeys.liveBattery, it) }
             }
         }
-        item { Hint("Pauses in battery saver. Nothing runs while the wallpaper is hidden.") }
     }
 }
 

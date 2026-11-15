@@ -15,6 +15,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Apps
+import androidx.compose.material.icons.rounded.InvertColors
+import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.Button
@@ -72,13 +76,31 @@ fun ProfilesScreen(nav: Navigator, onBack: () -> Unit) {
     ScreenScaffold(
         title = "Per-app",
         onBack = onBack,
-        actions = { IconButton(onClick = { nav.push(Route.ProfileEditor(null)) }) { Icon(Icons.Rounded.Add, "New profile") } },
+        actions = {
+            app.custo.ui.components.InfoButton(
+                "Per-app profiles",
+                "Change settings automatically while an app is open. They switch back when you leave it. " +
+                    "Try: Instagram in grayscale, or games with fast animations and no pop-ups.\n\nNeeds the overlay service (Overlays tab) and Shizuku.",
+            )
+            IconButton(onClick = { nav.push(Route.ProfileEditor(null)) }) { Icon(Icons.Rounded.Add, "New profile") }
+        },
     ) {
-        item { Hint("Change settings automatically while an app is open. They switch back when you leave it.") }
-        if (!running) item { Hint("Needs the overlay service (Overlays tab) and Shizuku.") }
+        if (!running) item {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                app.custo.ui.components.SupportBadge("Overlay service off", false)
+            }
+        }
         if (profiles.isEmpty()) item {
-            SectionCard("No profiles yet", null, "Try: Instagram in grayscale, or games with fast animations and no pop-ups.") {
-                Button(onClick = { nav.push(Route.ProfileEditor(null)) }) { Text("New profile") }
+            SectionCard {
+                // The idea as a picture: an app, then its settings flip while it's open.
+                Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    app.custo.ui.components.IconBadge(Icons.Rounded.Apps, size = 56)
+                    Icon(Icons.AutoMirrored.Rounded.ArrowForward, null, Modifier.padding(horizontal = 12.dp))
+                    app.custo.ui.components.IconBadge(Icons.Rounded.InvertColors, size = 56, container = MaterialTheme.colorScheme.secondaryContainer, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                    Spacer(Modifier.width(8.dp))
+                    app.custo.ui.components.IconBadge(Icons.Rounded.Speed, size = 56, container = MaterialTheme.colorScheme.tertiaryContainer, tint = MaterialTheme.colorScheme.onTertiaryContainer)
+                }
+                Button(onClick = { nav.push(Route.ProfileEditor(null)) }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Rounded.Add, null); Text(" New profile") }
             }
         }
         items(profiles, key = { it.id }) { p ->

@@ -70,7 +70,8 @@ import app.custo.nav.Navigator
 import app.custo.nav.Route
 import app.custo.shizuku.ShizukuState
 import app.custo.ui.components.ColorPicker
-import app.custo.ui.components.Hint
+import app.custo.ui.components.HubTile
+import androidx.compose.foundation.shape.RoundedCornerShape
 import app.custo.ui.components.ScreenScaffold
 import app.custo.ui.components.SectionCard
 import app.custo.ui.components.SectionLabel
@@ -120,10 +121,15 @@ fun ThemesScreen(nav: Navigator) {
         )
     }
 
-    ScreenScaffold(title = "Themes") {
+    ScreenScaffold(title = "Themes", actions = {
+        app.custo.ui.components.InfoButton(
+            "Themes",
+            "A look is a wallpaper plus matching system colors, applied in one tap. Matching system colors needs Shizuku; without it only the wallpaper changes.",
+        )
+    }) {
         item { app.custo.feature.widgetsets.WidgetSetsEntryCard { nav.push(Route.WidgetSets) } }
         item {
-            SectionCard("Icons", Icons.Rounded.Apps, "Change app icons, make your own icon style, use icon packs.", onClick = { nav.push(Route.IconsHub) })
+            SectionCard("Icons", Icons.Rounded.Apps, onClick = { nav.push(Route.IconsHub) })
         }
         item { SectionLabel("Looks") }
         item {
@@ -133,7 +139,6 @@ fun ThemesScreen(nav: Navigator) {
                 }
             }
         }
-        item { Hint("One tap: wallpaper + matching system colors.") }
 
         item { SectionLabel("Make a wallpaper") }
         item {
@@ -151,11 +156,9 @@ fun ThemesScreen(nav: Navigator) {
                         }) { Icon(Icons.Rounded.Casino, null); Text("  Shuffle") }
                     }
                 }
-                Text("Style", style = MaterialTheme.typography.labelLarge)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    WallStyle.entries.forEach { s -> FilterChip(selected = spec.style == s, onClick = { spec = spec.copy(style = s) }, label = { Text(s.label) }) }
+                app.custo.ui.components.ThumbPicker(WallStyle.entries, spec.style, { it.label }, { spec = spec.copy(style = it) }, thumbWidth = 60, thumbHeight = 96) { st, _ ->
+                    StyleThumb(spec.copy(style = st))
                 }
-                Text("Colors", style = MaterialTheme.typography.labelLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                     spec.colors.forEachIndexed { i, col ->
                         Box(
@@ -177,7 +180,7 @@ fun ThemesScreen(nav: Navigator) {
                 }
                 SwitchRow(
                     "Match system colors",
-                    if (shizuku == ShizukuState.READY) "Recolor the system to fit" else "Needs Shizuku",
+                    if (shizuku == ShizukuState.READY) null else "Needs Shizuku",
                     matchSystem && shizuku == ShizukuState.READY,
                     enabled = shizuku == ShizukuState.READY,
                 ) { matchSystem = it }
@@ -208,17 +211,30 @@ fun ThemesScreen(nav: Navigator) {
 
         item { SectionLabel("More") }
         item {
-            SectionCard("Live wallpaper", Icons.Rounded.Animation, "Your wallpaper, slowly moving. Easy on battery.", onClick = { nav.push(Route.LiveWallpaper) })
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                HubTile("Live", Icons.Rounded.Animation, Modifier.weight(1f)) { nav.push(Route.LiveWallpaper) }
+                HubTile("Day & night", Icons.Rounded.Schedule, Modifier.weight(1f)) { nav.push(Route.WallSchedule) }
+            }
         }
         item {
-            SectionCard("Day & night", Icons.Rounded.Schedule, "Switch looks at set times.", onClick = { nav.push(Route.WallSchedule) })
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                HubTile("Video", Icons.Rounded.Movie, Modifier.weight(1f)) { nav.push(Route.VideoWallpaper) }
+                HubTile("Collage", Icons.Rounded.Dashboard, Modifier.weight(1f)) { nav.push(Route.Collage) }
+            }
         }
-        item {
-            SectionCard("Video wallpaper", Icons.Rounded.Movie, "Loop one of your videos. Silent unless you want sound.", onClick = { nav.push(Route.VideoWallpaper) })
-        }
-        item {
-            SectionCard("Collage", Icons.Rounded.Dashboard, "Put 2 to 6 photos together as a wallpaper.", onClick = { nav.push(Route.Collage) })
-        }
+    }
+}
+
+/** Small render of a wallpaper style for the style picker. Ignores grain/softness so sliders don't re-render it. */
+@Composable
+private fun StyleThumb(spec: WallSpec) {
+    val key = spec.copy(grain = 0f, blur = 0f)
+    val bmp by produceState<Bitmap?>(null, key) {
+        delay(60)
+        value = withContext(Dispatchers.Default) { WallpaperStudio.render(key, 72, 120) }
+    }
+    Box(Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant)) {
+        bmp?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
     }
 }
 

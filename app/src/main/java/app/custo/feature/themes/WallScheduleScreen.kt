@@ -54,6 +54,10 @@ fun WallScheduleScreen(onBack: () -> Unit) {
         title = "Day & night",
         onBack = onBack,
         actions = {
+            app.custo.ui.components.InfoButton(
+                "Day & night",
+                "Switches happen the next time your phone is awake after the set time. If Custo live is your wallpaper, it just changes what it shows. Matching system colors needs Shizuku.",
+            )
             IconButton(enabled = cur != null, onClick = {
                 runner.run(if (cur!!.on) "Schedule saved" else "Schedule off") { WallScheduler.save(ctx, cur); onBack() }
             }) { Icon(Icons.Rounded.Check, "Save") }
@@ -62,10 +66,10 @@ fun WallScheduleScreen(onBack: () -> Unit) {
         if (cur == null) return@ScreenScaffold
         item {
             SectionCard {
-                SwitchRow("Switch by time", "Change the wallpaper at the times below", cur.on) { s = cur.copy(on = it) }
+                SwitchRow("Switch by time", null, cur.on) { s = cur.copy(on = it) }
                 SwitchRow(
                     "Match system colors",
-                    if (shizuku == ShizukuState.READY) "Also apply each look's colors" else "Needs Shizuku",
+                    if (shizuku == ShizukuState.READY) null else "Needs Shizuku",
                     cur.colors, enabled = shizuku == ShizukuState.READY,
                 ) { s = cur.copy(colors = it) }
             }
@@ -76,7 +80,6 @@ fun WallScheduleScreen(onBack: () -> Unit) {
         item {
             SlotCard("Night", Icons.Rounded.DarkMode, cur.nightAt, cur.night, looks, { s = cur.copy(nightAt = it) }) { s = cur.copy(night = it) }
         }
-        item { Hint("Switches happen the next time your phone is awake after the set time. If Custo live is your wallpaper, it just changes what it shows.") }
     }
 }
 

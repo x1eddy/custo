@@ -131,13 +131,16 @@ fun CollageScreen(onBack: () -> Unit) {
         }
     }
 
-    ScreenScaffold(title = "Collage", onBack = onBack) {
+    ScreenScaffold(title = "Collage", onBack = onBack, actions = {
+        app.custo.ui.components.InfoButton(
+            "Collage",
+            "Puts ${CollageLogic.MIN_PHOTOS} to ${CollageLogic.MAX_PHOTOS} photos together as one wallpaper. Only the photos you pick are shared with Custo. Saved images also work in the Photo widget.",
+        )
+    }) {
         item {
             SectionCard {
                 if (uris.isEmpty()) {
-                    Text("Pick ${CollageLogic.MIN_PHOTOS} to ${CollageLogic.MAX_PHOTOS} photos to start.", style = MaterialTheme.typography.bodyLarge)
                     Button(onClick = ::pick) { Icon(Icons.Rounded.AddPhotoAlternate, null); Text("  Pick photos") }
-                    Hint("Only the photos you pick are shared with Custo.")
                 } else {
                     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                         Box(Modifier.width(200.dp).aspectRatio(sw / sh.toFloat()).clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.surfaceVariant)) {
@@ -170,7 +173,7 @@ fun CollageScreen(onBack: () -> Unit) {
                 }
             }
             item {
-                SectionCard("Text", subtitle = "Optional. One line along the bottom.") {
+                SectionCard("Text") {
                     OutlinedTextField(text, { text = it.take(40) }, placeholder = { Text("Say something") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                     if (text.isNotBlank()) {
                         LabeledSlider("Size", textSize, 0.04f..0.12f) { textSize = it }
@@ -197,7 +200,6 @@ fun CollageScreen(onBack: () -> Unit) {
                         }) { Icon(Icons.Rounded.Wallpaper, null); Text("  Set wallpaper") }
                         FilledTonalButton(onClick = { saver.launch("Custo collage.jpg") }) { Icon(Icons.Rounded.Save, null); Text("  Save image") }
                     }
-                    Hint("Saved images work in the Photo widget.")
                 }
             }
         }

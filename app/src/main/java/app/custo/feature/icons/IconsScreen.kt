@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -60,6 +61,7 @@ import app.custo.feature.profiles.LaunchableApp
 import app.custo.nav.Navigator
 import app.custo.nav.Route
 import app.custo.ui.components.Hint
+import app.custo.ui.components.InfoButton
 import app.custo.ui.components.HubTile
 import app.custo.ui.components.ScreenScaffold
 import app.custo.ui.components.SectionCard
@@ -69,32 +71,29 @@ import java.io.File
 
 @Composable
 fun IconsHubScreen(nav: Navigator) {
-    ScreenScaffold(title = "Icons", onBack = { nav.pop() }) {
+    ScreenScaffold(title = "Icons", onBack = { nav.pop() }, actions = {
+        InfoButton(
+            "How it works",
+            "Android doesn't let apps swap another app's icon. Custo adds a home-screen shortcut with your new icon and name instead. It opens the app just like the original.\n\n" +
+                "Your launcher asks before each shortcut is added. Afterwards you can remove the original icons from the home screen (they stay in the app drawer).",
+        )
+    }) {
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                HubTile("Change one icon", Icons.Rounded.SwapHoriz, Modifier.weight(1f)) { nav.push(Route.IconChanger()) }
-                HubTile("Make an icon style", Icons.Rounded.AutoFixHigh, Modifier.weight(1f)) { nav.push(Route.IconMaker()) }
+                HubTile("One icon", Icons.Rounded.SwapHoriz, Modifier.weight(1f)) { nav.push(Route.IconChanger()) }
+                HubTile("Icon maker", Icons.Rounded.AutoFixHigh, Modifier.weight(1f)) { nav.push(Route.IconMaker()) }
             }
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 HubTile("Icon packs", Icons.Rounded.Inventory2, Modifier.weight(1f)) { nav.push(Route.IconPacks) }
-                HubTile("Imported icons", Icons.Rounded.Collections, Modifier.weight(1f)) { nav.push(Route.ImportedIcons) }
+                HubTile("Imported", Icons.Rounded.Collections, Modifier.weight(1f)) { nav.push(Route.ImportedIcons) }
             }
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 HubTile("My shortcuts", Icons.Rounded.History, Modifier.weight(1f)) { nav.push(Route.IconShortcuts) }
                 Spacer(Modifier.weight(1f))
-            }
-        }
-        item {
-            SectionCard("How it works", Icons.Rounded.Apps) {
-                Hint(
-                    "Android doesn't let apps swap another app's icon. Custo adds a home-screen shortcut with your new icon " +
-                        "and name instead. It opens the app just like the original.",
-                )
-                Hint("Your launcher asks before each shortcut is added. Afterwards you can remove the original icons from the home screen (they stay in the app drawer).")
             }
         }
     }
@@ -113,8 +112,14 @@ fun IconShortcutsScreen(nav: Navigator) {
     LaunchedEffect(history, queue.done) { pinned = Shortcuts.pinnedIds(ctx) }
 
     PinQueuePanel(queue)
-    ScreenScaffold(title = "My shortcuts", onBack = { nav.pop() }) {
-        if (history.isEmpty()) item { Hint("Nothing yet. Icons you add from Custo show up here so you can change them later.") }
+    ScreenScaffold(title = "My shortcuts", onBack = { nav.pop() }, actions = {
+        InfoButton(
+            "My shortcuts",
+            "Icons you add from Custo show up here so you can change them later. Edit changes a shortcut that's already on your home screen without asking again. " +
+                "Forget greys it out; long-press it on the home screen to remove it.",
+        )
+    }) {
+        if (history.isEmpty()) item { EmptyState(Icons.Rounded.History, "Nothing yet") }
         items(history.sortedByDescending { it.createdAt }, key = { it.id }) { s ->
             val icon by produceState<Bitmap?>(null, s.id, s.createdAt) { value = c.icons.loadShortcutIcon(s.id) }
             val onHome = s.id in pinned
@@ -142,12 +147,6 @@ fun IconShortcutsScreen(nav: Navigator) {
                     }) { Icon(Icons.Rounded.Delete, null); Text("  Forget") }
                 }
             }
-        }
-        item {
-            Hint(
-                "Edit changes a shortcut that's already on your home screen without asking again. " +
-                    "Forget greys it out; long-press it on the home screen to remove it.",
-            )
         }
     }
 }
@@ -194,7 +193,9 @@ fun ImportedIconsScreen(nav: Navigator) {
         )
     }
 
-    ScreenScaffold(title = "Imported icons", onBack = { nav.pop() }) {
+    ScreenScaffold(title = "Imported icons", onBack = { nav.pop() }, actions = {
+        InfoButton("Imported icons", "Pictures are copied into Custo, so you can delete the originals. Square PNGs with a transparent background look best.")
+    }) {
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = { images.launch(arrayOf("image/*")) }) { Icon(Icons.Rounded.AddPhotoAlternate, null); Text("  Pictures") }
@@ -203,8 +204,7 @@ fun ImportedIconsScreen(nav: Navigator) {
                 }
             }
         }
-        item { Hint("Pictures are copied into Custo, so you can delete the originals. Square PNGs with a transparent background look best.") }
-        if (files.isEmpty()) item { Hint("No pictures yet.") }
+        if (files.isEmpty()) item { EmptyState(Icons.Rounded.Collections, "No pictures yet") }
         else item {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), maxItemsInEachRow = 5) {
                 files.forEach { f ->
@@ -236,11 +236,13 @@ fun imageJob(f: File, app: LaunchableApp, label: String = app.label, editId: Str
 fun IconPacksScreen(nav: Navigator) {
     val ctx = LocalContext.current
     val packs by produceState<List<IconPack>?>(null) { value = IconPacks.installed(ctx) }
-    ScreenScaffold(title = "Icon packs", onBack = { nav.pop() }) {
+    ScreenScaffold(title = "Icon packs", onBack = { nav.pop() }, actions = {
+        InfoButton("Icon packs", "Any icon pack made for Nova, Lawnchair or ADW shows up here. Packs work offline: Custo reads the pack's icon list and draws nothing new.")
+    }) {
         when {
             packs == null -> item { Hint("Looking for icon packs…") }
             packs!!.isEmpty() -> item {
-                SectionCard("No icon packs found", Icons.Rounded.Inventory2, "Install any icon pack made for Nova, Lawnchair or ADW and it shows up here.")
+                EmptyState(Icons.Rounded.Inventory2, "No icon packs found")
             }
             else -> items(packs!!, key = { it.pkg }) { p ->
                 SectionCard(onClick = { nav.push(Route.IconPack(p.pkg)) }) {
@@ -252,7 +254,6 @@ fun IconPacksScreen(nav: Navigator) {
                 }
             }
         }
-        item { Hint("Packs work offline. Custo reads the pack's icon list and draws nothing new.") }
     }
 }
 
@@ -297,8 +298,8 @@ fun IconPackScreen(packPkg: String, nav: Navigator) {
         if (list == null) item { Hint("Reading the pack…") }
         else {
             item {
-                SectionCard("Whole pack", Icons.Rounded.Inventory2, "${list.size} of your apps have an icon in this pack.") {
-                    FilledTonalButton(onClick = { bulk = true }, enabled = list.isNotEmpty()) { Text("Pick apps to re-skin") }
+                SectionCard("Whole pack", Icons.Rounded.Inventory2, badge = { Text("${list.size} apps", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant) }) {
+                    FilledTonalButton(onClick = { bulk = true }, enabled = list.isNotEmpty()) { Text("Pick apps") }
                 }
             }
             item { SectionLabel("Your apps") }
@@ -329,7 +330,7 @@ internal fun PackIconRow(appPkg: String, selected: String?, onPick: (packPkg: St
     }
     when {
         found == null -> Hint("Checking your icon packs…")
-        found!!.isEmpty() -> Hint("None of your icon packs has an icon for this app.")
+        found!!.isEmpty() -> Hint("No pack icon for this app")
         else -> FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             found!!.forEach { (p, b) ->
                 Column(
@@ -343,5 +344,15 @@ internal fun PackIconRow(appPkg: String, selected: String?, onPick: (packPkg: St
                 }
             }
         }
+    }
+}
+
+/** Big icon + one short line, for empty lists. */
+@Composable
+internal fun EmptyState(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
+    Column(Modifier.fillMaxWidth().padding(vertical = 32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        app.custo.ui.components.IconBadge(icon, size = 72, container = MaterialTheme.colorScheme.surfaceContainerHigh, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(12.dp))
+        Text(text, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

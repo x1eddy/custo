@@ -25,6 +25,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Layers
+import androidx.compose.material.icons.rounded.Block
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.CloudOff
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.GridView
+import androidx.compose.material.icons.rounded.Key
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Widgets
@@ -77,26 +86,42 @@ fun Onboarding(onDone: (setupShizuku: Boolean) -> Unit) {
                             Text("Make your phone yours.", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.enterAnimation(3))
                         }
                         1 -> {
-                            Text("One app for all of it", style = MaterialTheme.typography.displaySmall)
+                            Text("All in one", style = MaterialTheme.typography.displaySmall)
                             Spacer(Modifier.height(24.dp))
-                            Feature(0, Icons.Rounded.Tune, "System UI", "Colors, status bar, tiles, motion")
-                            Feature(1, Icons.Rounded.Palette, "Themes", "Wallpapers and matching colors")
-                            Feature(2, Icons.Rounded.Widgets, "Widgets", "Clocks, battery, music, notes")
-                            Feature(3, Icons.Rounded.Layers, "Overlays", "Edge light, battery bar, volume")
-                            Spacer(Modifier.height(16.dp))
-                            Text("Free. No ads. Works offline.", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Feature(0, Icons.Rounded.Tune, "System UI", Modifier.weight(1f))
+                                Feature(1, Icons.Rounded.Palette, "Themes", Modifier.weight(1f))
+                            }
+                            Spacer(Modifier.height(12.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Feature(2, Icons.Rounded.Widgets, "Widgets", Modifier.weight(1f))
+                                Feature(3, Icons.Rounded.Layers, "Overlays", Modifier.weight(1f))
+                            }
+                            Spacer(Modifier.height(24.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.enterAnimation(4)) {
+                                Perk(Icons.Rounded.Favorite, "Free")
+                                Perk(Icons.Rounded.Block, "No ads")
+                                Perk(Icons.Rounded.CloudOff, "Offline")
+                            }
                         }
                         else -> {
-                            Text("Unlock the deep stuff", style = MaterialTheme.typography.displaySmall)
-                            Spacer(Modifier.height(12.dp))
-                            Text(
-                                "System colors, the status bar and Quick Settings need Shizuku, a free helper app. No root. You can do this later from Home.",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            if (shizuku == ShizukuState.READY) {
-                                Spacer(Modifier.height(16.dp))
-                                Text("Shizuku is ready. You're all set.", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                            Text("Go deeper", style = MaterialTheme.typography.displaySmall)
+                            Spacer(Modifier.height(8.dp))
+                            Text("With Shizuku. No root.", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Spacer(Modifier.height(28.dp))
+                            val ready = shizuku == ShizukuState.READY
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Step(0, Icons.Rounded.Download, "Install", ready || shizuku != ShizukuState.NOT_INSTALLED)
+                                StepLink()
+                                Step(1, Icons.Rounded.PlayArrow, "Start", ready || shizuku == ShizukuState.NO_PERMISSION)
+                                StepLink()
+                                Step(2, Icons.Rounded.Key, "Allow", ready)
+                            }
+                            Spacer(Modifier.height(28.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.enterAnimation(3)) {
+                                Perk(Icons.Rounded.Palette, "Colors")
+                                Perk(Icons.Rounded.Tune, "Status bar")
+                                Perk(Icons.Rounded.GridView, "Tiles")
                             }
                         }
                     }
@@ -127,16 +152,46 @@ fun Onboarding(onDone: (setupShizuku: Boolean) -> Unit) {
 }
 
 @Composable
-private fun Feature(index: Int, icon: ImageVector, title: String, body: String) {
-    Row(Modifier.padding(vertical = 8.dp).enterAnimation(index), verticalAlignment = Alignment.CenterVertically) {
+private fun Feature(index: Int, icon: ImageVector, title: String, modifier: Modifier) {
+    Column(
+        modifier.enterAnimation(index).clip(RoundedCornerShape(24.dp)).background(MaterialTheme.colorScheme.surfaceContainerLow).padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
         Box(
-            Modifier.size(48.dp).clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.primaryContainer),
+            Modifier.size(52.dp).clip(RoundedCornerShape(18.dp)).background(MaterialTheme.colorScheme.primaryContainer),
             contentAlignment = Alignment.Center,
-        ) { Icon(icon, null, tint = MaterialTheme.colorScheme.onPrimaryContainer) }
-        Spacer(Modifier.width(16.dp))
-        Column {
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            Text(body, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+        ) { Icon(icon, null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(26.dp)) }
+        Text(title, style = MaterialTheme.typography.titleMedium)
     }
+}
+
+@Composable
+private fun Perk(icon: ImageVector, label: String) {
+    Row(
+        Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.secondaryContainer).padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSecondaryContainer)
+        Spacer(Modifier.width(6.dp))
+        Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSecondaryContainer)
+    }
+}
+
+/** One setup step as a big icon with a word under it; ticked when done. */
+@Composable
+private fun Step(index: Int, icon: ImageVector, label: String, done: Boolean) {
+    val cs = MaterialTheme.colorScheme
+    Column(Modifier.enterAnimation(index), horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            Modifier.size(64.dp).clip(CircleShape).background(if (done) cs.primary else cs.primaryContainer),
+            contentAlignment = Alignment.Center,
+        ) { Icon(if (done) Icons.Rounded.Check else icon, null, tint = if (done) cs.onPrimary else cs.onPrimaryContainer, modifier = Modifier.size(28.dp)) }
+        Spacer(Modifier.height(8.dp))
+        Text(label, style = MaterialTheme.typography.labelLarge)
+    }
+}
+
+@Composable
+private fun RowScope.StepLink() {
+    Box(Modifier.weight(1f).padding(horizontal = 6.dp).padding(bottom = 24.dp).height(3.dp).clip(CircleShape).background(MaterialTheme.colorScheme.outlineVariant))
 }

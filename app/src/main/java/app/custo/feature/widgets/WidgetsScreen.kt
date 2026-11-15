@@ -63,7 +63,9 @@ fun WidgetsScreen(nav: Navigator) {
         if (!Widgets.requestPin(ctx, kind)) runner.message("Long-press your home screen → Widgets → Custo")
     }
 
-    ScreenScaffold(title = "Widgets") {
+    ScreenScaffold(title = "Widgets", actions = {
+        app.custo.ui.components.InfoButton("Widgets", "Tap + to add a widget to your home screen. Widgets follow your palette unless you pick colors. Tap a placed widget to style it.")
+    }) {
         item(key = "sets") { app.custo.feature.widgetsets.WidgetSetsEntryCard { nav.push(Route.WidgetSets) } }
         if (placed.isNotEmpty()) {
             item { SectionLabel("On your home screen") }
@@ -86,11 +88,10 @@ fun WidgetsScreen(nav: Navigator) {
                 }
             }
             if (cat == WidgetCategory.HABITS) item(key = "trackers") {
-                SectionCard("Your trackers", icon = Icons.Rounded.Checklist, subtitle = "Water, mood history and your to-do list", onClick = { nav.push(Route.WidgetTrackers) })
+                SectionCard("Your trackers", icon = Icons.Rounded.Checklist, onClick = { nav.push(Route.WidgetTrackers) })
             }
             if (cat == WidgetCategory.MEDIA && !listenerOn) item(key = "listener") { app.custo.feature.overlays.NotificationAccessCard("Needed for the Now playing widget. Nothing is stored or sent.") }
         }
-        item { Hint("Widgets follow your palette unless you pick colors. Tap a placed widget to style it.") }
     }
 }
 
@@ -106,11 +107,8 @@ private fun GalleryCard(kind: WidgetKind, style: WidgetStyle, icon: androidx.com
         Column(Modifier.padding(12.dp)) {
             WidgetPreview(kind, style, Modifier.fillMaxWidth().height(kind.previewHeight.dp))
             Spacer(Modifier.height(10.dp))
-            Row {
-                Column(Modifier.weight(1f)) {
-                    Text(kind.label, style = MaterialTheme.typography.titleSmall)
-                    Text(kind.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                }
+            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Text(kind.label, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                 Icon(icon, action, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 8.dp))
             }
         }
