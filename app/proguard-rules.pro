@@ -15,3 +15,6 @@
 -keep class * extends androidx.work.InputMerger { <init>(); }
 -keep class * extends androidx.work.Worker { <init>(...); }
 -keep class * implements androidx.glance.appwidget.action.ActionCallback { <init>(); }
+
+# Custo's own workers (wallpaper pack downloads) are created by reflection from their class name.
+-keep class * extends androidx.work.ListenableWorker { <init>(android.content.Context, androidx.work.WorkerParameters); }

@@ -13,6 +13,9 @@
     <!-- Control Center: Wi-Fi tile state and Do Not Disturb (only after the user grants access). -->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
+    <!-- Wallpapers: browse wallhaven.cc and download offline packs. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-feature android:name="android.software.live_wallpaper" android:required="false" />
     <!-- Widgets: water reminders, steps, and screen time (usage access is granted in Settings or via Shizuku). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />

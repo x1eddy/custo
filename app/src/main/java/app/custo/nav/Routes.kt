@@ -65,4 +65,10 @@ sealed interface Route {
     data object WidgetSets : Route
     data object AppSettings : Route
     data class WidgetSet(val id: String) : Route
+
+    // Wallpapers from wallhaven.cc
+    data class WallhavenBrowse(val query: String? = null) : Route
+    data class WallpaperDetail(val id: String) : Route
+    data object OfflinePacks : Route
+    data object SavedWallpapers : Route
 }

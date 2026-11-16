@@ -81,6 +81,7 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.material3)
+    implementation(libs.androidx.work.runtime.ktx)
     // Installs the baseline profile (src/main/baseline-prof.txt) on sideloaded builds too.
     implementation(libs.androidx.profileinstaller)
 

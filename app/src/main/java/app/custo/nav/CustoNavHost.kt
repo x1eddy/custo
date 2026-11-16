@@ -161,6 +161,10 @@ fun CustoNavHost(initialRoute: Route? = null) {
                     Route.WidgetSets -> app.custo.feature.widgetsets.WidgetSetsScreen(nav)
                     Route.AppSettings -> app.custo.feature.settings.AppSettingsScreen(onBack = { nav.pop() })
                     is Route.WidgetSet -> app.custo.feature.widgetsets.WidgetSetScreen(target.id, nav)
+                    is Route.WallhavenBrowse -> app.custo.feature.wallhaven.WallhavenBrowseScreen(nav, target.query)
+                    is Route.WallpaperDetail -> app.custo.feature.wallhaven.WallpaperDetailScreen(target.id, nav)
+                    Route.OfflinePacks -> app.custo.feature.wallhaven.OfflinePacksScreen(nav)
+                    Route.SavedWallpapers -> app.custo.feature.wallhaven.SavedWallpapersScreen(nav)
                     else -> Unit
                 }
             }
