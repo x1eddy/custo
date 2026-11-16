@@ -16,7 +16,23 @@ object IconKeys {
 
 enum class IconShape(val label: String) {
     CIRCLE("Circle"), SQUIRCLE("Squircle"), ROUNDED("Rounded"), TEARDROP("Teardrop"), HEXAGON("Hexagon"), FLOWER("Flower"),
+    HEART("Heart"), STAR("Star"), CLOUD("Cloud"), SHIELD("Shield"), OCTAGON("Octagon"), LEAF("Leaf"), DROP("Drop"), BLOB("Pebble"),
 }
+
+/** How the background colors are laid out. AUTO keeps the 1.0 rule: one color solid, more = linear. */
+enum class BgKind(val label: String) {
+    AUTO("Auto"), SOLID("Solid"), LINEAR("Linear"), RADIAL("Radial"), SWEEP("Sweep"), IMAGE("Image"),
+}
+
+enum class IconTexture(val label: String) {
+    NONE("None"), PAPER("Paper"), GLITTER("Glitter"), NOISE("Grain"), CARBON("Carbon"),
+}
+
+enum class Sticker(val label: String) {
+    NONE("None"), HEART("Heart"), STAR("Star"), BOW("Bow"), SPARKLE("Sparkle"), CROWN("Crown"),
+}
+
+enum class StickerCorner { TOP_START, TOP_END, BOTTOM_START, BOTTOM_END }
 
 enum class IconPattern(val label: String) {
     NONE("None"), DOTS("Dots"), STRIPES("Stripes"), GRID("Grid"), WAVES("Waves"), CONFETTI("Confetti"),
@@ -24,6 +40,7 @@ enum class IconPattern(val label: String) {
 
 enum class FgMode(val label: String) {
     APP_TINT("App icon, one color"), APP_ORIGINAL("App icon"), GLYPH("Symbol"), TEXT("Letters"),
+    SILHOUETTE("Silhouette"), OUTLINE("Outline"), DUOTONE("Duotone"), PACK("Icon pack glyph"),
 }
 
 /**
@@ -56,6 +73,57 @@ data class IconStyle(
     /** true = full-bleed adaptive icon, the launcher cuts its own shape; false = keep [shape]. */
     val launcherShape: Boolean = false,
     val seed: Int = 7,
+    // --- 1.1: everything below is new, appended so old JSON and positional calls keep working ---
+    val bgKind: BgKind = BgKind.AUTO,
+    /** Corner radius of [IconShape.ROUNDED], relative to the width, 0..0.5. */
+    val corner: Float = 0.22f,
+    /** Absolute path of a picture (saved wallpaper or imported photo) used when [bgKind] is IMAGE. */
+    val image: String? = null,
+    /** 1..4 */
+    val imageZoom: Float = 1f,
+    /** -1..1, pans within the room the zoom leaves. */
+    val imageX: Float = 0f,
+    val imageY: Float = 0f,
+    /** One picture spread across all the icons it's applied to, in grid order. */
+    val puzzle: Boolean = false,
+    val texture: IconTexture = IconTexture.NONE,
+    /** 0..1 */
+    val textureOpacity: Float = 0.45f,
+    /** Border width 0..1 (0 = none). */
+    val border: Float = 0f,
+    val borderColor: Int = 0xFFFFFFFF.toInt(),
+    val borderDashed: Boolean = false,
+    /** Inner stroke width 0..1 (0 = none). */
+    val innerStroke: Float = 0f,
+    val innerStrokeColor: Int = 0x66FFFFFF,
+    /** Second color for [FgMode.DUOTONE] (highlights; [fgColor] takes the shadows). */
+    val fgColor2: Int = 0xFFFFD166.toInt(),
+    /** Foreground offset, -0.5..0.5 of the icon. */
+    val fgX: Float = 0f,
+    val fgY: Float = 0f,
+    /** Degrees. */
+    val fgRotation: Float = 0f,
+    val shadowColor: Int = 0xFF000000.toInt(),
+    /** Direction the shadow falls, degrees (90 = down). */
+    val shadowAngle: Float = 90f,
+    /** 0..1; the 1.0 look is 0.3 / 0.3. */
+    val shadowDistance: Float = 0.3f,
+    val shadowBlur: Float = 0.3f,
+    /** 3-D emboss on the foreground, 0..1. */
+    val emboss: Float = 0f,
+    /** 3-D bevel on the shape's rim, 0..1. */
+    val bevel: Float = 0f,
+    /** Glassy highlight over the top, 0..1. */
+    val gloss: Float = 0f,
+    /** Soft-UI double shadow (light top-left, dark bottom-right), 0..1. */
+    val neumorph: Float = 0f,
+    val sticker: Sticker = Sticker.NONE,
+    val stickerCorner: StickerCorner = StickerCorner.TOP_END,
+    val stickerColor: Int = 0xFFFF4D8D.toInt(),
+    /** Every app gets its own hue (seeded by [seed] + package), keeping lightness and saturation. */
+    val rainbow: Boolean = false,
+    /** Icon pack package used by [FgMode.PACK]. */
+    val pack: String = "",
 ) {
     fun encode(): String = IconStyleCodec.json.encodeToString(this)
 
@@ -64,6 +132,21 @@ data class IconStyle(
         FgMode.GLYPH -> copy(fg = FgMode.APP_TINT)
         else -> this
     }
+
+    /** The look for one app: applies the per-app palette when [rainbow] is on. */
+    fun forApp(pkg: String?): IconStyle {
+        if (!rainbow || pkg == null) return this
+        val hue = IconPalette.hueFor(pkg, seed)
+        return copy(
+            bg = bg.map { IconPalette.rotateHue(it, hue) },
+            glowColor = IconPalette.rotateHue(glowColor, hue),
+            patternColor = IconPalette.rotateHue(patternColor, hue),
+            rainbow = false,
+        )
+    }
+
+    /** Uses a picture background that can actually be drawn. */
+    val usesImage: Boolean get() = bgKind == BgKind.IMAGE && !image.isNullOrEmpty()
 
     companion object {
         fun decode(s: String?): IconStyle? = s?.let { runCatching { IconStyleCodec.json.decodeFromString<IconStyle>(it) }.getOrNull() }

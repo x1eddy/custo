@@ -153,6 +153,7 @@ fun CustoNavHost(initialRoute: Route? = null) {
                     is Route.IconPack -> app.custo.feature.icons.IconPackScreen(target.pkg, nav)
                     Route.ImportedIcons -> app.custo.feature.icons.ImportedIconsScreen(nav)
                     Route.IconShortcuts -> app.custo.feature.icons.IconShortcutsScreen(nav)
+                    Route.IconThemes -> app.custo.feature.icons.IconThemesScreen(nav)
                     Route.OverlayControlCenter -> app.custo.feature.overlays.ControlCenterScreen(onBack = { nav.pop() })
                     Route.OverlayStickers -> app.custo.feature.overlays.StickersScreen(onBack = { nav.pop() })
                     Route.VideoWallpaper -> app.custo.feature.themes.VideoWallpaperScreen(onBack = { nav.pop() })

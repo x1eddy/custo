@@ -79,6 +79,27 @@ fun IconsHubScreen(nav: Navigator) {
         )
     }) {
         item {
+            // Picture first: a strip of themes on the user's own apps leads to the gallery.
+            val ctx = LocalContext.current
+            val apps by produceState<List<LaunchableApp>>(emptyList()) { value = AppList.load(ctx) }
+            Column(
+                Modifier.fillMaxWidth().clip(MaterialTheme.shapes.large).background(MaterialTheme.colorScheme.surfaceContainerLow)
+                    .clickable { nav.push(Route.IconThemes) }.padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("glass", "candy", "luxe").forEach { id ->
+                        val t = ICON_THEMES.first { it.id == id }
+                        MockHome(apps, { t.style }, Modifier.weight(1f), cols = 3, rows = 3, renderPx = 96, labels = false)
+                    }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Icon themes", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                    Text("${ICON_THEMES.size}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+        item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 HubTile("One icon", Icons.Rounded.SwapHoriz, Modifier.weight(1f)) { nav.push(Route.IconChanger()) }
                 HubTile("Icon maker", Icons.Rounded.AutoFixHigh, Modifier.weight(1f)) { nav.push(Route.IconMaker()) }

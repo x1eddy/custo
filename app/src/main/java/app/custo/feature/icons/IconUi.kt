@@ -166,13 +166,13 @@ fun PinQueuePanel(queue: PinQueue) {
 
 /** Renders [style] for [pkg] in the background; null while drawing. */
 @Composable
-fun rememberStyledIcon(style: IconStyle, pkg: String?, label: String = "", size: Int = 192): Bitmap? {
+fun rememberStyledIcon(style: IconStyle, pkg: String?, label: String = "", size: Int = 192, tile: Tile? = null): Bitmap? {
     val ctx = LocalContext.current
     // Start from the cache so icons scrolled back into view don't flash a spinner.
-    val b by produceState(IconRenderer.peek(style, pkg, label, size), style, pkg, label, size) {
-        value = IconRenderer.peek(style, pkg, label, size) ?: run {
+    val b by produceState(IconRenderer.peek(style, pkg, label, size, tile), style, pkg, label, size, tile) {
+        value = IconRenderer.peek(style, pkg, label, size, tile) ?: run {
             delay(30) // let slider drags settle
-            IconRenderer.render(ctx, style, pkg, label, size)
+            IconRenderer.render(ctx, style, pkg, label, size, tile)
         }
     }
     return b
@@ -243,7 +243,17 @@ fun AppPickerDialog(
     }
 }
 
-/** A pin job that draws [style] for an app. */
-fun styleJob(style: IconStyle, app: LaunchableApp, label: String = app.label, editId: String? = null) = PinJob(
+/** A pin job that draws [style] for an app. [tile] = its puzzle piece when the style is a puzzle. */
+fun styleJob(style: IconStyle, app: LaunchableApp, label: String = app.label, editId: String? = null, tile: Tile? = null) = PinJob(
     pkg = app.pkg, label = label, source = "style", style = style, adaptive = style.launcherShape, editId = editId,
-) { ctx -> IconRenderer.render(ctx, style, app.pkg, app.label) }
+) { ctx -> IconRenderer.render(ctx, style, app.pkg, app.label, tile = tile) }
+
+/**
+ * One job per app for a bulk re-skin: [overrides] replace the style for single apps, and puzzle
+ * styles hand each app its piece in the order picked.
+ */
+fun styleJobs(style: IconStyle, apps: List<LaunchableApp>, overrides: Map<String, IconStyle> = emptyMap()): List<PinJob> =
+    apps.mapIndexed { i, a ->
+        val s = (overrides[a.pkg] ?: style).forBulk()
+        styleJob(s, a, tile = if (s.puzzle && s.usesImage) Tile(i, apps.size) else null)
+    }

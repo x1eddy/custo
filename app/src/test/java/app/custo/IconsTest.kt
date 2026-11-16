@@ -80,7 +80,7 @@ class IconStyleTest {
     }
 
     @Test fun toleratesOldAndUnknown() {
-        val s = IconStyle.decode("""{"shape":"STAR","fg":"HOLOGRAM","bg":[-1],"future":42}""")!!
+        val s = IconStyle.decode("""{"shape":"DODECAGON","fg":"HOLOGRAM","bg":[-1],"future":42}""")!!
         assertEquals(IconShape.SQUIRCLE, s.shape)
         assertEquals(FgMode.APP_TINT, s.fg)
         assertEquals(listOf(-1), s.bg)
@@ -128,7 +128,7 @@ class LookIconsCompatTest {
     }
 
     @Test fun unknownIconFieldsStillLoadTheLook() {
-        val s = """{"name":"Odd","wall":{},"seed":1,"icons":{"shape":"BLOB","pattern":"PLAID"}}"""
+        val s = """{"name":"Odd","wall":{},"seed":1,"icons":{"shape":"AMOEBA","pattern":"PLAID"}}"""
         val look = LookCodec.decode(s)!!
         assertEquals(IconShape.SQUIRCLE, look.icons!!.shape)
         assertEquals(IconPattern.NONE, look.icons!!.pattern)
