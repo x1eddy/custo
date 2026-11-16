@@ -66,6 +66,16 @@ class WallpaperStudio(private val context: Context) {
         bmp.recycle()
     }
 
+    /** Sets an image file (e.g. a saved wallhaven wallpaper, already screen-sized) as wallpaper. */
+    suspend fun applyImage(file: java.io.File, target: WallTarget) = withContext(Dispatchers.IO) {
+        val bmp = android.graphics.BitmapFactory.decodeFile(file.path) ?: error("Couldn't open that image")
+        try {
+            WallpaperManager.getInstance(context).setBitmap(bmp, null, true, target.flags)
+        } finally {
+            bmp.recycle()
+        }
+    }
+
     companion object {
         /** Full render: scene, softness (downscale + box blur) and grain. */
         fun render(spec: WallSpec, w: Int, h: Int): Bitmap {

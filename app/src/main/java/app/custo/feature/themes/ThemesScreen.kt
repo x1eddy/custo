@@ -127,6 +127,7 @@ fun ThemesScreen(nav: Navigator) {
             "A look is a wallpaper plus matching system colors, applied in one tap. Matching system colors needs Shizuku; without it only the wallpaper changes.",
         )
     }) {
+        item { app.custo.feature.wallhaven.WallpapersEntryCard(nav) }
         item { app.custo.feature.widgetsets.WidgetSetsEntryCard { nav.push(Route.WidgetSets) } }
         item {
             SectionCard("Icons", Icons.Rounded.Apps, onClick = { nav.push(Route.IconsHub) })
