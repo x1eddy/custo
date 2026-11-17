@@ -42,6 +42,7 @@ class PackDownloadWorker(context: Context, params: WorkerParameters) : Coroutine
         var failures = 0
         try {
             val tagId = pack.tagId
+            val characters = WhTags.allowsCharacters(pack.query)
             // Most-favourited first; strict favourites floor, then looser ones only if wallhaven runs short.
             floors@ for (floor in WhQuality.floors(pack.minFavorites)) {
                 for (portrait in PackPlanner.phases()) {
@@ -55,7 +56,7 @@ class PackDownloadWorker(context: Context, params: WorkerParameters) : Coroutine
                             if (need <= 0) break
                             skip += item.id
                             // Memes, collages, screenshots and pin-ups carry the franchise tag too: check the tags.
-                            if (!repo.passesTagCheck(item, tagId)) continue
+                            if (!repo.passesTagCheck(item, tagId, characters)) continue
                             try {
                                 repo.save(item, packId = pack.id, query = pack.query)
                                 done++

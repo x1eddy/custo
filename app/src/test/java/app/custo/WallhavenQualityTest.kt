@@ -111,6 +111,27 @@ class WallhavenQualityTest {
         assertTrue("free text: nothing to check", WhQuality.isAbout(listOf(WhTag(86347, "Hololive")), null))
     }
 
+    @Test fun sceneryPacksDropCharactersAndNeedTheTagUpFront() {
+        fun t(vararg names: String) = names.mapIndexed { i, n -> if (n == "Minecraft") WhTag(1216, n) else WhTag(50_000L + i, n) }
+        // Real Minecraft results that read as anime fan art or a cat picture.
+        val girl = t("Minecraft", "video games", "PC gaming", "anime", "anime girls", "video game girls")
+        val vtuber = t("anime", "anime girls", "Minecraft", "Kamkac", "Nijisanji")
+        val cat = t("Minecraft", "black cats", "plants", "leaves")
+        val build = t("Minecraft", "CGI", "video games", "depth of field")
+        val third = t("video games", "PC gaming", "Minecraft", "video game art")
+        assertFalse(WhQuality.tagsOk(girl, 1216, allowCharacters = false))
+        assertFalse(WhQuality.tagsOk(vtuber, 1216, allowCharacters = false))
+        assertFalse(WhQuality.tagsOk(cat, 1216, allowCharacters = false))
+        assertFalse("main tag must be 1st or 2nd", WhQuality.tagsOk(third, 1216, allowCharacters = false))
+        assertTrue(WhQuality.tagsOk(build, 1216, allowCharacters = false))
+        // Anime packs keep their characters (but still no pin-ups or memes).
+        assertTrue(WhQuality.tagsOk(girl, 1216, allowCharacters = true))
+        assertFalse(WhQuality.tagsOk(girl + WhTag(547, "cleavage"), 1216, allowCharacters = true))
+        assertTrue(WhTags.allowsCharacters("One Piece"))
+        assertFalse(WhTags.allowsCharacters("Minecraft"))
+        assertFalse(WhTags.allowsCharacters("nature"))
+    }
+
     // ---------- "Not this" blocklist ----------
 
     @Test fun blockedPicturesAreDroppedEverywhere() {

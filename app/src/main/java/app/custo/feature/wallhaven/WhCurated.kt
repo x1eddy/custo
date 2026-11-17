@@ -46,6 +46,16 @@ object WhTags {
         "cute" to CUTE,
     ).filterValues { it > 0 }
 
+    /** Anime franchises (and cute art) whose pictures are expected to show characters. */
+    private val characterTerms = setOf("one piece", "jujutsu kaisen", "demon slayer", "naruto", "attack on titan", "genshin impact", "cute")
+
+    /**
+     * Whether pictures for [term] may be about people/characters. Everything else (games like
+     * Minecraft or Fortnite, Nature, Space, Cars…) wants scenery and art of the thing itself, not
+     * anime girls or fan art that merely carries the tag.
+     */
+    fun allowsCharacters(term: String?): Boolean = term?.trim()?.lowercase() in characterTerms
+
     /** The exact tag id for a curated term (any case), or null for free text. */
     fun idFor(term: String?): Long? = term?.trim()?.lowercase()?.let { ids[it] }
 
@@ -109,6 +119,15 @@ object WhQuality {
     /** True when [tags] has the curated tag [tagId] (always true without one). */
     fun hasTag(tags: List<WhTag>, tagId: Long?): Boolean = tagId == null || tags.isEmpty() || tags.any { it.id == tagId }
 
+    /** People and character tags: not wanted in packs and sets that aren't about characters. */
+    val CHARACTER_TAGS: Set<String> = setOf(
+        "anime", "anime girls", "anime boys", "women", "girls", "men", "boys", "cat girl", "fox girl", "fan art",
+        "video game girls", "original characters", "women outdoors", "model", "schoolgirl", "maid", "Virtual Youtuber",
+        "cats", "black cats", "cat", "portrait", "face", "looking at viewer",
+    ).mapTo(HashSet()) { it.lowercase() }
+
+    fun hasCharacters(tags: List<WhTag>): Boolean = tags.any { it.name.trim().lowercase() in CHARACTER_TAGS }
+
     /** More tags than this is a crossover crowd or collage, not a picture *of* the franchise. */
     const val MAX_TAGS = 30
 
@@ -119,11 +138,21 @@ object WhQuality {
      * Whether the picture is about [tagId]: it carries it among its first [MAIN_TAG_WITHIN] tags and
      * isn't a crowd of [MAX_TAGS]+ tags. Without a curated tag (or tags) there's nothing to check.
      */
-    fun isAbout(tags: List<WhTag>, tagId: Long?): Boolean {
+    fun isAbout(tags: List<WhTag>, tagId: Long?, strict: Boolean = false): Boolean {
         if (tagId == null || tags.isEmpty()) return true
         val at = tags.indexOfFirst { it.id == tagId }
-        return at in 0 until MAIN_TAG_WITHIN && tags.size <= MAX_TAGS
+        return at in 0 until (if (strict) STRICT_MAIN_TAG_WITHIN else MAIN_TAG_WITHIN) && tags.size <= MAX_TAGS
     }
+
+    /** For scenery packs and sets the main tag has to be the first or second one. */
+    const val STRICT_MAIN_TAG_WITHIN = 2
+
+    /**
+     * The whole per-picture tag verdict: no junk, about [tagId], and – unless [allowCharacters] –
+     * no people/character tags with the main tag first or second.
+     */
+    fun tagsOk(tags: List<WhTag>, tagId: Long?, allowCharacters: Boolean): Boolean =
+        !isJunk(tags) && isAbout(tags, tagId, strict = !allowCharacters) && (allowCharacters || !hasCharacters(tags))
 
     /** Results minus the ones the user said "Not this" to. */
     fun withoutBlocked(items: List<WhWallpaper>, blocked: Set<String>): List<WhWallpaper> =

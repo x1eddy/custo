@@ -32,7 +32,8 @@ object WallPacks {
         WallPack("jjk", "Jujutsu Kaisen", "Jujutsu Kaisen", general = false),
         WallPack("invincible", "Invincible", "Invincible", minFavorites = 10),
         WallPack("fortnite", "Fortnite", "Fortnite", minFavorites = 10),
-        WallPack("minecraft", "Minecraft", "Minecraft"),
+        // General only: the anime category under this tag is mostly fan art of girls, not Minecraft.
+        WallPack("minecraft", "Minecraft", "Minecraft", anime = false),
         WallPack("roblox", "Roblox", "Roblox", minFavorites = 5),
         WallPack("valorant", "Valorant", "Valorant", minFavorites = 15),
         WallPack("demon_slayer", "Demon Slayer", "Demon Slayer", general = false),

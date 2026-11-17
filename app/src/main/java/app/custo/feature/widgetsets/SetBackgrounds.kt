@@ -245,7 +245,7 @@ class SetBackgroundRepository(
                     val results = runCatching { wallhaven.topFor(query, 6) }.getOrNull() ?: return@withLock
                     // The first that passes the tag check (no memes, collages or pin-ups); at most 4 lookups.
                     val tagId = WhTags.idFor(query)
-                    val pick = SetBackgroundLogic.autoPick(results.take(4).filter { runCatching { wallhaven.passesTagCheck(it, tagId) }.getOrDefault(true) })
+                    val pick = SetBackgroundLogic.autoPick(results.take(4).filter { runCatching { wallhaven.passesTagCheck(it, tagId, WhTags.allowsCharacters(query)) }.getOrDefault(true) })
                     if (pick != null) runCatching { choose(theme, pick, auto = true) }.onFailure { return@withLock }
                     prefs.edit { it[autoKey] = (it[autoKey] ?: emptySet()) + theme.id }
                 }
@@ -257,7 +257,7 @@ class SetBackgroundRepository(
 
     private companion object {
         /** Bumped when the automatic pick rules change enough to redo earlier picks. */
-        const val AUTO_RULES = 2
+        const val AUTO_RULES = 3
     }
 
     /** The picture to set as wallpaper for [theme], or null to use its drawn one. */

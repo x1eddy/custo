@@ -127,16 +127,17 @@ class WallhavenRepository(
      * Looks at the tags of a curated pick (one rate-limited request, cached): false when it is a
      * meme/collage/screenshot/pin-up or isn't about [tagId] (see [WhQuality.isAbout]). Network errors other than being offline count as "fine".
      */
-    suspend fun passesTagCheck(item: WhWallpaper, tagId: Long?): Boolean {
-        tagChecks[item.id]?.let { return it }
+    suspend fun passesTagCheck(item: WhWallpaper, tagId: Long?, allowCharacters: Boolean = true): Boolean {
+        val key = item.id + if (allowCharacters) "" else "|s"
+        tagChecks[key]?.let { return it }
         val info = try {
             api.info(item.id)
         } catch (e: WallhavenException) {
             if (e.error == WhError.OFFLINE || e.error == WhError.RATE_LIMITED) throw e
             return true
         }
-        val ok = info != null && !WhQuality.isJunk(info.tags) && WhQuality.isAbout(info.tags, tagId)
-        tagChecks[item.id] = ok
+        val ok = info != null && WhQuality.tagsOk(info.tags, tagId, allowCharacters)
+        tagChecks[key] = ok
         return ok
     }
 
