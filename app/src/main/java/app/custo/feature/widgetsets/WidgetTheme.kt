@@ -141,6 +141,12 @@ data class SetWidget(
     val countdownTo: Pair<Int, Int>? = null,
 )
 
+/**
+ * A saved wallhaven picture used as a set's background. [path] is its compact local file, [tint]
+ * the color frames are washed with so they sit on the picture.
+ */
+data class ChosenWall(val id: String, val path: String, val tint: Int)
+
 /** A themed bundle: a wallpaper plus widgets drawn in one style. Everything is drawn in code. */
 data class WidgetTheme(
     val id: String,
@@ -170,6 +176,13 @@ data class WidgetTheme(
     val framePainter: FramePainter? = null,
     /** Draws some widgets' content as game UI (see [ThemeHud]). */
     val hud: ThemeHud? = null,
+    /**
+     * wallhaven search for real wallpapers that fit this set (e.g. "One Piece"). Only a search tag:
+     * Custo never draws franchise art itself, the look comes from the wallpaper the user picks.
+     */
+    val wallhavenQuery: String? = null,
+    /** The wallhaven wallpaper chosen as this set's background (see [SetBackgrounds.resolve]); null = the drawn [wallpaper]. */
+    val chosenWall: ChosenWall? = null,
 ) {
     /** The HUD mode for [kind], or null when this theme has no HUD for it. */
     fun hudMode(kind: WidgetKind?): HudMode? = kind?.let { hud?.mode(it) }

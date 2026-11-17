@@ -63,6 +63,7 @@ import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import app.custo.MainActivity
+import app.custo.container
 import app.custo.R
 import app.custo.feature.widgetsets.HudData
 import app.custo.feature.widgetsets.HudMode
@@ -269,7 +270,7 @@ private fun ThemedFrame(style: WidgetStyle, theme: WidgetTheme, onClick: Tap?, p
     val hud = if (mode != null) readBattery(ctx).let { b -> HudData(java.time.LocalDate.now(), b.level, b.charging, ctx.resources.configuration.locales[0]) } else null
     val hudStyle = if (mode != null) style else null
     TapSurface(style, onClick, GlanceModifier.fillMaxSize()) {
-        val bmp = remember(theme.id, kind, style.themeSlot, size, hud, hudStyle) {
+        val bmp = remember(theme.id, theme.palette, theme.chosenWall, kind, style.themeSlot, size, hud, hudStyle) {
             ThemeArt.widgetBitmap(ctx, theme, kind, style.themeSlot, size.width.value, size.height.value, hudStyle, hud)
         }
         Image(ImageProvider(bmp), null, GlanceModifier.fillMaxSize(), contentScale = ContentScale.FillBounds)
@@ -369,6 +370,7 @@ abstract class CustoWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        context.container.setBackgrounds.ensureLoaded()
         provideContent { Content(context, id) }
     }
 

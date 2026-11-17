@@ -50,6 +50,7 @@ object ThemePackB {
 
     val COMIC_HERO = WidgetTheme(
         id = "b_comic_hero",
+        wallhavenQuery = "Invincible",
         name = "Comic Hero",
         category = ThemeCategory.HEROES,
         description = "Comic panels with thick ink, halftone dots, POW and BAM bursts.",
@@ -90,6 +91,7 @@ object ThemePackB {
 
     val PIRATE_CREW = WidgetTheme(
         id = "b_pirate_crew",
+        wallhavenQuery = "One Piece",
         name = "Pirate Crew",
         category = ThemeCategory.HEROES,
         description = "Wanted posters, treasure maps and a ship on a sunny sea.",
@@ -130,6 +132,7 @@ object ThemePackB {
 
     val CURSED_ENERGY = WidgetTheme(
         id = "b_cursed_energy",
+        wallhavenQuery = "Jujutsu Kaisen",
         name = "Cursed Energy",
         category = ThemeCategory.HEROES,
         description = "Dark sorcery: violet energy swirls, paper talismans and brushstroke frames.",
@@ -260,6 +263,7 @@ object ThemePackB {
 
     val GALAXY = WidgetTheme(
         id = "b_galaxy",
+        wallhavenQuery = "space",
         name = "Galaxy",
         category = ThemeCategory.FUN,
         description = "Deep space: planets, rockets, a little astronaut and a glowing nebula.",
@@ -301,6 +305,7 @@ object ThemePackB {
 
     val HALLOWEEN = WidgetTheme(
         id = "b_halloween",
+        wallhavenQuery = "halloween",
         name = "Halloween",
         category = ThemeCategory.SEASONS,
         description = "Spooky-cute: pumpkins, ghosts, bats and candy under a big moon.",
@@ -387,6 +392,7 @@ object ThemePackB {
 
     val OCEAN = WidgetTheme(
         id = "b_ocean",
+        wallhavenQuery = "ocean",
         name = "Ocean",
         category = ThemeCategory.NATURE,
         description = "Under the sea: a happy whale, jellyfish, coral and rising bubbles.",

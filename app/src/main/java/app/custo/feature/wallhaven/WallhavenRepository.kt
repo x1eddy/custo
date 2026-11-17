@@ -309,6 +309,9 @@ class WallhavenRepository(
     /** The Wallpapers browser's pager; shared so going back from a detail keeps results and position. */
     val browsePager: WallhavenPager by lazy { WallhavenPager(this, scope) }
 
+    /** Pager for searches opened from elsewhere (a set, a pack), so the Wallpapers tab keeps its own. */
+    val queryPager: WallhavenPager by lazy { WallhavenPager(this, scope) }
+
     /** A fresh pager for another screen (e.g. a set's wallpaper strip). */
     fun pager(scope: CoroutineScope): WallhavenPager = WallhavenPager(this, scope)
 

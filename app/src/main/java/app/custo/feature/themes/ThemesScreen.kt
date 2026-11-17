@@ -30,7 +30,6 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Animation
-import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material.icons.rounded.Movie
@@ -85,7 +84,7 @@ import kotlin.random.Random
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun ThemesScreen(nav: Navigator) {
+fun ThemesScreen(nav: Navigator, onBack: (() -> Unit)? = null) {
     val c = LocalContext.current.container
     val runner = rememberActionRunner()
     val shizuku by c.shizuku.state.collectAsStateWithLifecycle()
@@ -121,17 +120,12 @@ fun ThemesScreen(nav: Navigator) {
         )
     }
 
-    ScreenScaffold(title = "Themes", actions = {
+    ScreenScaffold(title = "Make your own", onBack = onBack, actions = {
         app.custo.ui.components.InfoButton(
-            "Themes",
+            "Make your own",
             "A look is a wallpaper plus matching system colors, applied in one tap. Matching system colors needs Shizuku; without it only the wallpaper changes.",
         )
     }) {
-        item { app.custo.feature.wallhaven.WallpapersEntryCard(nav) }
-        item { app.custo.feature.widgetsets.WidgetSetsEntryCard { nav.push(Route.WidgetSets) } }
-        item {
-            SectionCard("Icons", Icons.Rounded.Apps, onClick = { nav.push(Route.IconsHub) })
-        }
         item { SectionLabel("Looks") }
         item {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

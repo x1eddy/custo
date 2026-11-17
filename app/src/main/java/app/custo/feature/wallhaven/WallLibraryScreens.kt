@@ -324,3 +324,38 @@ private fun PillButton(text: String, icon: androidx.compose.ui.graphics.vector.I
         Text(text, color = Color.White, style = MaterialTheme.typography.labelLarge)
     }
 }
+
+// ---------- Wallpapers tab header ----------
+
+/**
+ * Three picture cards above the Wallpapers grid: offline packs, the user's saved wallpapers and
+ * "Make your own" (the wallpaper maker, live, video, day & night, collage and looks).
+ */
+@Composable
+fun WallLibraryCards(nav: Navigator) {
+    val repo = LocalContext.current.container.wallhaven
+    val saved by repo.saved.collectAsStateWithLifecycle(emptyList())
+    val packCover = saved.firstOrNull { it.packId != null }?.let { repo.savedFile(it.id)?.path }
+    val mine = (saved.firstOrNull { it.packId == null } ?: saved.getOrNull(1))?.let { repo.savedFile(it.id)?.path }
+    val needOnline = packCover == null || mine == null
+    val online by produceState(emptyList<String>(), needOnline) {
+        if (needOnline) value = runCatching { repo.topFor("", 3).map { it.gridThumb } }.getOrDefault(emptyList())
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        LibraryCard("Offline packs", packCover ?: online.getOrNull(0), Modifier.weight(1f)) { nav.push(Route.OfflinePacks) }
+        LibraryCard("My wallpapers", mine ?: online.getOrNull(1), Modifier.weight(1f)) { nav.push(Route.SavedWallpapers) }
+        Box(Modifier.weight(1f).height(150.dp).clip(MaterialTheme.shapes.large).clickable { nav.push(Route.WallpaperMaker) }) {
+            app.custo.feature.themes.WallPreview(app.custo.feature.themes.BUILT_IN_LOOKS.first().wall, Modifier.fillMaxSize())
+            Box(Modifier.fillMaxSize().background(BottomScrim))
+            Text("Make your own", Modifier.align(Alignment.BottomStart).padding(10.dp), style = MaterialTheme.typography.labelLarge, color = Color.White)
+        }
+    }
+}
+
+@Composable
+private fun LibraryCard(title: String, src: String?, modifier: Modifier, onClick: () -> Unit) {
+    WallTile(src, modifier.height(150.dp), aspect = null, targetPx = 360, onClick = onClick) {
+        Box(Modifier.fillMaxSize().background(BottomScrim))
+        Text(title, Modifier.align(Alignment.BottomStart).padding(10.dp), style = MaterialTheme.typography.labelLarge, color = Color.White, maxLines = 2)
+    }
+}

@@ -41,6 +41,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -71,9 +72,11 @@ import app.custo.feature.themes.WallScheduleScreen
 import app.custo.feature.widgets.WidgetEditorScreen
 import app.custo.feature.widgets.WidgetsScreen
 import app.custo.ui.components.LocalSnackbar
+import app.custo.container
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
-class Navigator {
-    var tab by mutableStateOf(Tab.HOME)
+class Navigator(start: Tab = Tab.HOME) {
+    var tab by mutableStateOf(start)
     val stack = mutableStateListOf<Route>()
     fun push(r: Route) { stack.add(r) }
     fun pop(): Boolean = if (stack.isNotEmpty()) { stack.removeAt(stack.lastIndex); true } else false
@@ -82,13 +85,23 @@ class Navigator {
 
 @Composable
 fun CustoNavHost(initialRoute: Route? = null) {
-    val nav = remember { Navigator().also { n -> initialRoute?.let { n.push(it) } } }
+    // The tab survives configuration changes; a screen opened directly starts on its own tab.
+    var tabIndex by rememberSaveable { mutableStateOf(initialRoute?.homeTab()?.ordinal ?: 0) }
+    val nav = remember { Navigator(Tab.entries.getOrElse(tabIndex) { Tab.HOME }).also { n -> initialRoute?.let { n.push(it) } } }
     val snackbar = remember { SnackbarHostState() }
-    var tabIndex by rememberSaveable { mutableStateOf(0) }
-    nav.tab = Tab.entries[tabIndex]
+    LaunchedEffect(nav.tab) { tabIndex = nav.tab.ordinal }
+
+    // "Undo all" (Tweaks tab) runs in the app scope and may recreate this activity; show its result whenever it lands.
+    val container = androidx.compose.ui.platform.LocalContext.current.container
+    val undoResult by container.undoResult.collectAsStateWithLifecycle()
+    LaunchedEffect(undoResult) {
+        val msg = undoResult ?: return@LaunchedEffect
+        snackbar.showSnackbar(msg)
+        container.consumeUndoResult()
+    }
 
     BackHandler(enabled = nav.stack.isNotEmpty() || nav.tab != Tab.HOME) {
-        if (!nav.pop()) tabIndex = Tab.HOME.ordinal
+        if (!nav.pop()) nav.goTab(Tab.HOME)
     }
 
     CompositionLocalProvider(LocalSnackbar provides snackbar) {
@@ -114,10 +127,13 @@ fun CustoNavHost(initialRoute: Route? = null) {
             ) { target ->
                 when (target) {
                     Tab.HOME -> HomeScreen(nav)
-                    Tab.SYSTEM -> SystemUiScreen(nav)
-                    Tab.THEMES -> ThemesScreen(nav)
+                    Tab.WALLPAPERS -> app.custo.feature.wallhaven.WallhavenBrowseScreen(nav, null, asTab = true)
                     Tab.WIDGETS -> WidgetsScreen(nav)
-                    Tab.OVERLAYS -> OverlaysScreen(nav)
+                    Tab.ICONS -> app.custo.feature.icons.IconsHubScreen(nav, asTab = true)
+                    Tab.TWEAKS -> app.custo.feature.home.TweaksScreen(nav)
+                    Route.WallpaperMaker -> ThemesScreen(nav, onBack = { nav.pop() })
+                    Route.SystemUiHub -> SystemUiScreen(nav, onBack = { nav.pop() })
+                    Route.OverlaysHub -> OverlaysScreen(nav, onBack = { nav.pop() })
                     Route.ShizukuSetup -> ShizukuSetupScreen(onBack = { nav.pop() })
                     Route.QsEditor -> QsEditorScreen(onBack = { nav.pop() })
                     Route.Backup -> BackupScreen(onBack = { nav.pop() })
@@ -179,7 +195,7 @@ fun CustoNavHost(initialRoute: Route? = null) {
                     enter = slideInVertically { it * 2 } + fadeIn(),
                     exit = slideOutVertically { it * 2 } + fadeOut(),
                 ) {
-                    FloatingTabBar(nav.tab) { t -> tabIndex = t.ordinal; nav.goTab(t) }
+                    FloatingTabBar(nav.tab) { t -> nav.goTab(t) }
                 }
             }
         }
@@ -194,7 +210,7 @@ private fun FloatingTabBar(current: Tab, onSelect: (Tab) -> Unit) {
         color = MaterialTheme.colorScheme.surfaceContainerHighest,
         shadowElevation = 10.dp,
     ) {
-        Row(Modifier.padding(6.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        Row(Modifier.padding(5.dp), horizontalArrangement = Arrangement.spacedBy(1.dp)) {
             Tab.entries.forEach { t ->
                 val selected = t == current
                 val bg by animateColorAsState(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent, label = "tabbg")
@@ -203,7 +219,7 @@ private fun FloatingTabBar(current: Tab, onSelect: (Tab) -> Unit) {
                     Modifier.clip(CircleShape).background(bg)
                         .clickable { onSelect(t) }
                         .animateContentSize(spring(dampingRatio = 0.7f, stiffness = 500f))
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                        .padding(horizontal = 13.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(t.icon, t.label, tint = fg, modifier = Modifier.size(22.dp))

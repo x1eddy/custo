@@ -70,8 +70,8 @@ import app.custo.ui.components.rememberActionRunner
 import java.io.File
 
 @Composable
-fun IconsHubScreen(nav: Navigator) {
-    ScreenScaffold(title = "Icons", onBack = { nav.pop() }, actions = {
+fun IconsHubScreen(nav: Navigator, asTab: Boolean = false) {
+    ScreenScaffold(title = "Icons", onBack = if (asTab) null else ({ nav.pop() }), actions = {
         InfoButton(
             "How it works",
             "Android doesn't let apps swap another app's icon. Custo adds a home-screen shortcut with your new icon and name instead. It opens the app just like the original.\n\n" +

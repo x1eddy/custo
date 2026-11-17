@@ -329,6 +329,7 @@ object ThemePackC {
 
     val SAKURA = WidgetTheme(
         id = "c_sakura",
+        wallhavenQuery = "cherry blossom",
         name = "Sakura",
         category = ThemeCategory.NATURE,
         description = "Washi paper frames with ink brush strokes, cherry blossoms, lanterns and falling petals.",
@@ -432,6 +433,7 @@ object ThemePackC {
 
     val AUTUMN = WidgetTheme(
         id = "c_autumn",
+        wallhavenQuery = "autumn",
         name = "Autumn",
         category = ThemeCategory.SEASONS,
         description = "Flannel plaid bands, maple leaves, acorns, mushrooms and pumpkins in warm oranges.",
@@ -483,6 +485,7 @@ object ThemePackC {
 
     val CAMPING = WidgetTheme(
         id = "c_camping",
+        wallhavenQuery = "forest",
         name = "Camping",
         category = ThemeCategory.NATURE,
         description = "Wood-plank frames, a tent, a campfire and marshmallows under a starry mountain sky.",

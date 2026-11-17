@@ -143,7 +143,7 @@ private fun MonetJson.ColorSource.icon() = when (this) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun SystemUiScreen(nav: Navigator) {
+fun SystemUiScreen(nav: Navigator, onBack: (() -> Unit)? = null) {
     val ctx = LocalContext.current
     val c = ctx.container
     val ready = rememberShizukuReady()
@@ -174,7 +174,7 @@ fun SystemUiScreen(nav: Navigator) {
     fun act(msg: String? = null, block: suspend () -> Unit) = runner.run(msg) { block() }
 
     RevertDialog(c.appScope)
-    ScreenScaffold(title = "System UI") {
+    ScreenScaffold(title = "System UI", onBack = onBack) {
         if (!ready) item {
             SectionCard("Set up Shizuku", Icons.Rounded.SignalCellularAlt, onClick = { nav.push(Route.ShizukuSetup) })
         }

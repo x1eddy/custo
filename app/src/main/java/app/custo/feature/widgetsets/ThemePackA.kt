@@ -18,6 +18,7 @@ object ThemePackA {
 
     val BLOCKY = WidgetTheme(
         id = "a_blocky",
+        wallhavenQuery = "Minecraft",
         name = "Blocky",
         category = ThemeCategory.GAMES,
         description = "A pixel world: grass and dirt blocks, hearts for battery, an XP bar for the year and a hotbar for your apps.",
@@ -73,6 +74,7 @@ object ThemePackA {
 
     val MATRIX = WidgetTheme(
         id = "a_matrix_code",
+        wallhavenQuery = "Matrix",
         name = "Matrix Code",
         category = ThemeCategory.GAMES,
         description = "Black terminals, neon green glyph rain and a blinking cursor.",
@@ -129,6 +131,7 @@ object ThemePackA {
 
     val BLOCKY_SUMMER = WidgetTheme(
         id = "a_blocky_summer",
+        wallhavenQuery = "Roblox",
         name = "Blocky Summer",
         category = ThemeCategory.GAMES,
         description = "Cube-head friends at the beach: sun, palms, surf and ice cream.",
@@ -180,6 +183,7 @@ object ThemePackA {
 
     val BRICK_PARTY = WidgetTheme(
         id = "a_brick_party",
+        wallhavenQuery = "Roblox",
         name = "Brick Party",
         category = ThemeCategory.GAMES,
         description = "Studded toy bricks in primary colors, coins, trophies and checkpoints.",
@@ -235,6 +239,7 @@ object ThemePackA {
 
     val TACTICAL = WidgetTheme(
         id = "a_tactical_red",
+        wallhavenQuery = "Valorant",
         name = "Tactical Red",
         category = ThemeCategory.GAMES,
         description = "Cut-corner plates in black and red, hazard stripes and sharp emblems.",
@@ -287,6 +292,7 @@ object ThemePackA {
 
     val BATTLE_ROYALE = WidgetTheme(
         id = "a_battle_royale",
+        wallhavenQuery = "Fortnite",
         name = "Battle Royale",
         category = ThemeCategory.GAMES,
         description = "Item-shop rarity cards, shield and health bars, a tier pass for the year and the storm closing in.",
@@ -394,6 +400,7 @@ object ThemePackA {
 
     val SYNTHWAVE = WidgetTheme(
         id = "a_synthwave",
+        wallhavenQuery = "synthwave",
         name = "Synthwave",
         category = ThemeCategory.MUSIC,
         description = "80s sunset, neon grid, chrome stars and palm silhouettes.",
@@ -448,6 +455,7 @@ object ThemePackA {
 
     val CYBERPUNK = WidgetTheme(
         id = "a_neon_cyberpunk",
+        wallhavenQuery = "cyberpunk",
         name = "Neon Cyberpunk",
         category = ThemeCategory.GAMES,
         description = "Rainy neon city, HUD panels in magenta and yellow, circuits and chips.",

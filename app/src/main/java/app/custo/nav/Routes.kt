@@ -1,19 +1,20 @@
 package app.custo.nav
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.Dashboard
-import androidx.compose.material.icons.rounded.Layers
-import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.Wallpaper
 import androidx.compose.material.icons.rounded.Widgets
 import androidx.compose.ui.graphics.vector.ImageVector
 
+/** The five bottom-bar tabs, picture-first. */
 enum class Tab(val label: String, val icon: ImageVector) {
     HOME("Home", Icons.Rounded.Dashboard),
-    SYSTEM("System UI", Icons.Rounded.Tune),
-    THEMES("Themes", Icons.Rounded.Palette),
+    WALLPAPERS("Wallpapers", Icons.Rounded.Wallpaper),
     WIDGETS("Widgets", Icons.Rounded.Widgets),
-    OVERLAYS("Overlays", Icons.Rounded.Layers),
+    ICONS("Icons", Icons.Rounded.Apps),
+    TWEAKS("Tweaks", Icons.Rounded.Tune),
 }
 
 /** Screens pushed on top of a tab. */
@@ -49,6 +50,11 @@ sealed interface Route {
     data object LiveWallpaper : Route
     data object WallSchedule : Route
 
+    // Tab sub-hubs: "Make your own" wallpapers (Wallpapers tab), System UI and Overlays (Tweaks tab)
+    data object WallpaperMaker : Route
+    data object SystemUiHub : Route
+    data object OverlaysHub : Route
+
     // Icons (Themes tab)
     data object IconsHub : Route
     data class IconChanger(val pkg: String? = null, val editId: String? = null) : Route
@@ -71,4 +77,23 @@ sealed interface Route {
     data class WallpaperDetail(val id: String) : Route
     data object OfflinePacks : Route
     data object SavedWallpapers : Route
+}
+
+/**
+ * The tab a screen belongs to: where Back lands from it when it is opened directly (from a widget,
+ * a notification or the launcher), and which tab the bar shows while it's open.
+ */
+fun Route.homeTab(): Tab = when (this) {
+    Route.ShizukuSetup, Route.AppSettings -> Tab.HOME
+    Route.WallpaperMaker, Route.LiveWallpaper, Route.WallSchedule, Route.VideoWallpaper, Route.Collage,
+    is Route.WallhavenBrowse, is Route.WallpaperDetail, Route.OfflinePacks, Route.SavedWallpapers -> Tab.WALLPAPERS
+    is Route.WidgetEditor, Route.WidgetTrackers, Route.WidgetSets, is Route.WidgetSet -> Tab.WIDGETS
+    Route.IconsHub, is Route.IconChanger, is Route.IconMaker, Route.IconPacks, is Route.IconPack,
+    Route.ImportedIcons, Route.IconShortcuts, Route.IconThemes -> Tab.ICONS
+    Route.QsEditor, Route.Backup, Route.Profiles, is Route.ProfileEditor,
+    Route.SystemUiHub, Route.StatusBarExtras, Route.ScreenTweaks, Route.LockScreen, Route.Notifications,
+    Route.Gestures, Route.SoundHaptics, Route.TilePack, Route.AdvancedSettings,
+    Route.OverlaysHub, Route.OverlayEdge, Route.OverlayNotifLight, Route.OverlayIsland, Route.OverlayBattery,
+    Route.OverlayCharging, Route.OverlayCorners, Route.OverlayNetSpeed, Route.OverlayVolume, Route.OverlayButtons,
+    Route.OverlayGestures, Route.OverlaySidebar, Route.OverlayControlCenter, Route.OverlayStickers -> Tab.TWEAKS
 }

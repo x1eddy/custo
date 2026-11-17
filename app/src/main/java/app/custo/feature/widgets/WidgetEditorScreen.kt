@@ -123,7 +123,7 @@ fun WidgetEditorScreen(appWidgetId: Int, onBack: () -> Unit) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(style.themeId == null, { style = style.copy(themeId = null) }, { Text("None") })
                     WidgetThemes.all.forEach { t ->
-                        FilterChip(style.themeId == t.id, { style = t.styleFor(w.kind, style.themeSlot, style) }, { Text(t.name) })
+                        FilterChip(style.themeId == t.id, { style = app.custo.feature.widgetsets.SetBackgrounds.resolve(t).styleFor(w.kind, style.themeSlot, style) }, { Text(t.name) })
                     }
                 }
                 if (style.themeId != null) Hint("Colors and shape below are set by the set. Pick None to use your own.")

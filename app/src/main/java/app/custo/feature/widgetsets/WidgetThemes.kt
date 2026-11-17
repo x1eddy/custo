@@ -179,7 +179,11 @@ object WidgetThemes {
     val all: List<WidgetTheme> = listOf(GOOD_LUCK, FROSTED_CHRISTMAS, DOODLE_RED, DOODLE_GREEN) +
         ThemePackA.themes + ThemePackB.themes + ThemePackC.themes + ThemePackD.themes
 
-    fun byId(id: String?): WidgetTheme? = id?.let { i -> all.firstOrNull { it.id == i } }
+    /** The set as it looks now: with its chosen wallhaven background and matching colors, if any. */
+    fun byId(id: String?): WidgetTheme? = base(id)?.let { SetBackgrounds.resolve(it) }
+
+    /** The set as built in, ignoring any chosen background. */
+    fun base(id: String?): WidgetTheme? = id?.let { i -> all.firstOrNull { it.id == i } }
 
     /** Categories that have at least one set, in enum order. */
     val categories: List<ThemeCategory> get() = ThemeCategory.entries.filter { c -> all.any { it.category == c } }

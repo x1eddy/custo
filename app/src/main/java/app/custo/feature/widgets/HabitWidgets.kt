@@ -112,6 +112,7 @@ internal fun Pill(style: WidgetStyle, label: String, tap: Tap, modifier: GlanceM
 
 class WaterWidget : ResponsiveWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        context.container.setBackgrounds.ensureLoaded()
         val habits = context.container.habits
         val first = habits.waterNow()
         provideContent {
@@ -204,6 +205,7 @@ class WaterReceiver : CustoReceiver() { override val glanceAppWidget: GlanceAppW
 
 class MoodWidget : ResponsiveWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        context.container.setBackgrounds.ensureLoaded()
         val habits = context.container.habits
         val first = habits.moodNow()
         provideContent {
@@ -314,6 +316,7 @@ class MoodReceiver : CustoReceiver() { override val glanceAppWidget: GlanceAppWi
 
 class TodoWidget : CustoWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        context.container.setBackgrounds.ensureLoaded()
         val habits = context.container.habits
         val first = habits.todoNow()
         provideContent {
@@ -424,6 +427,7 @@ object StepSensor {
 
 class StepsWidget : ResponsiveWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        context.container.setBackgrounds.ensureLoaded()
         val first = StepSensor.today(context)
         provideContent {
             val tick = currentState(Widgets.TICK_KEY)
@@ -523,6 +527,7 @@ object ScreenTime {
 
 class ScreenTimeWidget : ResponsiveWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        context.container.setBackgrounds.ensureLoaded()
         val first = ScreenTime.today(context)
         provideContent {
             val tick = currentState(Widgets.TICK_KEY)

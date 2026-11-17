@@ -20,6 +20,7 @@ import app.custo.feature.themes.LooksRepository
 import app.custo.feature.widgets.HabitStore
 import app.custo.feature.themes.WallpaperStudio
 import app.custo.feature.wallhaven.WallhavenRepository
+import app.custo.feature.widgetsets.SetBackgroundRepository
 import app.custo.feature.systemui.StatusBarKeeper
 import app.custo.feature.systemui.SystemTweaks
 import app.custo.shizuku.OriginalsStore
@@ -51,6 +52,8 @@ class AppContainer(context: Context) {
     val statusBarKeeper = StatusBarKeeper(prefs, tweaks, shizuku)
     /** wallhaven search, saved wallpapers and offline packs. */
     val wallhaven = WallhavenRepository(app, wallpapers, appScope)
+    /** Real wallhaven backgrounds chosen for widget sets, and the colors derived from them. */
+    val setBackgrounds = SetBackgroundRepository(app, wallhaven, appScope)
 
     private val _undoResult = MutableStateFlow<String?>(null)
     /** Message from the last "Undo all", until the UI shows it. Outlives activity recreation. */

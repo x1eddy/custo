@@ -54,7 +54,7 @@ import app.custo.ui.components.SwitchRow
 private enum class Sheet { TINT, STATUS_TAP }
 
 @Composable
-fun OverlaysScreen(nav: Navigator) {
+fun OverlaysScreen(nav: Navigator, onBack: (() -> Unit)? = null) {
     val ctx = LocalContext.current
     val c = ctx.container
     val ui = rememberOverlayUi()
@@ -70,6 +70,7 @@ fun OverlaysScreen(nav: Navigator) {
 
     ScreenScaffold(
         title = "Overlays",
+        onBack = onBack,
         actions = {
             InfoButton("Overlay service", "Overlays run as an accessibility service. Custo uses it only to draw on screen and to read volume keys and gestures. It never reads your screen.")
         },

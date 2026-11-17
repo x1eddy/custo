@@ -55,7 +55,18 @@ object ThemeArt {
     ) {
         val card = cardRect(theme, w, h, d)
         if (card.width() <= 2 || card.height() <= 2) return
-        drawFrame(c, theme, card, d, seed = (kind?.ordinal ?: 0) * 31 + slot)
+        val seed = (kind?.ordinal ?: 0) * 31 + slot
+        val tint = theme.chosenWall?.tint
+        if (tint != null) {
+            // On a real wallpaper, wash the frame with the picture's main color so it sits on it.
+            val pad = 12f * d
+            val layer = c.saveLayer(card.left - pad, card.top - pad, card.right + pad, card.bottom + pad, null)
+            drawFrame(c, theme, card, d, seed)
+            c.drawColor((tint and 0x00FFFFFF) or (0x5C shl 24), android.graphics.PorterDuff.Mode.SRC_ATOP)
+            c.restoreToCount(layer)
+        } else {
+            drawFrame(c, theme, card, d, seed)
+        }
         val themeHud = theme.hud
         if (themeHud != null && kind != null && style != null && hud != null && themeHud.mode(kind) != null) {
             themeHud.draw(c, theme, kind, style, hud, card, contentRect(theme, card, d), d)

@@ -33,7 +33,7 @@ object SetPreviews {
 
     suspend fun get(theme: WidgetTheme, widthPx: Int): Bitmap {
         val w = widthPx.coerceIn(120, 900)
-        val key = "${theme.id}@$w@${LocalDate.now()}"
+        val key = key(theme, w)
         cache.get(key)?.let { return it }
         // Cached inside the render block so a render that outlives its (scrolled-away) caller still counts.
         return withContext(app.custo.ui.components.PreviewRender) {
@@ -42,14 +42,45 @@ object SetPreviews {
     }
 
     /** The cached preview, if there is one; cheap enough to call during composition. */
-    fun peek(theme: WidgetTheme, widthPx: Int): Bitmap? = cache.get("${theme.id}@${widthPx.coerceIn(120, 900)}@${LocalDate.now()}")
+    fun peek(theme: WidgetTheme, widthPx: Int): Bitmap? = cache.get(key(theme, widthPx.coerceIn(120, 900)))
+
+    private fun key(theme: WidgetTheme, w: Int) = "${theme.id}@${theme.chosenWall?.id}@$w@${LocalDate.now()}"
+
+    /**
+     * The set's background: its chosen wallhaven picture (center-cropped) when there is one and it
+     * decodes, else the drawn wallpaper.
+     */
+    fun paintBackground(c: Canvas, theme: WidgetTheme, w: Int, h: Int) {
+        val pic = theme.chosenWall?.let { decodeCover(it.path, w, h) }
+        if (pic == null) {
+            theme.wallpaper.paint(c, w.toFloat(), h.toFloat())
+            return
+        }
+        val scale = maxOf(w.toFloat() / pic.width, h.toFloat() / pic.height)
+        val dw = pic.width * scale; val dh = pic.height * scale
+        val dst = RectF((w - dw) / 2f, (h - dh) / 2f, (w + dw) / 2f, (h + dh) / 2f)
+        c.drawBitmap(pic, null, dst, Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG))
+        pic.recycle()
+    }
+
+    /** A picture file decoded at about [w] × [h] (never much bigger), or null. */
+    private fun decodeCover(path: String, w: Int, h: Int): Bitmap? {
+        val f = java.io.File(path)
+        if (!f.isFile) return null
+        val b = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        android.graphics.BitmapFactory.decodeFile(path, b)
+        if (b.outWidth <= 0 || b.outHeight <= 0) return null
+        var sample = 1
+        while (b.outWidth / (sample * 2) >= w && b.outHeight / (sample * 2) >= h) sample *= 2
+        return android.graphics.BitmapFactory.decodeFile(path, android.graphics.BitmapFactory.Options().apply { inSampleSize = sample })
+    }
 
     fun render(theme: WidgetTheme, w: Int): Bitmap {
         val h = (w * ASPECT).roundToInt()
         val bmp = createBitmap(w, h)
         val c = Canvas(bmp)
         val wf = w.toFloat(); val hf = h.toFloat()
-        theme.wallpaper.paint(c, wf, hf)
+        paintBackground(c, theme, w, h)
         val d = wf / PHONE_DP
         statusBar(c, wf, d)
 

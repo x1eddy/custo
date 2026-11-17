@@ -113,12 +113,14 @@ enum class BrowseChip(
 
 /**
  * wallhaven browser: search, quick chips, portrait toggle and an endless 2-column picture grid.
- * Opening it with [initialQuery] searches for that term (e.g. from a widget set).
+ * Opening it with [initialQuery] searches for that term (e.g. from a widget set). As the
+ * Wallpapers tab ([asTab]) it has no back arrow and shows picture cards for offline packs, saved
+ * wallpapers and the wallpaper maker above the grid.
  */
 @Composable
-fun WallhavenBrowseScreen(nav: Navigator, initialQuery: String? = null) {
+fun WallhavenBrowseScreen(nav: Navigator, initialQuery: String? = null, asTab: Boolean = false) {
     val repo = LocalContext.current.container.wallhaven
-    val pager = repo.browsePager
+    val pager = if (initialQuery != null) repo.queryPager else repo.browsePager
     val state by pager.state.collectAsStateWithLifecycle()
     var text by remember { mutableStateOf(if (initialQuery != null) initialQuery else pager.searchText) }
     var chip by remember { mutableStateOf(if (initialQuery != null) null else pager.chip) }
@@ -153,15 +155,18 @@ fun WallhavenBrowseScreen(nav: Navigator, initialQuery: String? = null) {
             columns = GridCells.Fixed(2),
             state = grid,
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = 32.dp),
+            contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = if (asTab) 120.dp else 32.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             item(key = "head", span = { GridItemSpan(maxLineSpan) }) {
-                Column(Modifier.statusBarsPadding().padding(top = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.statusBarsPadding().padding(top = if (asTab) 20.dp else 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (asTab) {
+                        Text("Wallpapers", style = MaterialTheme.typography.displaySmall, modifier = Modifier.padding(start = 4.dp, bottom = 4.dp))
+                        WallLibraryCards(nav)
+                    } else Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = { nav.pop() }) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Back") }
-                        Text("Wallpapers", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
+                        Text(initialQuery ?: "Wallpapers", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f), maxLines = 1)
                         IconButton(onClick = { nav.push(Route.OfflinePacks) }) { Icon(Icons.Rounded.Inventory2, "Offline packs") }
                         IconButton(onClick = { nav.push(Route.SavedWallpapers) }) { Icon(Icons.Rounded.Bookmark, "My wallpapers") }
                     }

@@ -64,6 +64,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.custo.container
 import app.custo.feature.themes.WallTarget
 import app.custo.feature.widgets.PlacedWidget
@@ -90,17 +91,28 @@ import kotlinx.coroutines.withTimeoutOrNull
 
 // ---------- Shared pieces ----------
 
-/** The set's phone-shaped preview, rendered in the background at this size and cached. */
+/**
+ * The set's phone-shaped preview, rendered in the background at this size and cached. Shows the
+ * set's chosen wallhaven background; a set with a wallhaven search and none chosen gets its top
+ * result picked automatically (once, in the background) when online.
+ */
 @Composable
-fun SetPreviewImage(theme: WidgetTheme, modifier: Modifier = Modifier, corner: Int = 18) {
+fun SetPreviewImage(base: WidgetTheme, modifier: Modifier = Modifier, corner: Int = 18) {
     val shape = RoundedCornerShape(corner.dp)
+    val ctx = LocalContext.current
+    val choices by SetBackgrounds.choices.collectAsStateWithLifecycle()
+    val theme = remember(base, choices[base.id]) { SetBackgrounds.resolve(base) }
+    if (base.wallhavenQuery != null) LaunchedEffect(base.id) { ctx.container.setBackgrounds.autoDefault(base) }
     BoxWithConstraints(
         modifier.aspectRatio(1f / SetPreviews.ASPECT).clip(shape)
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .border(2.dp, MaterialTheme.colorScheme.outlineVariant, shape),
     ) {
         val px = with(LocalDensity.current) { maxWidth.roundToPx() }
-        val bmp by produceState(SetPreviews.peek(theme, px), theme.id, px) { value = SetPreviews.get(theme, px) }
+        val bmp by produceState(SetPreviews.peek(theme, px), theme.id, theme.chosenWall, px) {
+            SetPreviews.peek(theme, px)?.let { value = it; return@produceState }
+            value = SetPreviews.get(theme, px)
+        }
         Crossfade(bmp, label = "set") { b ->
             if (b != null) Image(b.asImageBitmap(), theme.name, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
         }
@@ -168,7 +180,8 @@ private fun SetCard(theme: WidgetTheme, modifier: Modifier, onClick: () -> Unit)
         SetPreviewImage(theme, Modifier.fillMaxWidth())
         Spacer(Modifier.height(8.dp))
         Text(theme.name, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text("${theme.widgets.size} widgets", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        val q = theme.wallhavenQuery
+        if (q != null) WallhavenTag(q) else Text("${theme.widgets.size} widgets", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -177,7 +190,8 @@ private fun SetCard(theme: WidgetTheme, modifier: Modifier, onClick: () -> Unit)
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun WidgetSetScreen(id: String, nav: Navigator) {
-    val theme = WidgetThemes.byId(id)
+    val choices by SetBackgrounds.choices.collectAsStateWithLifecycle()
+    val theme = remember(id, choices[id]) { WidgetThemes.byId(id) }
     if (theme == null) {
         ScreenScaffold(title = "Widget set", onBack = { nav.pop() }) { item { Hint("This set isn't here anymore.") } }
         return
@@ -195,7 +209,7 @@ fun WidgetSetScreen(id: String, nav: Navigator) {
     if (applyOpen) ApplySetDialog(theme, onDismiss = { applyOpen = false }) { wall, target, picked ->
         applyOpen = false
         runner.run {
-            if (wall) c.wallpapers.applyPainted(target) { cv, w, h -> theme.wallpaper.paint(cv, w, h) }
+            if (wall) applySetWallpaper(c, theme, target)
             val today = java.time.LocalDate.now()
             val jobs = picked.map { i -> SetPinJob(theme.widgets[i].kind, theme.styleForSetWidget(i, today)) }
             if (jobs.isEmpty()) runner.message("Wallpaper set") else pinner.start(jobs)
@@ -203,7 +217,7 @@ fun WidgetSetScreen(id: String, nav: Navigator) {
     }
     if (wallOpen) WallTargetDialog(onDismiss = { wallOpen = false }) { target ->
         wallOpen = false
-        runner.run("Wallpaper set") { c.wallpapers.applyPainted(target) { cv, w, h -> theme.wallpaper.paint(cv, w, h) } }
+        runner.run("Wallpaper set") { applySetWallpaper(c, theme, target) }
     }
     if (restyleOpen) RestyleDialog(theme, onDismiss = { restyleOpen = false }) { chosen ->
         restyleOpen = false
@@ -228,6 +242,7 @@ fun WidgetSetScreen(id: String, nav: Navigator) {
             }
         }
         item { Text(theme.description, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 6.dp)) }
+        theme.wallhavenQuery?.let { q -> item(key = "walls") { SetWallStrip(theme, q, nav) } }
         item {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = { applyOpen = true }) { Icon(Icons.Rounded.AutoAwesome, null); Text("  Apply set") }
@@ -247,7 +262,7 @@ fun WidgetSetScreen(id: String, nav: Navigator) {
                     verticalArrangement = Arrangement.spacedBy(gap),
                 ) {
                     theme.widgets.forEachIndexed { i, sw ->
-                        val style = remember(theme.id, i) { theme.styleForSetWidget(i, today) }
+                        val style = remember(theme.id, theme.palette, i) { theme.styleForSetWidget(i, today) }
                         val cols = sw.cols.coerceIn(1, 4)
                         Column(Modifier.width(cell * cols + gap * (cols - 1))) {
                             Box(
@@ -267,6 +282,13 @@ fun WidgetSetScreen(id: String, nav: Navigator) {
             }
         }
     }
+}
+
+/** The set's chosen wallhaven picture as wallpaper, or its drawn one when none is chosen. */
+private suspend fun applySetWallpaper(c: app.custo.AppContainer, theme: WidgetTheme, target: WallTarget) {
+    val file = c.setBackgrounds.wallFile(theme)
+    if (file != null) c.wallpapers.applyImage(file, target)
+    else c.wallpapers.applyPainted(target) { cv, w, h -> theme.wallpaper.paint(cv, w, h) }
 }
 
 @Composable
