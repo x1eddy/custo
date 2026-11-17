@@ -16,6 +16,7 @@ import androidx.compose.material.icons.rounded.Contrast
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.RoundedCorner
+import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -53,7 +54,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** Settings for Custo itself: theme, AMOLED black, accent, corner roundness, reduced motion and licenses. */
+/** Settings for Custo itself: theme, AMOLED black, accent, corner roundness, reduced motion, updates and licenses. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AppSettingsScreen(onBack: () -> Unit) {
@@ -98,6 +99,9 @@ fun AppSettingsScreen(onBack: () -> Unit) {
                     save(AppAppearance.REDUCE_MOTION, it)
                 }
             }
+        }
+        item {
+            SectionCard("Updates", Icons.Rounded.SystemUpdate) { app.custo.feature.update.UpdateSettings() }
         }
         item {
             val files by produceState(emptyList<String>()) {

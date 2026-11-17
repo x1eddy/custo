@@ -87,6 +87,7 @@ fun HomeScreen(nav: Navigator) {
             IconButton(onClick = { nav.push(Route.AppSettings) }) { Icon(Icons.Rounded.Settings, "Settings") }
         },
     ) {
+        item(key = "update") { app.custo.feature.update.UpdateBanner() }
         item(key = "hero") { HeroCarousel(nav, Modifier.enterAnimation(0)) }
 
         item(key = "quick") {

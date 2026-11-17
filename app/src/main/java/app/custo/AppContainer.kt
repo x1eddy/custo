@@ -20,6 +20,7 @@ import app.custo.feature.themes.LooksRepository
 import app.custo.feature.widgets.HabitStore
 import app.custo.feature.themes.WallpaperStudio
 import app.custo.feature.wallhaven.WallhavenRepository
+import app.custo.feature.update.Updater
 import app.custo.feature.widgetsets.SetBackgroundRepository
 import app.custo.feature.systemui.StatusBarKeeper
 import app.custo.feature.systemui.SystemTweaks
@@ -54,6 +55,8 @@ class AppContainer(context: Context) {
     val wallhaven = WallhavenRepository(app, wallpapers, appScope)
     /** Real wallhaven backgrounds chosen for widget sets, and the colors derived from them. */
     val setBackgrounds = SetBackgroundRepository(app, wallhaven, appScope)
+    /** Checks GitHub for new Custo releases and installs them. */
+    val updater = Updater(app, prefs, appScope)
 
     private val _undoResult = MutableStateFlow<String?>(null)
     /** Message from the last "Undo all", until the UI shows it. Outlives activity recreation. */

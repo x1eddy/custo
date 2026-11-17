@@ -45,7 +45,7 @@
 1. On your phone, open [the latest release](../../releases/latest) and download `custo-<version>.apk`.
 2. Open the downloaded file. If Android asks, allow installs from your browser or Files app (**Settings → Install unknown apps**).
 3. If **Google Play Protect** says the app is unknown or blocks it, tap **More details → Install anyway**. This shows up for any app that isn't from the Play Store.
-4. Updating? Just install the new APK over the old one – your settings stay. (Releases are signed with key rotation, so they also install over earlier test builds.)
+4. Updating? From 1.1.0 on, Custo checks GitHub for new versions itself (Settings → Updates) and installs them in one tap. You can also install a new APK over the old one – your settings stay. (Releases are signed with key rotation, so they also install over earlier test builds.)
 5. Optional: install [Shizuku](https://shizuku.rikka.app/) to unlock the System UI features (start it with Wireless debugging; Custo walks you through it).
 
 Requires Android 12 or newer. If Android says *"App not installed as package conflicts with an existing package"*, you have a Custo signed with a different key (for example a build you made yourself) – uninstall it first, then install the release.
@@ -55,7 +55,8 @@ Requires Android 12 or newer. If Android says *"App not installed as package con
 - **Shizuku** (optional): lets Custo change system settings the same way a computer over USB could. Custo only runs what you tap, and records every original value so *Undo all* can restore it.
 - **Accessibility service** (optional): draws the overlays and reads volume-key presses for the custom volume panel and button actions. It does not read your screen content.
 - **Notification access** (optional): edge lighting, notification light, the dynamic island and the Now playing widget. Nothing is stored or sent.
-- **Internet** (for wallpapers only): Custo talks to wallhaven.cc to search and download wallpapers. No account, no tracking, nothing about you is sent. Everything else works offline, and saved wallpapers stay usable without a connection.
+- **Internet** (wallpapers and updates): Custo talks to wallhaven.cc to search and download wallpapers, and to GitHub to look for new Custo versions. No account, no tracking, nothing about you is sent. Everything else works offline, and saved wallpapers stay usable without a connection.
+- **Install apps** (updates only): lets Custo install its own updates after you tap *Update*. Android only accepts updates signed with Custo's key.
 
 > Android 13+ may block the accessibility and notification-access toggles for apps installed outside a store ("Restricted setting"). Open App info → ⋮ → *Allow restricted settings*, or use the one-tap buttons in Custo when Shizuku is running.
 

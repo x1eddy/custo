@@ -16,8 +16,8 @@ android {
         applicationId = "app.custo"
         minSdk = 31
         targetSdk = 36
-        versionCode = 11
-        versionName = "1.0.1"
+        versionCode = 12
+        versionName = "1.1.0"
     }
 
     // Release signing from ../keystore.properties (never committed). Without it, release builds
