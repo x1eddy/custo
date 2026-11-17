@@ -230,6 +230,7 @@ private fun PackSheet(pack: WallPack, have: Int, p: PackProgress?, nav: Navigato
 @Composable
 fun SavedWallpapersScreen(nav: Navigator) {
     val repo = LocalContext.current.container.wallhaven
+    val runner = app.custo.ui.components.rememberActionRunner()
     val saved by repo.saved.collectAsStateWithLifecycle(null)
     var favOnly by remember { mutableStateOf(false) }
     var packFilter by remember { mutableStateOf<String?>(null) }
@@ -255,7 +256,9 @@ fun SavedWallpapersScreen(nav: Navigator) {
             }
         }
         items(shown, key = { it.id }) { w ->
-            WallTile(repo.savedFile(w.id)?.path, targetPx = cellPx, onClick = { nav.push(Route.WallpaperDetail(w.id)) }) {
+            var menu by remember { mutableStateOf(false) }
+            WallTile(repo.savedFile(w.id)?.path, targetPx = cellPx, onClick = { nav.push(Route.WallpaperDetail(w.id)) }, onLongClick = { menu = true }) {
+                NotThisMenu(menu, { menu = false }) { runner.run(if (w.packId != null) "Removed · getting another" else "Removed") { repo.notThis(w.id) } }
                 if (w.favorite) Icon(Icons.Rounded.Favorite, null, tint = Color.White, modifier = Modifier.align(Alignment.TopEnd).padding(10.dp).size(18.dp))
             }
         }

@@ -6,6 +6,7 @@ import android.net.NetworkCapabilities
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.work.Constraints
 import androidx.work.ExistingWorkPolicy
@@ -74,6 +75,7 @@ class WallhavenRepository(
     private val app = context.applicationContext
     private val prefs = Prefs(app.wallhavenStore)
     private val savedKey = stringPreferencesKey("saved_json")
+    private val blockedKey = stringSetPreferencesKey("blocked_ids")
     val api = WallhavenApi(isOnline = ::isOnline)
     private val compactor = WallCompactor { studio.screenSize() }
     val dir: File get() = File(app.filesDir, "wallpapers").apply { mkdirs() }
@@ -81,6 +83,62 @@ class WallhavenRepository(
     private val known = ConcurrentHashMap<String, WhWallpaper>()
     private val topCache = ConcurrentHashMap<String, Pair<Long, List<WhWallpaper>>>()
     private val saveLocks = ConcurrentHashMap<String, Mutex>()
+    /** Tag check results per wallpaper id (true = fine), so a picture is looked up once per run. */
+    private val tagChecks = ConcurrentHashMap<String, Boolean>()
+    private val goneListeners = java.util.concurrent.CopyOnWriteArrayList<suspend (id: String, notThis: Boolean) -> Unit>()
+
+    // ---------- "Not this" ----------
+
+    /** Wallpapers the user said "Not this" to: every search, pack, set strip and automatic pick skips them. */
+    val blocked: Flow<Set<String>> = prefs.flow(blockedKey, emptySet())
+
+    @Volatile private var blockedCache: Set<String>? = null
+
+    suspend fun blockedNow(): Set<String> = blockedCache ?: prefs.get(blockedKey, emptySet()).also { blockedCache = it }
+
+    /** Called when a saved wallpaper goes away (deleted, or "Not this"), e.g. so a set using it picks another. */
+    fun addGoneListener(l: suspend (id: String, notThis: Boolean) -> Unit) { goneListeners += l }
+
+    /**
+     * "Not this": never show [id] again, delete its file, drop it from the open grids and, when it
+     * belonged to a pack, fetch the next good picture so the pack keeps its size.
+     */
+    suspend fun notThis(id: String) {
+        val record = savedRaw.first().firstOrNull { it.id == id }
+        prefs.edit { it[blockedKey] = (it[blockedKey] ?: emptySet()) + id }
+        blockedCache = null
+        topCache.replaceAll { _, v -> v.first to v.second.filterNot { it.id == id } }
+        browsePager.remove(id)
+        queryPager.remove(id)
+        if (record != null) {
+            withContext(Dispatchers.IO) { savedFileOf(id).delete() }
+            WallImages.forget(savedFileOf(id).path)
+            prefs.updateList(savedKey, SavedWall.serializer(), "wallpapers") { l -> l.filterNot { it.id == id } }
+        }
+        goneListeners.forEach { runCatching { it(id, true) } }
+        val packId = record?.packId ?: return
+        val have = savedRaw.first().count { it.packId == packId && savedFileOf(it.id).isFile }
+        val target = maxOf(have + 1, packProgress.value[packId]?.takeIf { it.active }?.total ?: 0)
+        // One picture, asked for by the user: any network is fine.
+        downloadPack(packId, target, wifiOnly = false)
+    }
+
+    /**
+     * Looks at the tags of a curated pick (one rate-limited request, cached): false when it is a
+     * meme/collage/screenshot/pin-up or lacks [tagId]. Network errors other than being offline count as "fine".
+     */
+    suspend fun passesTagCheck(item: WhWallpaper, tagId: Long?): Boolean {
+        tagChecks[item.id]?.let { return it }
+        val info = try {
+            api.info(item.id)
+        } catch (e: WallhavenException) {
+            if (e.error == WhError.OFFLINE || e.error == WhError.RATE_LIMITED) throw e
+            return true
+        }
+        val ok = info != null && !WhQuality.isJunk(info.tags) && WhQuality.hasTag(info.tags, tagId)
+        tagChecks[item.id] = ok
+        return ok
+    }
 
     // ---------- Network ----------
 
@@ -105,8 +163,13 @@ class WallhavenRepository(
     }
 
     /** One page of SFW results. Throws [WallhavenException] (offline, rate limited, …). */
-    suspend fun search(query: String?, filters: WhFilters = defaultFilters(), page: Int = 1, seed: String? = null): WhPage =
-        api.search(query, filters, page, seed).also { p -> p.items.forEach { known[it.id] = it } }
+    suspend fun search(query: String?, filters: WhFilters = defaultFilters(), page: Int = 1, seed: String? = null): WhPage {
+        // Curated terms ("Minecraft", "One Piece", "space"…) search their exact wallhaven tag.
+        val p = api.search(WhTags.apiQuery(query), filters, page, seed)
+        p.items.forEach { known[it.id] = it }
+        val blocked = blockedNow()
+        return if (blocked.isEmpty()) p else p.copy(items = WhQuality.withoutBlocked(p.items, blocked))
+    }
 
     /**
      * Up to [n] top wallpapers for [query] (e.g. "One Piece"), cached for 30 minutes. Falls back to
@@ -114,10 +177,16 @@ class WallhavenRepository(
      */
     suspend fun topFor(query: String, n: Int = 12, portrait: Boolean = true): List<WhWallpaper> {
         val key = "$query|$portrait"
-        topCache[key]?.let { (at, list) -> if (System.currentTimeMillis() - at < 30 * 60_000) return list.take(n) }
+        val blocked = blockedNow()
+        topCache[key]?.let { (at, list) ->
+            if (System.currentTimeMillis() - at < 30 * 60_000) return WhQuality.withoutBlocked(list, blocked).take(n)
+        }
         val first = search(query, defaultFilters(portrait, WhSorting.FAVORITES)).items
-        val list = if (first.size >= n || !portrait) first
+        val enough = WhQuality.curate(first, n).size >= n
+        val raw = if (enough || !portrait) first
         else (first + search(query, defaultFilters(false, WhSorting.FAVORITES)).items).distinctBy { it.id }
+        // Named searches get the quality rules (popular, big enough, phone-shaped); the hero's "" doesn't need them.
+        val list = if (query.isBlank()) raw else WhQuality.curate(raw, n)
         topCache[key] = System.currentTimeMillis() to list
         return list.take(n)
     }
@@ -205,6 +274,7 @@ class WallhavenRepository(
         withContext(Dispatchers.IO) { savedFileOf(id).delete() }
         WallImages.forget(savedFileOf(id).path)
         prefs.updateList(savedKey, SavedWall.serializer(), "wallpapers") { l -> l.filterNot { it.id == id } }
+        goneListeners.forEach { runCatching { it(id, false) } }
     }
 
     /** Deletes a pack's downloads, except ones the user favourited. */
@@ -214,6 +284,7 @@ class WallhavenRepository(
         withContext(Dispatchers.IO) { gone.forEach { savedFileOf(it).delete(); WallImages.forget(savedFileOf(it).path) } }
         prefs.updateList(savedKey, SavedWall.serializer(), "wallpapers") { l -> l.filterNot { it.id in gone } }
         _packProgress.update { it - packId }
+        gone.forEach { id -> goneListeners.forEach { runCatching { it(id, false) } } }
     }
 
     /** Bytes of saved wallpapers on the phone. */

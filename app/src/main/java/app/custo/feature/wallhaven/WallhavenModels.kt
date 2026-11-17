@@ -22,6 +22,8 @@ data class WhWallpaper(
     val purity: String = "",
     val views: Int = 0,
     val favorites: Int = 0,
+    /** Only filled by `/w/<id>` (search results carry no tags). */
+    val tags: List<WhTag> = emptyList(),
 ) {
     /** Thumbnail that keeps the image's own aspect ratio (wallhaven's "large" is a 16:9 crop). */
     val gridThumb: String get() = thumbs.original.ifBlank { thumbs.large.ifBlank { thumbs.small } }

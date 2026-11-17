@@ -42,6 +42,7 @@ import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.StayCurrentPortrait
 import androidx.compose.material.icons.rounded.Wallpaper
+import androidx.compose.material.icons.rounded.ThumbDown
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
@@ -128,6 +129,7 @@ fun WallhavenBrowseScreen(nav: Navigator, initialQuery: String? = null, asTab: B
     val focus = LocalFocusManager.current
     val grid = rememberLazyGridState(pager.firstVisible, pager.firstVisibleOffset)
     val scope = rememberCoroutineScope()
+    val runner = rememberActionRunner()
 
     fun run() {
         pager.searchText = text; pager.chip = chip; pager.portrait = portrait
@@ -196,11 +198,13 @@ fun WallhavenBrowseScreen(nav: Navigator, initialQuery: String? = null, asTab: B
                 }
             }
             items(state.items, key = { it.id }) { w ->
+                var menu by remember { mutableStateOf(false) }
                 WallTile(
                     w.gridThumb, targetPx = cellPx,
                     placeholder = w.colors.firstOrNull()?.let { WallFormat.color(it) }?.let { Color(it).copy(alpha = 0.55f) },
                     onClick = { nav.push(Route.WallpaperDetail(w.id)) },
-                )
+                    onLongClick = { menu = true },
+                ) { NotThisMenu(menu, { menu = false }) { runner.run { repo.notThis(w.id) } } }
             }
             if (state.loading) {
                 items(if (state.items.isEmpty()) 8 else 2, key = { "sh$it" }) { Shimmer(Modifier.fillMaxWidth().height(300.dp).clip(MaterialTheme.shapes.large)) }
@@ -275,6 +279,18 @@ fun WallpaperDetailScreen(id: String, nav: Navigator) {
                 Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Back")
             }
             Spacer(Modifier.weight(1f))
+            // "Not this": wrong franchise, a meme, not a wallpaper… gone for good, and its pack gets another.
+            TextButton(onClick = {
+                if (busy != null) return@TextButton
+                busy = "Removing…"
+                runner.run(if (saved?.packId != null) "Removed · getting another" else "Removed") {
+                    try { repo.notThis(id) } finally { busy = null }
+                    nav.pop()
+                }
+            }) {
+                Icon(Icons.Rounded.ThumbDown, null, tint = Color.White, modifier = Modifier.size(16.dp)); Spacer(Modifier.width(4.dp))
+                Text("Not this", color = Color.White)
+            }
             val page = data.item?.pageUrl ?: data.saved?.sourceUrl
             if (!page.isNullOrBlank()) TextButton(onClick = {
                 runCatching { ctx.startActivity(Intent(Intent.ACTION_VIEW, page.toUri()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }

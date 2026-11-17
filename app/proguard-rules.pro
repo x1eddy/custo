@@ -18,3 +18,7 @@
 
 # Custo's own workers (wallpaper pack downloads) are created by reflection from their class name.
 -keep class * extends androidx.work.ListenableWorker { <init>(android.content.Context, androidx.work.WorkerParameters); }
+
+# Glance remembers which receiver belongs to which widget by the widget's class name. Keep those
+# names stable across releases, or an update can map a placed widget to the wrong kind.
+-keepnames class * extends androidx.glance.appwidget.GlanceAppWidget

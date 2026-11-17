@@ -9,7 +9,9 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.aspectRatio
@@ -27,6 +29,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import app.custo.ui.theme.LocalReduceMotion
 import java.util.Locale
+import androidx.compose.material.icons.rounded.ThumbDown
 
 /** Short human sizes: "840 KB", "6.2 MB". */
 object WallFormat {
@@ -80,12 +83,19 @@ fun WallTile(
     placeholder: Color? = null,
     corner: Int = 18,
     onClick: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
     overlay: @Composable BoxScope.() -> Unit = {},
 ) {
     val img by rememberWallImage(src, targetPx)
     Box(
         modifier.fillMaxWidth().then(if (aspect != null) Modifier.aspectRatio(aspect) else Modifier).clip(RoundedCornerShape(corner.dp))
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+            .then(
+                when {
+                    onLongClick != null -> @OptIn(ExperimentalFoundationApi::class) Modifier.combinedClickable(onLongClick = onLongClick, onClick = onClick ?: {})
+                    onClick != null -> Modifier.clickable(onClick = onClick)
+                    else -> Modifier
+                },
+            ),
     ) {
         Crossfade(img, label = "tile") { b ->
             if (b != null) Image(b, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
@@ -97,3 +107,18 @@ fun WallTile(
 
 /** Dark fade at the bottom of a picture so white text stays readable. */
 val BottomScrim = Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.72f)))
+
+/**
+ * Long-press menu on a wallpaper tile: "Not this" hides the picture everywhere for good, deletes it
+ * if it was saved, and refills its pack with the next good one.
+ */
+@Composable
+fun NotThisMenu(expanded: Boolean, onDismiss: () -> Unit, onNotThis: () -> Unit) {
+    androidx.compose.material3.DropdownMenu(expanded, onDismiss) {
+        androidx.compose.material3.DropdownMenuItem(
+            text = { androidx.compose.material3.Text("Not this") },
+            leadingIcon = { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.ThumbDown, null) },
+            onClick = { onDismiss(); onNotThis() },
+        )
+    }
+}

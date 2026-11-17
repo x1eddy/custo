@@ -114,10 +114,14 @@ object Widgets {
 
     /** One AppWidgetManager binder call per kind, so it runs on IO rather than the caller's (often main) thread. */
     suspend fun placed(context: Context): List<PlacedWidget> = withContext(Dispatchers.IO) {
+        // Asks AppWidgetManager by receiver (manifest names never change) rather than Glance's
+        // provider-class map: in minified builds that map holds obfuscated class names from older
+        // builds, so one widget could show up under two kinds (and crash the list with a repeated key).
+        val awm = AppWidgetManager.getInstance(context)
         val gm = GlanceAppWidgetManager(context)
         WidgetKind.entries.flatMap { kind ->
-            gm.getGlanceIds(kind.widget().javaClass).map { PlacedWidget(kind, it, gm.getAppWidgetId(it)) }
-        }
+            awm.getAppWidgetIds(ComponentName(context, kind.receiver)).map { id -> PlacedWidget(kind, gm.getGlanceIdBy(id), id) }
+        }.distinctBy { it.appWidgetId }
     }
 
     suspend fun find(context: Context, appWidgetId: Int): PlacedWidget? = placed(context).firstOrNull { it.appWidgetId == appWidgetId }
@@ -144,7 +148,10 @@ object Widgets {
     }
 
     suspend fun refreshWidget(context: Context, widget: GlanceAppWidget) {
-        GlanceAppWidgetManager(context).getGlanceIds(widget.javaClass).forEach { runCatching { bump(context, widget, it) } }
+        val kind = WidgetKind.entries.firstOrNull { it.widget().javaClass == widget.javaClass }
+        val ids = if (kind != null) placed(context).filter { it.kind == kind }.map { it.glanceId }
+        else GlanceAppWidgetManager(context).getGlanceIds(widget.javaClass)
+        ids.forEach { runCatching { bump(context, widget, it) } }
     }
 
     suspend fun refresh(context: Context, kind: WidgetKind) = runCatching { refreshWidget(context, kind.widget()) }
