@@ -386,18 +386,12 @@ abstract class CustoWidget : GlanceAppWidget() {
 }
 
 /**
- * A widget with small (2×2), wide (4×2), tall (2×4) and large (4×4) layouts. The two short sizes
- * catch one-row widgets (2×1, 4×1 are ~70–90 dp tall): without them Glance falls back to the
- * 110 dp layout and a 1-row widget gets its content cut off top and bottom.
+ * A widget with small (2×2), wide (4×2), tall (2×4) and large (4×4) layouts, picked by
+ * [sizeClass] from the widget's real size ([CustoWidget]'s exact sizing). Exact rather than a few
+ * fixed buckets: with buckets a one-row widget (2×1, 4×1 are ~70–90 dp tall) got the 110 dp
+ * layout and was cut off top and bottom.
  */
-abstract class ResponsiveWidget : CustoWidget() {
-    override val sizeMode: SizeMode = SizeMode.Responsive(RESPONSIVE_SIZES)
-}
-
-internal val RESPONSIVE_SIZES = setOf(
-    DpSize(110.dp, 56.dp), DpSize(250.dp, 56.dp),
-    DpSize(110.dp, 110.dp), DpSize(250.dp, 110.dp), DpSize(110.dp, 250.dp), DpSize(250.dp, 250.dp),
-)
+abstract class ResponsiveWidget : CustoWidget()
 
 /** Receiver that also refreshes on clock, locale and alarm changes (declared per widget in the manifest). */
 abstract class CustoReceiver : GlanceAppWidgetReceiver() {

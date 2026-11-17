@@ -126,6 +126,16 @@ object Widgets {
 
     suspend fun find(context: Context, appWidgetId: Int): PlacedWidget? = placed(context).firstOrNull { it.appWidgetId == appWidgetId }
 
+    /** Placed widgets of one kind, found by their receiver (stable in minified builds). */
+    suspend fun placedOf(context: Context, kind: WidgetKind): List<PlacedWidget> = withContext(Dispatchers.IO) {
+        val gm = GlanceAppWidgetManager(context)
+        AppWidgetManager.getInstance(context).getAppWidgetIds(ComponentName(context, kind.receiver))
+            .map { PlacedWidget(kind, gm.getGlanceIdBy(it), it) }
+    }
+
+    /** The kind whose receiver class is [receiverClassName] (an AppWidgetProviderInfo's provider), if any. */
+    fun kindOfReceiver(receiverClassName: String?): WidgetKind? = WidgetKind.entries.firstOrNull { it.receiver.name == receiverClassName }
+
     suspend fun style(context: Context, id: GlanceId): WidgetStyle =
         WidgetStyle.decode(getAppWidgetState<Preferences>(context, PreferencesGlanceStateDefinition, id)[STYLE_KEY])
 
@@ -149,7 +159,7 @@ object Widgets {
 
     suspend fun refreshWidget(context: Context, widget: GlanceAppWidget) {
         val kind = WidgetKind.entries.firstOrNull { it.widget().javaClass == widget.javaClass }
-        val ids = if (kind != null) placed(context).filter { it.kind == kind }.map { it.glanceId }
+        val ids = if (kind != null) placedOf(context, kind).map { it.glanceId }
         else GlanceAppWidgetManager(context).getGlanceIds(widget.javaClass)
         ids.forEach { runCatching { bump(context, widget, it) } }
     }

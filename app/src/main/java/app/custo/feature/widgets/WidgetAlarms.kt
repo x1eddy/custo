@@ -14,7 +14,6 @@ import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
 import app.custo.MainActivity
 import app.custo.R
@@ -125,7 +124,7 @@ class WidgetTickReceiver : BroadcastReceiver() {
             }
             Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED -> {
                 WidgetAlarms.scheduleWater(ctx, habits.waterNow())
-                if (GlanceAppWidgetManager(ctx).getGlanceIds(CarouselWidget::class.java).isNotEmpty()) WidgetAlarms.startCarousel(ctx)
+                if (Widgets.placedOf(ctx, WidgetKind.CAROUSEL).isNotEmpty()) WidgetAlarms.startCarousel(ctx)
                 Widgets.refresh(ctx, WidgetKind.WORK)
                 Widgets.refresh(ctx, WidgetKind.PRAYER)
             }
@@ -139,8 +138,7 @@ object Carousel {
     val AT = androidx.datastore.preferences.core.longPreferencesKey("carousel_at")
 
     suspend fun rotateDue(ctx: Context) {
-        val gm = GlanceAppWidgetManager(ctx)
-        val ids = gm.getGlanceIds(CarouselWidget::class.java)
+        val ids = Widgets.placedOf(ctx, WidgetKind.CAROUSEL).map { it.glanceId }
         if (ids.isEmpty()) { WidgetAlarms.stopCarousel(ctx); return }
         val now = System.currentTimeMillis()
         ids.forEach { id ->

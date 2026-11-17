@@ -333,7 +333,8 @@ class TodoWidget : CustoWidget() {
             Column(GlanceModifier.fillMaxSize()) {
                 Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     val left = data.items.count { !it.done }
-                    WText("To-do", style = style.text(17f, bold = true).copy(textAlign = TextAlign.Start), modifier = GlanceModifier.defaultWeight(), maxLines = 1)
+                    // The title opens this widget's list editor, like + and the empty area.
+                    WText("To-do", style = style.text(17f, bold = true).copy(textAlign = TextAlign.Start), modifier = GlanceModifier.defaultWeight().clickable(edit.glance()), maxLines = 1)
                     if (data.items.isNotEmpty()) WText("$left left", style = style.text(12f, alpha = 0.7f), maxLines = 1)
                     PressButton(style, edit, GlanceModifier.size(36.dp), ButtonLook(icon = R.drawable.ic_add, iconDp = 24f, tint = fgArgb(style), desc = "Add"))
                 }
