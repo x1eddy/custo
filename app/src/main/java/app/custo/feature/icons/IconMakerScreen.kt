@@ -155,7 +155,10 @@ fun IconMakerScreen(nav: Navigator, initial: String? = null, pickApps: Boolean =
 
     val apps by produceState<List<LaunchableApp>>(emptyList()) { value = AppList.load(ctx) }
     var section by remember { mutableStateOf(Section.SHAPE) }
-    var expanded by remember { mutableStateOf(true) }
+    // The preview sticks to the top: on short screens (e.g. 576×1152) five rows would leave the
+    // controls a sliver, so they start with two rows and grow to three.
+    val tall = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp >= 820
+    var expanded by remember { mutableStateOf(tall) }
     var bulk by remember { mutableStateOf(pickApps) }
     var one by remember { mutableStateOf(false) }
     var naming by remember { mutableStateOf(false) }
@@ -217,7 +220,7 @@ fun IconMakerScreen(nav: Navigator, initial: String? = null, pickApps: Boolean =
                 Column(Modifier.windowInsetsPadding(WindowInsets.statusBars).padding(bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     MockHome(
                         apps, { a -> shown.second[a.pkg] ?: shown.first }, Modifier.fillMaxWidth(),
-                        rows = if (expanded) 5 else 2, renderPx = 144, selected = editing,
+                        rows = if (expanded) (if (tall) 5 else 3) else 2, renderPx = 144, selected = editing,
                         onTap = { a ->
                             if (editing == a.pkg) editing = null
                             else { if (a.pkg !in overrides) overrides[a.pkg] = style; editing = a.pkg }

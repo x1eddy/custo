@@ -175,6 +175,9 @@ class SetBackgroundRepository(
         if (prefs.get(rulesKey, 0) >= AUTO_RULES) return
         val all = SetBackgroundLogic.decode(prefs.get(choicesKey, "[]")).values
         val stale = all.filter { it.auto }
+        // Sets that found nothing under older rules get another try (only 1.1 test builds ever auto-picked).
+        val manual = all.filterNot { it.auto }.mapTo(HashSet()) { it.themeId }
+        prefs.edit { it[autoKey] = (it[autoKey] ?: emptySet()).filterTo(HashSet()) { id -> id in manual } }
         if (stale.isNotEmpty()) {
             val keepIds = all.filterNot { it.auto }.mapTo(HashSet()) { it.wallId }
             val saved = wallhaven.savedNow().associateBy { it.id }
@@ -242,10 +245,15 @@ class SetBackgroundRepository(
                     // Let the screen's own pictures load first.
                     delay(1200)
                     val query = theme.wallhavenQuery!!
-                    val results = runCatching { wallhaven.topFor(query, 6) }.getOrNull() ?: return@withLock
-                    // The first that passes the tag check (no memes, collages or pin-ups); at most 4 lookups.
+                    val results = runCatching { wallhaven.topFor(query, 8) }.getOrNull() ?: return@withLock
+                    // The first that passes the tag check (no memes, collages or pin-ups; for game and
+                    // topic sets no characters either). Wallhaven has few character-free pictures for
+                    // some games (Valorant, Fortnite…): then the best clean one with characters.
                     val tagId = WhTags.idFor(query)
-                    val pick = SetBackgroundLogic.autoPick(results.take(4).filter { runCatching { wallhaven.passesTagCheck(it, tagId, WhTags.allowsCharacters(query)) }.getOrDefault(true) })
+                    val characters = WhTags.allowsCharacters(query)
+                    suspend fun firstPassing(allow: Boolean) = WallhavenApi.sfwOnly(results).take(8)
+                        .firstOrNull { runCatching { wallhaven.passesTagCheck(it, tagId, allow) }.getOrDefault(false) }
+                    val pick = firstPassing(characters) ?: if (!characters) firstPassing(true) else null
                     if (pick != null) runCatching { choose(theme, pick, auto = true) }.onFailure { return@withLock }
                     prefs.edit { it[autoKey] = (it[autoKey] ?: emptySet()) + theme.id }
                 }
@@ -257,7 +265,7 @@ class SetBackgroundRepository(
 
     private companion object {
         /** Bumped when the automatic pick rules change enough to redo earlier picks. */
-        const val AUTO_RULES = 3
+        const val AUTO_RULES = 4
     }
 
     /** The picture to set as wallpaper for [theme], or null to use its drawn one. */

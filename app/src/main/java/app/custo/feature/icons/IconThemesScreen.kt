@@ -107,8 +107,8 @@ fun ThemePreviewDialog(
                 }
                 MockHome(apps, { style }, Modifier.fillMaxWidth().weight(1f, fill = false), rows = 5, renderPx = 160)
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Button(onClick = onUse, Modifier.weight(1f)) { Icon(Icons.Rounded.SelectAll, null); Text("  Use for apps") }
-                    OutlinedButton(onClick = onEdit, Modifier.weight(1f)) { Icon(Icons.Rounded.Tune, null); Text("  Customize") }
+                    Button(onClick = onUse, Modifier.weight(1f)) { Icon(Icons.Rounded.SelectAll, null); Text("  Apply", maxLines = 1) }
+                    OutlinedButton(onClick = onEdit, Modifier.weight(1f)) { Icon(Icons.Rounded.Tune, null); Text("  Customize", maxLines = 1) }
                 }
             }
         }
