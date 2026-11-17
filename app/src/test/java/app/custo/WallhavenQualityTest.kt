@@ -99,6 +99,18 @@ class WallhavenQualityTest {
         assertEquals("Minecraft", w.tags.single().name)
     }
 
+    @Test fun pictureMustBeAboutTheMainTag() {
+        val mc = WhTag(1216, "Minecraft")
+        // Real cases from wallhaven: Minecraft first = a Minecraft picture.
+        assertTrue(WhQuality.isAbout(listOf(mc, WhTag(55, "video games"), WhTag(40, "water")), 1216))
+        assertTrue(WhQuality.isAbout(listOf(WhTag(55, "video games"), WhTag(1, "PC gaming"), WhTag(2, "video game art"), mc), 1216))
+        // A gamer's room where Minecraft is tag 27 of 34, and a 72-tag crossover crowd.
+        assertFalse(WhQuality.isAbout(List(26) { WhTag(10_000L + it, "t$it") } + mc + List(7) { WhTag(20_000L + it, "u$it") }, 1216))
+        assertFalse(WhQuality.isAbout(listOf(WhTag(3, "pixel art")) + List(9) { WhTag(30_000L + it, "x$it") } + mc + List(61) { WhTag(40_000L + it, "y$it") }, 1216))
+        assertFalse("missing", WhQuality.isAbout(listOf(WhTag(86347, "Hololive")), 1394))
+        assertTrue("free text: nothing to check", WhQuality.isAbout(listOf(WhTag(86347, "Hololive")), null))
+    }
+
     // ---------- "Not this" blocklist ----------
 
     @Test fun blockedPicturesAreDroppedEverywhere() {

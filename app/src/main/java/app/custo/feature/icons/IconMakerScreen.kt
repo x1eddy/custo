@@ -186,7 +186,7 @@ fun IconMakerScreen(nav: Navigator, initial: String? = null, pickApps: Boolean =
         title = { Text("Add to a look") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                if (looks.isEmpty()) Text("Save a look on the Themes tab first. Then its icons can come along.")
+                if (looks.isEmpty()) Text("Save a look in Wallpapers → Make your own first. Then its icons can come along.")
                 looks.forEach { look ->
                     Text(
                         look.name + if (look.icons != null) "  (has icons)" else "",

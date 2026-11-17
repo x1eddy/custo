@@ -125,7 +125,7 @@ class WallhavenRepository(
 
     /**
      * Looks at the tags of a curated pick (one rate-limited request, cached): false when it is a
-     * meme/collage/screenshot/pin-up or lacks [tagId]. Network errors other than being offline count as "fine".
+     * meme/collage/screenshot/pin-up or isn't about [tagId] (see [WhQuality.isAbout]). Network errors other than being offline count as "fine".
      */
     suspend fun passesTagCheck(item: WhWallpaper, tagId: Long?): Boolean {
         tagChecks[item.id]?.let { return it }
@@ -135,7 +135,7 @@ class WallhavenRepository(
             if (e.error == WhError.OFFLINE || e.error == WhError.RATE_LIMITED) throw e
             return true
         }
-        val ok = info != null && !WhQuality.isJunk(info.tags) && WhQuality.hasTag(info.tags, tagId)
+        val ok = info != null && !WhQuality.isJunk(info.tags) && WhQuality.isAbout(info.tags, tagId)
         tagChecks[item.id] = ok
         return ok
     }
@@ -270,11 +270,11 @@ class WallhavenRepository(
         }
     }
 
-    suspend fun delete(id: String) {
+    suspend fun delete(id: String, notify: Boolean = true) {
         withContext(Dispatchers.IO) { savedFileOf(id).delete() }
         WallImages.forget(savedFileOf(id).path)
         prefs.updateList(savedKey, SavedWall.serializer(), "wallpapers") { l -> l.filterNot { it.id == id } }
-        goneListeners.forEach { runCatching { it(id, false) } }
+        if (notify) goneListeners.forEach { runCatching { it(id, false) } }
     }
 
     /** Deletes a pack's downloads, except ones the user favourited. */

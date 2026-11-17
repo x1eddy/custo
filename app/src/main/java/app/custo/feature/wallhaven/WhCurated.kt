@@ -109,6 +109,22 @@ object WhQuality {
     /** True when [tags] has the curated tag [tagId] (always true without one). */
     fun hasTag(tags: List<WhTag>, tagId: Long?): Boolean = tagId == null || tags.isEmpty() || tags.any { it.id == tagId }
 
+    /** More tags than this is a crossover crowd or collage, not a picture *of* the franchise. */
+    const val MAX_TAGS = 30
+
+    /** The main tag must be among the first few: uploaders tag what the picture is about first. */
+    const val MAIN_TAG_WITHIN = 4
+
+    /**
+     * Whether the picture is about [tagId]: it carries it among its first [MAIN_TAG_WITHIN] tags and
+     * isn't a crowd of [MAX_TAGS]+ tags. Without a curated tag (or tags) there's nothing to check.
+     */
+    fun isAbout(tags: List<WhTag>, tagId: Long?): Boolean {
+        if (tagId == null || tags.isEmpty()) return true
+        val at = tags.indexOfFirst { it.id == tagId }
+        return at in 0 until MAIN_TAG_WITHIN && tags.size <= MAX_TAGS
+    }
+
     /** Results minus the ones the user said "Not this" to. */
     fun withoutBlocked(items: List<WhWallpaper>, blocked: Set<String>): List<WhWallpaper> =
         if (blocked.isEmpty()) items else items.filter { it.id !in blocked }

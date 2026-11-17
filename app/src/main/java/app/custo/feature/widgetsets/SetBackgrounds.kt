@@ -133,6 +133,7 @@ class SetBackgroundRepository(
     private val prefs = Prefs(app.setBackgroundStore)
     private val choicesKey = stringPreferencesKey("choices_json")
     private val autoKey = stringSetPreferencesKey("auto_done")
+    private val rulesKey = androidx.datastore.preferences.core.intPreferencesKey("auto_rules")
     private val loadLock = Mutex()
     /** Automatic picks run one at a time, so a gallery full of sets doesn't burst downloads. */
     private val autoQueue = Mutex()
@@ -158,7 +159,33 @@ class SetBackgroundRepository(
     /** Loads the choices once per process; cheap after that. Widgets call it before drawing. */
     suspend fun ensureLoaded() {
         if (SetBackgrounds.loaded) return
-        loadLock.withLock { if (!SetBackgrounds.loaded) reload() }
+        loadLock.withLock {
+            if (SetBackgrounds.loaded) return@withLock
+            migrateAutoPicks()
+            reload()
+        }
+    }
+
+    /**
+     * Automatic picks made before the exact-tag search (1.1 test builds) could be off-topic. Drop
+     * them – and their downloads, unless favourited or part of a pack – so the sets pick again.
+     * Pictures the user chose by hand stay.
+     */
+    private suspend fun migrateAutoPicks() {
+        if (prefs.get(rulesKey, 0) >= AUTO_RULES) return
+        val all = SetBackgroundLogic.decode(prefs.get(choicesKey, "[]")).values
+        val stale = all.filter { it.auto }
+        if (stale.isNotEmpty()) {
+            val keepIds = all.filterNot { it.auto }.mapTo(HashSet()) { it.wallId }
+            val saved = wallhaven.savedNow().associateBy { it.id }
+            prefs.updateList(choicesKey, SetBackground.serializer(), "set backgrounds") { l -> l.filterNot { it.auto } }
+            prefs.edit { it[autoKey] = (it[autoKey] ?: emptySet()) - stale.map { b -> b.themeId }.toSet() }
+            stale.map { it.wallId }.distinct().forEach { id ->
+                val rec = saved[id]
+                if (id !in keepIds && rec != null && !rec.favorite && rec.packId == null) runCatching { wallhaven.delete(id, notify = false) }
+            }
+        }
+        prefs.set(rulesKey, AUTO_RULES)
     }
 
     private suspend fun reload() = withContext(Dispatchers.IO) {
@@ -226,6 +253,11 @@ class SetBackgroundRepository(
                 autoInFlight.remove(theme.id)
             }
         }
+    }
+
+    private companion object {
+        /** Bumped when the automatic pick rules change enough to redo earlier picks. */
+        const val AUTO_RULES = 2
     }
 
     /** The picture to set as wallpaper for [theme], or null to use its drawn one. */
