@@ -64,23 +64,28 @@ class FishWidget : ResponsiveWidget() {
         val hit = currentState(Fish.HIT) == true
         val cls = sizeClass()
         val size = LocalSize.current
-        val side = (min(size.width.value, size.height.value) - style.padding * 2 - if (cls == SizeClass.WIDE) 0f else 44f).coerceIn(48f, 170f)
+        // One row tall (2×1, 4×1): the fish alone, or fish and words side by side when there's room.
+        val short = size.height.value < 100f
+        val row = cls == SizeClass.WIDE || (short && size.width.value >= 200f)
+        val side = (min(size.width.value, size.height.value) - style.padding * 2 - if (row || short) 0f else 44f).coerceIn(32f, 170f)
         val f = tapFrame("fish")
         Frame(style, tapRun<FishAction>()) {
             val label = @Composable {
-                Column(horizontalAlignment = if (cls == SizeClass.WIDE) Alignment.Start else Alignment.CenterHorizontally) {
-                    val align = if (cls == SizeClass.WIDE) TextAlign.Start else TextAlign.Center
+                Column(horizontalAlignment = if (row) Alignment.Start else Alignment.CenterHorizontally) {
+                    val align = if (row) TextAlign.Start else TextAlign.Center
                     WText(if (count == 0) "Tap the fish" else "Merit +1", style = style.text(16f * TapFrames.pop(f, 0.6f), bold = true).copy(textAlign = align), maxLines = 1)
                     WText("Today $count", style = style.text(12f, alpha = 0.75f).copy(textAlign = align), maxLines = 1)
-                    if (cls == SizeClass.WIDE || cls == SizeClass.LARGE) WText("All time $total", style = style.text(12f, alpha = 0.6f).copy(textAlign = align), maxLines = 1)
+                    if (!short && (cls == SizeClass.WIDE || cls == SizeClass.LARGE)) WText("All time $total", style = style.text(12f, alpha = 0.6f).copy(textAlign = align), maxLines = 1)
                 }
             }
-            if (cls == SizeClass.WIDE) {
+            if (row) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     FishArt(style, hit, side, f)
                     Spacer(GlanceModifier.width(12.dp))
                     label()
                 }
+            } else if (short) {
+                FishArt(style, hit, side, f)
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     FishArt(style, hit, side, f)

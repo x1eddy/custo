@@ -93,7 +93,7 @@ internal fun Ring(style: WidgetStyle, fraction: Float, side: Float, content: @Co
 @Composable
 internal fun ringSide(style: WidgetStyle, max: Float): Float {
     val size = androidx.glance.LocalSize.current
-    return (min(size.width.value, size.height.value) - style.padding * 2).coerceIn(48f, max)
+    return (min(size.width.value, size.height.value) - style.padding * 2).coerceIn(32f, max)
 }
 
 /** A rounded pill button; [pop] scales its label (a tap effect). */
@@ -234,7 +234,7 @@ class MoodWidget : ResponsiveWidget() {
         Frame(style, tapStart(editIntent(context, id))) {
             when (cls) {
                 SizeClass.SMALL -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Face(style, mood, 56f)
+                    Face(style, mood, ringSide(style, 56f))
                     WText(mood?.label ?: "How are you?", style = style.text(14f, bold = true).copy(textAlign = TextAlign.Center), maxLines = 1)
                 }
                 SizeClass.WIDE -> Column(GlanceModifier.fillMaxWidth()) {
