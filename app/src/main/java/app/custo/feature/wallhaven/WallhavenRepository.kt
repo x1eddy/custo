@@ -277,6 +277,9 @@ class WallhavenRepository(
         if (notify) goneListeners.forEach { runCatching { it(id, false) } }
     }
 
+    /** [deletePack] in the app scope, for callers whose own scope ends right away (a closing sheet). */
+    fun deletePackLater(packId: String) { scope.launch { deletePack(packId) } }
+
     /** Deletes a pack's downloads, except ones the user favourited. */
     suspend fun deletePack(packId: String) {
         cancelPack(packId)

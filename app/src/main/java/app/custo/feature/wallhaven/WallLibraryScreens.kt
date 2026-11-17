@@ -177,7 +177,6 @@ fun OfflinePacksScreen(nav: Navigator) {
 @Composable
 private fun PackSheet(pack: WallPack, have: Int, p: PackProgress?, nav: Navigator, close: () -> Unit) {
     val repo = LocalContext.current.container.wallhaven
-    val scope = rememberCoroutineScope()
     var size by remember { mutableIntStateOf(WallPacks.sizes.firstOrNull { it > have } ?: WallPacks.sizes.last()) }
     var wifiOnly by remember { mutableStateOf(true) }
     val (stored, download) = repo.estimate(PackPlanner.remaining(size, have))
@@ -218,7 +217,8 @@ private fun PackSheet(pack: WallPack, have: Int, p: PackProgress?, nav: Navigato
                 }
             }
         }
-        if (have > 0) TextButton(onClick = { scope.launch { repo.deletePack(pack.id) }; close() }) {
+        // The sheet's own scope ends when it closes, which would cancel the delete halfway.
+        if (have > 0) TextButton(onClick = { repo.deletePackLater(pack.id); close() }) {
             Icon(Icons.Rounded.Delete, null); Spacer(Modifier.width(6.dp)); Text("Delete pack (keeps favorites)")
         }
     }
