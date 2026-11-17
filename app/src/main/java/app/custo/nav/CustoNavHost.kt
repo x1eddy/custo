@@ -45,6 +45,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -86,7 +87,7 @@ class Navigator(start: Tab = Tab.HOME) {
 @Composable
 fun CustoNavHost(initialRoute: Route? = null) {
     // The tab survives configuration changes; a screen opened directly starts on its own tab.
-    var tabIndex by rememberSaveable { mutableStateOf(initialRoute?.homeTab()?.ordinal ?: 0) }
+    var tabIndex by rememberSaveable { mutableIntStateOf(initialRoute?.homeTab()?.ordinal ?: 0) }
     val nav = remember { Navigator(Tab.entries.getOrElse(tabIndex) { Tab.HOME }).also { n -> initialRoute?.let { n.push(it) } } }
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(nav.tab) { tabIndex = nav.tab.ordinal }

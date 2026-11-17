@@ -178,8 +178,9 @@ private fun HeroCarousel(nav: Navigator, modifier: Modifier = Modifier) {
             key = { i -> heroes.getOrNull(i)?.let(::heroKey) ?: i },
         ) { page ->
             val h = heroes.getOrNull(page) ?: return@HorizontalPager
-            val off = ((pager.currentPage - page) + pager.currentPageOffsetFraction).absoluteValue.coerceIn(0f, 1f)
             val m = Modifier.fillMaxSize().graphicsLayer {
+                // Read the scroll offset here (draw phase), not in composition, so swiping does not recompose.
+                val off = ((pager.currentPage - page) + pager.currentPageOffsetFraction).absoluteValue.coerceIn(0f, 1f)
                 val s = 1f - 0.1f * off
                 scaleX = s; scaleY = s
             }
