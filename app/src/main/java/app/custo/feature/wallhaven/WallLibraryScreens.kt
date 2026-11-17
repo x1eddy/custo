@@ -137,7 +137,7 @@ fun OfflinePacksScreen(nav: Navigator) {
         items(repo.packs, key = { it.id }) { pack ->
             val cover = saved.firstOrNull { it.packId == pack.id }?.let { repo.savedFile(it.id)?.path }
             val online by produceState<String?>(null, pack.id, cover) {
-                if (cover == null) value = runCatching { repo.topFor(pack.query, 1).firstOrNull()?.gridThumb }.getOrNull()
+                if (cover == null) value = runCatching { repo.coverFor(pack.query)?.gridThumb }.getOrNull()
             }
             val p = progress[pack.id]
             WallTile(cover ?: online, aspect = 3f / 4f, targetPx = cellPx, onClick = { open = pack }) {
@@ -177,7 +177,6 @@ fun OfflinePacksScreen(nav: Navigator) {
 @Composable
 private fun PackSheet(pack: WallPack, have: Int, p: PackProgress?, nav: Navigator, close: () -> Unit) {
     val repo = LocalContext.current.container.wallhaven
-    val scope = rememberCoroutineScope()
     var size by remember { mutableIntStateOf(WallPacks.sizes.firstOrNull { it > have } ?: WallPacks.sizes.last()) }
     var wifiOnly by remember { mutableStateOf(true) }
     val (stored, download) = repo.estimate(PackPlanner.remaining(size, have))
@@ -218,7 +217,8 @@ private fun PackSheet(pack: WallPack, have: Int, p: PackProgress?, nav: Navigato
                 }
             }
         }
-        if (have > 0) TextButton(onClick = { scope.launch { repo.deletePack(pack.id) }; close() }) {
+        // The sheet's own scope ends when it closes, which would cancel the delete halfway.
+        if (have > 0) TextButton(onClick = { repo.deletePackLater(pack.id); close() }) {
             Icon(Icons.Rounded.Delete, null); Spacer(Modifier.width(6.dp)); Text("Delete pack (keeps favorites)")
         }
     }
@@ -230,6 +230,7 @@ private fun PackSheet(pack: WallPack, have: Int, p: PackProgress?, nav: Navigato
 @Composable
 fun SavedWallpapersScreen(nav: Navigator) {
     val repo = LocalContext.current.container.wallhaven
+    val runner = app.custo.ui.components.rememberActionRunner()
     val saved by repo.saved.collectAsStateWithLifecycle(null)
     var favOnly by remember { mutableStateOf(false) }
     var packFilter by remember { mutableStateOf<String?>(null) }
@@ -255,7 +256,9 @@ fun SavedWallpapersScreen(nav: Navigator) {
             }
         }
         items(shown, key = { it.id }) { w ->
-            WallTile(repo.savedFile(w.id)?.path, targetPx = cellPx, onClick = { nav.push(Route.WallpaperDetail(w.id)) }) {
+            var menu by remember { mutableStateOf(false) }
+            WallTile(repo.savedFile(w.id)?.path, targetPx = cellPx, onClick = { nav.push(Route.WallpaperDetail(w.id)) }, onLongClick = { menu = true }) {
+                NotThisMenu(menu, { menu = false }) { runner.run(if (w.packId != null) "Removed · getting another" else "Removed") { repo.notThis(w.id) } }
                 if (w.favorite) Icon(Icons.Rounded.Favorite, null, tint = Color.White, modifier = Modifier.align(Alignment.TopEnd).padding(10.dp).size(18.dp))
             }
         }

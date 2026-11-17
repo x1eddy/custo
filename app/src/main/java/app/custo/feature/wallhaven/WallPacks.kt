@@ -10,7 +10,12 @@ data class WallPack(
     val query: String,
     val general: Boolean = true,
     val anime: Boolean = true,
+    /** Favourites a picture needs for this pack at first; relaxed by the worker when wallhaven runs short. */
+    val minFavorites: Int = WhQuality.MIN_FAVORITES,
 ) {
+    /** The exact wallhaven tag behind [query], if curated. */
+    val tagId: Long? get() = WhTags.idFor(query)
+
     fun filters(atLeast: String?, portrait: Boolean) = WhFilters(
         // All-time favourites: toplist only reaches back one year, too few for niche searches.
         sorting = WhSorting.FAVORITES,
@@ -25,11 +30,12 @@ object WallPacks {
     val all = listOf(
         WallPack("one_piece", "One Piece", "One Piece", general = false),
         WallPack("jjk", "Jujutsu Kaisen", "Jujutsu Kaisen", general = false),
-        WallPack("invincible", "Invincible", "Invincible"),
-        WallPack("fortnite", "Fortnite", "Fortnite"),
-        WallPack("minecraft", "Minecraft", "Minecraft"),
-        WallPack("roblox", "Roblox", "Roblox"),
-        WallPack("valorant", "Valorant", "Valorant"),
+        WallPack("invincible", "Invincible", "Invincible", minFavorites = 10),
+        WallPack("fortnite", "Fortnite", "Fortnite", minFavorites = 10),
+        // General only: the anime category under this tag is mostly fan art of girls, not Minecraft.
+        WallPack("minecraft", "Minecraft", "Minecraft", anime = false),
+        WallPack("roblox", "Roblox", "Roblox", minFavorites = 5),
+        WallPack("valorant", "Valorant", "Valorant", minFavorites = 15),
         WallPack("demon_slayer", "Demon Slayer", "Demon Slayer", general = false),
         WallPack("naruto", "Naruto", "Naruto", general = false),
         WallPack("aot", "Attack on Titan", "Attack on Titan", general = false),

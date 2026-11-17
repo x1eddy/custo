@@ -93,7 +93,7 @@ internal fun Ring(style: WidgetStyle, fraction: Float, side: Float, content: @Co
 @Composable
 internal fun ringSide(style: WidgetStyle, max: Float): Float {
     val size = androidx.glance.LocalSize.current
-    return (min(size.width.value, size.height.value) - style.padding * 2).coerceIn(48f, max)
+    return (min(size.width.value, size.height.value) - style.padding * 2).coerceIn(32f, max)
 }
 
 /** A rounded pill button; [pop] scales its label (a tap effect). */
@@ -234,7 +234,7 @@ class MoodWidget : ResponsiveWidget() {
         Frame(style, tapStart(editIntent(context, id))) {
             when (cls) {
                 SizeClass.SMALL -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Face(style, mood, 56f)
+                    Face(style, mood, ringSide(style, 56f))
                     WText(mood?.label ?: "How are you?", style = style.text(14f, bold = true).copy(textAlign = TextAlign.Center), maxLines = 1)
                 }
                 SizeClass.WIDE -> Column(GlanceModifier.fillMaxWidth()) {
@@ -333,7 +333,8 @@ class TodoWidget : CustoWidget() {
             Column(GlanceModifier.fillMaxSize()) {
                 Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     val left = data.items.count { !it.done }
-                    WText("To-do", style = style.text(17f, bold = true).copy(textAlign = TextAlign.Start), modifier = GlanceModifier.defaultWeight(), maxLines = 1)
+                    // The title opens this widget's list editor, like + and the empty area.
+                    WText("To-do", style = style.text(17f, bold = true).copy(textAlign = TextAlign.Start), modifier = GlanceModifier.defaultWeight().clickable(edit.glance()), maxLines = 1)
                     if (data.items.isNotEmpty()) WText("$left left", style = style.text(12f, alpha = 0.7f), maxLines = 1)
                     PressButton(style, edit, GlanceModifier.size(36.dp), ButtonLook(icon = R.drawable.ic_add, iconDp = 24f, tint = fgArgb(style), desc = "Add"))
                 }

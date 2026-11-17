@@ -156,13 +156,15 @@ private fun HeroCarousel(nav: Navigator, modifier: Modifier = Modifier) {
     val saved by repo.saved.collectAsStateWithLifecycle(null)
     val local = saved?.take(8)?.mapNotNull { s -> repo.savedFile(s.id)?.let { Hero.Saved(s.id, it.path) } }
     val needOnline = local != null && local.size < 4
-    val online by produceState(lastOnlineHero, needOnline) {
+    // null while the first online load runs (shimmer), so the carousel doesn't flash Custo's own looks first.
+    val online by produceState(lastOnlineHero.ifEmpty { null }, needOnline) {
         if (needOnline) value = runCatching { repo.topFor("", 8) }.getOrDefault(emptyList()).also { if (it.isNotEmpty()) lastOnlineHero = it }
     }
     val heroes: List<Hero>? = when {
         local == null -> null
         local.size >= 4 -> local
-        else -> (local + online.map { Hero.Online(it) }).ifEmpty { BUILT_IN_LOOKS.map { Hero.Look(it) } }
+        online == null && local.isEmpty() && repo.isOnline() -> null
+        else -> (local + online.orEmpty().map { Hero.Online(it) }).ifEmpty { BUILT_IN_LOOKS.map { Hero.Look(it) } }
     }
     Box(modifier.fillMaxWidth().height(400.dp)) {
         if (heroes == null) {
@@ -226,7 +228,7 @@ private fun PackCover(pack: WallPack, onClick: () -> Unit) {
     val saved by repo.saved.collectAsStateWithLifecycle(emptyList())
     val local = saved.firstOrNull { it.packId == pack.id }?.let { repo.savedFile(it.id)?.path }
     val online by produceState<String?>(null, pack.id, local == null) {
-        if (local == null) value = runCatching { repo.topFor(pack.query, 1).firstOrNull()?.gridThumb }.getOrNull()
+        if (local == null) value = runCatching { repo.coverFor(pack.query)?.gridThumb }.getOrNull()
     }
     WallTile(local ?: online, Modifier.width(124.dp), aspect = 3f / 4f, targetPx = 360, onClick = onClick) {
         Box(Modifier.fillMaxSize().background(BottomScrim))

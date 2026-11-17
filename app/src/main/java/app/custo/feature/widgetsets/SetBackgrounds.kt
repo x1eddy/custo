@@ -15,6 +15,7 @@ import app.custo.feature.wallhaven.SavedWall
 import app.custo.feature.wallhaven.WallFormat
 import app.custo.feature.wallhaven.WallhavenApi
 import app.custo.feature.wallhaven.WallhavenRepository
+import app.custo.feature.wallhaven.WhTags
 import app.custo.feature.wallhaven.WhWallpaper
 import app.custo.feature.widgets.Widgets
 import kotlinx.coroutines.CoroutineScope
@@ -132,15 +133,62 @@ class SetBackgroundRepository(
     private val prefs = Prefs(app.setBackgroundStore)
     private val choicesKey = stringPreferencesKey("choices_json")
     private val autoKey = stringSetPreferencesKey("auto_done")
+    private val rulesKey = androidx.datastore.preferences.core.intPreferencesKey("auto_rules")
     private val loadLock = Mutex()
     /** Automatic picks run one at a time, so a gallery full of sets doesn't burst downloads. */
     private val autoQueue = Mutex()
     private val autoInFlight: MutableSet<String> = ConcurrentHashMap.newKeySet()
 
+    init {
+        // A set whose picture was deleted goes back to its drawn wallpaper; after "Not this" it gets
+        // the next good picture instead (on Wi-Fi, like any automatic pick).
+        wallhaven.addGoneListener { id, notThis ->
+            ensureLoaded()
+            val using = SetBackgrounds.choices.value.values.filter { it.wallId == id }.map { it.themeId }
+            if (using.isEmpty()) return@addGoneListener
+            prefs.updateList(choicesKey, SetBackground.serializer(), "set backgrounds") { l -> l.filterNot { it.wallId == id } }
+            if (notThis) prefs.edit { it[autoKey] = (it[autoKey] ?: emptySet()) - using.toSet() }
+            reload()
+            using.forEach { themeId ->
+                restylePlaced(themeId)
+                if (notThis) WidgetThemes.base(themeId)?.let { autoDefault(it) }
+            }
+        }
+    }
+
     /** Loads the choices once per process; cheap after that. Widgets call it before drawing. */
     suspend fun ensureLoaded() {
         if (SetBackgrounds.loaded) return
-        loadLock.withLock { if (!SetBackgrounds.loaded) reload() }
+        loadLock.withLock {
+            if (SetBackgrounds.loaded) return@withLock
+            migrateAutoPicks()
+            reload()
+        }
+    }
+
+    /**
+     * Automatic picks made before the exact-tag search (1.1 test builds) could be off-topic. Drop
+     * them – and their downloads, unless favourited or part of a pack – so the sets pick again.
+     * Pictures the user chose by hand stay.
+     */
+    private suspend fun migrateAutoPicks() {
+        if (prefs.get(rulesKey, 0) >= AUTO_RULES) return
+        val all = SetBackgroundLogic.decode(prefs.get(choicesKey, "[]")).values
+        val stale = all.filter { it.auto }
+        // Sets that found nothing under older rules get another try (only 1.1 test builds ever auto-picked).
+        val manual = all.filterNot { it.auto }.mapTo(HashSet()) { it.themeId }
+        prefs.edit { it[autoKey] = (it[autoKey] ?: emptySet()).filterTo(HashSet()) { id -> id in manual } }
+        if (stale.isNotEmpty()) {
+            val keepIds = all.filterNot { it.auto }.mapTo(HashSet()) { it.wallId }
+            val saved = wallhaven.savedNow().associateBy { it.id }
+            prefs.updateList(choicesKey, SetBackground.serializer(), "set backgrounds") { l -> l.filterNot { it.auto } }
+            prefs.edit { it[autoKey] = (it[autoKey] ?: emptySet()) - stale.map { b -> b.themeId }.toSet() }
+            stale.map { it.wallId }.distinct().forEach { id ->
+                val rec = saved[id]
+                if (id !in keepIds && rec != null && !rec.favorite && rec.packId == null) runCatching { wallhaven.delete(id, notify = false) }
+            }
+        }
+        prefs.set(rulesKey, AUTO_RULES)
     }
 
     private suspend fun reload() = withContext(Dispatchers.IO) {
@@ -196,8 +244,16 @@ class SetBackgroundRepository(
                     if (!SetBackgroundLogic.shouldAutoPick(theme, SetBackgrounds.of(theme.id), done, wallhaven.isOnlineUnmetered())) return@withLock
                     // Let the screen's own pictures load first.
                     delay(1200)
-                    val results = runCatching { wallhaven.topFor(theme.wallhavenQuery!!, 6) }.getOrNull() ?: return@withLock
-                    val pick = SetBackgroundLogic.autoPick(results)
+                    val query = theme.wallhavenQuery!!
+                    val results = runCatching { wallhaven.topFor(query, 8) }.getOrNull() ?: return@withLock
+                    // The first that passes the tag check (no memes, collages or pin-ups; for game and
+                    // topic sets no characters either). Wallhaven has few character-free pictures for
+                    // some games (Valorant, Fortnite…): then the best clean one with characters.
+                    val tagId = WhTags.idFor(query)
+                    val characters = WhTags.allowsCharacters(query)
+                    suspend fun firstPassing(allow: Boolean) = WallhavenApi.sfwOnly(results).take(8)
+                        .firstOrNull { runCatching { wallhaven.passesTagCheck(it, tagId, allow) }.getOrDefault(false) }
+                    val pick = firstPassing(characters) ?: if (!characters) firstPassing(true) else null
                     if (pick != null) runCatching { choose(theme, pick, auto = true) }.onFailure { return@withLock }
                     prefs.edit { it[autoKey] = (it[autoKey] ?: emptySet()) + theme.id }
                 }
@@ -205,6 +261,11 @@ class SetBackgroundRepository(
                 autoInFlight.remove(theme.id)
             }
         }
+    }
+
+    private companion object {
+        /** Bumped when the automatic pick rules change enough to redo earlier picks. */
+        const val AUTO_RULES = 4
     }
 
     /** The picture to set as wallpaper for [theme], or null to use its drawn one. */

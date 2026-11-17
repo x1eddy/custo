@@ -70,7 +70,7 @@ fun LiveWallpaperScreen(onBack: () -> Unit) {
     ScreenScaffold(title = "Live wallpaper", onBack = onBack, actions = {
         app.custo.ui.components.InfoButton(
             "Live wallpaper",
-            "Your wallpaper, slowly moving. It stops when hidden and pauses in battery saver, so it's easy on battery. Pick a look below, or use Make it live on the Themes tab.\n\n" +
+            "Your wallpaper, slowly moving. It stops when hidden and pauses in battery saver, so it's easy on battery. Pick a look below, or use Make it live in Wallpapers → Make your own.\n\n" +
                 "Only when unlocked: still on the lock screen. Parallax: shifts as you swipe home pages. Time of day: warmer at sunrise and sunset, darker at night. Battery: colors fade as the battery drains.",
         )
     }) {

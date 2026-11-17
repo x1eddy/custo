@@ -2,6 +2,7 @@ package app.custo.feature.icons
 
 import android.app.WallpaperManager
 import android.content.Context
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,6 +31,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
@@ -125,4 +127,62 @@ fun MockHome(
             )
         }
     }
+}
+
+/** Whole-grid renders for galleries, keyed by style, apps and width. */
+private val gridCache = object : android.util.LruCache<String, android.graphics.Bitmap>(12 * 1024 * 1024) {
+    override fun sizeOf(key: String, value: android.graphics.Bitmap) = value.byteCount
+}
+
+/**
+ * [MockHome] for galleries (no labels, no taps): all icons are drawn into one bitmap on a
+ * background thread, so a card is one image instead of 16 loading spinners and 16 uploads.
+ * Same layout as [MockHome], so puzzle styles still line up.
+ */
+@Composable
+fun MockHomeGrid(
+    apps: List<LaunchableApp>,
+    style: IconStyle,
+    modifier: Modifier = Modifier,
+    cols: Int = 4,
+    rows: Int = 4,
+    renderPx: Int = 96,
+) {
+    val ctx = LocalContext.current
+    val brush = rememberWallpaperBrush()
+    val shown = apps.take(cols * rows)
+    BoxWithConstraints(modifier.clip(RoundedCornerShape(22.dp)).background(brush).padding(horizontal = 10.dp, vertical = 12.dp)) {
+        val widthPx = constraints.maxWidth
+        val cell = maxWidth / cols
+        val lines = ((shown.size + cols - 1) / cols).coerceAtLeast(rows)
+        val key = remember(style, shown, widthPx) { "${style.hashCode()}|${shown.joinToString(",") { it.pkg }.hashCode()}|$widthPx|$cols" }
+        val bmp by produceState(gridCache.get(key), key) {
+            if (value != null || shown.isEmpty() || widthPx <= 0) return@produceState
+            value = withContext(app.custo.ui.components.PreviewRender) {
+                renderGrid(ctx, style, shown, widthPx, cols, lines, renderPx)
+            }.also { gridCache.put(key, it) }
+        }
+        Box(Modifier.fillMaxWidth().height(cell * lines)) {
+            bmp?.let { Image(it.asImageBitmap(), null, Modifier.matchParentSize()) }
+        }
+    }
+}
+
+private suspend fun renderGrid(
+    ctx: Context, style: IconStyle, apps: List<LaunchableApp>, widthPx: Int, cols: Int, lines: Int, renderPx: Int,
+): android.graphics.Bitmap {
+    val cell = widthPx.toFloat() / cols
+    val icon = cell / (1f + PuzzleMath.GAP)
+    val out = android.graphics.Bitmap.createBitmap(widthPx, (cell * lines).toInt().coerceAtLeast(1), android.graphics.Bitmap.Config.ARGB_8888)
+    val canvas = android.graphics.Canvas(out)
+    val paint = android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG or android.graphics.Paint.ANTI_ALIAS_FLAG)
+    val st = style.forBulk()
+    apps.forEachIndexed { index, app ->
+        val tile = if (st.puzzle && st.usesImage) Tile(index, apps.size) else null
+        val b = runCatching { IconRenderer.render(ctx, st, app.pkg, app.label, renderPx, tile) }.getOrNull() ?: return@forEachIndexed
+        val left = (index % cols) * cell + (cell - icon) / 2f
+        val top = (index / cols) * cell
+        canvas.drawBitmap(b, null, android.graphics.RectF(left, top, left + icon, top + icon), paint)
+    }
+    return out
 }

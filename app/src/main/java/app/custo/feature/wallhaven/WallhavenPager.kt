@@ -65,6 +65,11 @@ class WallhavenPager(private val repo: WallhavenRepository, private val scope: C
         load()
     }
 
+    /** Drops one picture from the shown results ("Not this"). */
+    fun remove(id: String) {
+        _state.update { s -> if (s.items.none { it.id == id }) s else s.copy(items = s.items.filterNot { it.id == id }) }
+    }
+
     fun loadMore() {
         if (_state.value.canLoadMore) load()
     }

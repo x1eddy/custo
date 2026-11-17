@@ -229,8 +229,14 @@ enum class SizeClass { SMALL, WIDE, TALL, LARGE }
 @Composable
 internal fun sizeClass(): SizeClass {
     val s = LocalSize.current
-    val w = s.width.value >= 200f
-    val h = s.height.value >= 200f
+    return sizeClassOf(s.width.value, s.height.value)
+}
+
+/** One-row heights (under 100 dp) always get the compact layout, even when wide. */
+internal fun sizeClassOf(widthDp: Float, heightDp: Float): SizeClass {
+    if (heightDp < 100f) return SizeClass.SMALL
+    val w = widthDp >= 200f
+    val h = heightDp >= 200f
     return when { w && h -> SizeClass.LARGE; w -> SizeClass.WIDE; h -> SizeClass.TALL; else -> SizeClass.SMALL }
 }
 
@@ -379,12 +385,13 @@ abstract class CustoWidget : GlanceAppWidget() {
     open fun Content(context: Context, id: GlanceId) = Unit
 }
 
-/** A widget with small (2×2), wide (4×2), tall (2×4) and large (4×4) layouts. */
-abstract class ResponsiveWidget : CustoWidget() {
-    override val sizeMode: SizeMode = SizeMode.Responsive(
-        setOf(DpSize(110.dp, 110.dp), DpSize(250.dp, 110.dp), DpSize(110.dp, 250.dp), DpSize(250.dp, 250.dp)),
-    )
-}
+/**
+ * A widget with small (2×2), wide (4×2), tall (2×4) and large (4×4) layouts, picked by
+ * [sizeClass] from the widget's real size ([CustoWidget]'s exact sizing). Exact rather than a few
+ * fixed buckets: with buckets a one-row widget (2×1, 4×1 are ~70–90 dp tall) got the 110 dp
+ * layout and was cut off top and bottom.
+ */
+abstract class ResponsiveWidget : CustoWidget()
 
 /** Receiver that also refreshes on clock, locale and alarm changes (declared per widget in the manifest). */
 abstract class CustoReceiver : GlanceAppWidgetReceiver() {

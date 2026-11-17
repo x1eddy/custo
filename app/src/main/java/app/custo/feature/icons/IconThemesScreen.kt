@@ -80,7 +80,7 @@ fun IconThemesScreen(nav: Navigator) {
 @Composable
 fun ThemeCard(name: String, style: IconStyle, apps: List<LaunchableApp>, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Column(modifier.clip(MaterialTheme.shapes.large).clickable(onClick = onClick), horizontalAlignment = Alignment.CenterHorizontally) {
-        MockHome(apps, { style }, Modifier.fillMaxWidth(), cols = 4, rows = 4, renderPx = 96, labels = false)
+        MockHomeGrid(apps, style, Modifier.fillMaxWidth(), cols = 4, rows = 4, renderPx = 96)
         Text(
             name, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = 6.dp, bottom = 4.dp),
@@ -107,8 +107,8 @@ fun ThemePreviewDialog(
                 }
                 MockHome(apps, { style }, Modifier.fillMaxWidth().weight(1f, fill = false), rows = 5, renderPx = 160)
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Button(onClick = onUse, Modifier.weight(1f)) { Icon(Icons.Rounded.SelectAll, null); Text("  Use for apps") }
-                    OutlinedButton(onClick = onEdit, Modifier.weight(1f)) { Icon(Icons.Rounded.Tune, null); Text("  Customize") }
+                    Button(onClick = onUse, Modifier.weight(1f)) { Icon(Icons.Rounded.SelectAll, null); Text("  Apply", maxLines = 1) }
+                    OutlinedButton(onClick = onEdit, Modifier.weight(1f)) { Icon(Icons.Rounded.Tune, null); Text("  Customize", maxLines = 1) }
                 }
             }
         }

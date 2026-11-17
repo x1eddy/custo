@@ -55,7 +55,7 @@ sealed interface Route {
     data object SystemUiHub : Route
     data object OverlaysHub : Route
 
-    // Icons (Themes tab)
+    // Icons (Icons tab)
     data object IconsHub : Route
     data class IconChanger(val pkg: String? = null, val editId: String? = null) : Route
     data class IconMaker(val styleJson: String? = null, val pickApps: Boolean = false) : Route

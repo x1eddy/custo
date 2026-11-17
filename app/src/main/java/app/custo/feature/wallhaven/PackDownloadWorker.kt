@@ -41,33 +41,44 @@ class PackDownloadWorker(context: Context, params: WorkerParameters) : Coroutine
         notify(notifId, pack, done, target)
         var failures = 0
         try {
-            phases@ for (portrait in PackPlanner.phases()) {
-                var page = 1
-                var lastPage = 1
-                while (need > 0 && page <= lastPage && page <= MAX_PAGES) {
-                    val res = repo.search(pack.query, pack.filters(repo.defaultFilters().atLeast, portrait), page)
-                    lastPage = res.lastPage
-                    for (item in PackPlanner.pick(res.items, skip, need)) {
-                        skip += item.id
-                        try {
-                            repo.save(item, packId = pack.id, query = pack.query)
-                            done++
-                            need--
-                            failures = 0
-                        } catch (e: WallhavenException) {
-                            // A missing or unreadable image is skipped; losing the network stops the run.
-                            if (e.error == WhError.OFFLINE || e.error == WhError.RATE_LIMITED) throw e
-                            if (++failures > MAX_FAILURES_IN_ROW) throw e
-                        } catch (e: IllegalArgumentException) {
-                            // Not SFW general/anime after all: skip.
+            val tagId = pack.tagId
+            val characters = WhTags.allowsCharacters(pack.query)
+            // Most-favourited first; strict favourites floor, then looser ones only if wallhaven runs short.
+            floors@ for (floor in WhQuality.floors(pack.minFavorites)) {
+                for (portrait in PackPlanner.phases()) {
+                    var page = 1
+                    var lastPage = 1
+                    while (need > 0 && page <= lastPage && page <= MAX_PAGES) {
+                        val res = repo.search(pack.query, pack.filters(repo.defaultFilters().atLeast, portrait), page)
+                        lastPage = res.lastPage
+                        val good = res.items.filter { WhQuality.keep(it, floor) }
+                        for (item in PackPlanner.pick(good, skip, Int.MAX_VALUE)) {
+                            if (need <= 0) break
+                            skip += item.id
+                            // Memes, collages, screenshots and pin-ups carry the franchise tag too: check the tags.
+                            if (!repo.passesTagCheck(item, tagId, characters)) continue
+                            try {
+                                repo.save(item, packId = pack.id, query = pack.query)
+                                done++
+                                need--
+                                failures = 0
+                            } catch (e: WallhavenException) {
+                                // A missing or unreadable image is skipped; losing the network stops the run.
+                                if (e.error == WhError.OFFLINE || e.error == WhError.RATE_LIMITED) throw e
+                                if (++failures > MAX_FAILURES_IN_ROW) throw e
+                            } catch (e: IllegalArgumentException) {
+                                // Not SFW general/anime after all: skip.
+                            }
+                            setProgress(workDataOf(KEY_DONE to done, KEY_TOTAL to target))
+                            progress(PackProgress.State.RUNNING)
+                            notify(notifId, pack, done, target)
                         }
-                        setProgress(workDataOf(KEY_DONE to done, KEY_TOTAL to target))
-                        progress(PackProgress.State.RUNNING)
-                        notify(notifId, pack, done, target)
+                        // Sorted by favourites: once a page dips below the floor, later pages are all below it.
+                        if (res.items.any { it.favorites < floor }) break
+                        page++
                     }
-                    page++
+                    if (need <= 0) break@floors
                 }
-                if (need <= 0) break@phases
             }
             progress(PackProgress.State.DONE, if (need > 0) "wallhaven had $done" else null)
             nm().cancel(notifId)

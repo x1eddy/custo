@@ -65,6 +65,7 @@ fun WallhavenTag(query: String, modifier: Modifier = Modifier) {
         style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.onSecondaryContainer,
         maxLines = 1,
+        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
         modifier = modifier.clip(CircleShape).background(MaterialTheme.colorScheme.secondaryContainer).padding(horizontal = 8.dp, vertical = 3.dp),
     )
 }
@@ -82,7 +83,9 @@ fun SetWallStrip(theme: WidgetTheme, query: String, nav: Navigator) {
     val savedAll by c.wallhaven.saved.collectAsStateWithLifecycle(emptyList())
     val saved = savedAll.filter { it.query.equals(query, ignoreCase = true) || it.id == theme.chosenWall?.id }
     val online by produceState<List<WhWallpaper>?>(null, query) {
-        value = runCatching { c.wallhaven.topFor(query, 12) }.getOrDefault(emptyList())
+        // Pictures appear as their tags are checked (no memes, pin-ups or off-topic ones).
+        runCatching { c.wallhaven.topChecked(query, 12).collect { value = it } }
+        if (value == null) value = emptyList()
     }
     var busy by remember { mutableStateOf<String?>(null) }
     val chosen = theme.chosenWall?.id
