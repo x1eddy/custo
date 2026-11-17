@@ -183,7 +183,8 @@ class SetBackgroundRepository(
 
     /**
      * Gives [theme] its first SFW wallhaven top result as background, in the background, when it has
-     * a search, nothing chosen, the phone is online and it was never auto-picked before.
+     * a search, nothing chosen, the phone is on Wi-Fi (never mobile data – these are unrequested
+     * downloads of a few MB each) and it was never auto-picked before.
      */
     fun autoDefault(theme: WidgetTheme) {
         if (theme.wallhavenQuery.isNullOrBlank() || !autoInFlight.add(theme.id)) return
@@ -192,7 +193,7 @@ class SetBackgroundRepository(
                 ensureLoaded()
                 autoQueue.withLock {
                     val done = prefs.get(autoKey, emptySet())
-                    if (!SetBackgroundLogic.shouldAutoPick(theme, SetBackgrounds.of(theme.id), done, wallhaven.isOnline())) return@withLock
+                    if (!SetBackgroundLogic.shouldAutoPick(theme, SetBackgrounds.of(theme.id), done, wallhaven.isOnlineUnmetered())) return@withLock
                     // Let the screen's own pictures load first.
                     delay(1200)
                     val results = runCatching { wallhaven.topFor(theme.wallhavenQuery!!, 6) }.getOrNull() ?: return@withLock

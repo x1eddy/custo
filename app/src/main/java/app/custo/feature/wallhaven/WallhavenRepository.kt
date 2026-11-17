@@ -90,6 +90,14 @@ class WallhavenRepository(
         return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 
+    /** Online on Wi-Fi/ethernet (not mobile data): used for automatic, unrequested downloads. */
+    fun isOnlineUnmetered(): Boolean {
+        val cm = app.getSystemService(ConnectivityManager::class.java) ?: return false
+        val caps = cm.getNetworkCapabilities(cm.activeNetwork) ?: return false
+        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+            caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
+    }
+
     /** Search filters sized for this phone (minimum resolution = the stored wallpaper size). */
     fun defaultFilters(portrait: Boolean = true, sorting: WhSorting = WhSorting.TOPLIST): WhFilters {
         val (w, h) = studio.screenSize()
