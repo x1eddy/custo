@@ -192,6 +192,28 @@ class WallhavenRepository(
         return list.take(n)
     }
 
+    /**
+     * [topFor] with each picture's tags checked ([passesTagCheck], cached): emits the pictures that
+     * pass as they are confirmed, up to [n]. Bursts are fine – the limiter allows 40 a minute.
+     */
+    fun topChecked(query: String, n: Int): Flow<List<WhWallpaper>> = kotlinx.coroutines.flow.flow {
+        val raw = topFor(query, maxOf(2 * n, n + 2))
+        val tagId = WhTags.idFor(query)
+        val characters = WhTags.allowsCharacters(query)
+        val ok = ArrayList<WhWallpaper>()
+        for (w in raw) {
+            if (ok.size >= n) break
+            if (runCatching { passesTagCheck(w, tagId, characters) }.getOrDefault(true)) {
+                ok += w
+                emit(ok.toList())
+            }
+        }
+        emit(ok.toList())
+    }
+
+    /** First picture for [query] that passes the tag check (pack covers). */
+    suspend fun coverFor(query: String): WhWallpaper? = topChecked(query, 1).first().firstOrNull()
+
     /** A wallpaper seen in results this session, or fetched by id. */
     suspend fun item(id: String): WhWallpaper? = known[id] ?: runCatching { api.info(id) }.getOrNull()?.also { known[id] = it }
 

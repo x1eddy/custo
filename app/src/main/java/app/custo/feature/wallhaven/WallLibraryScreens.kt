@@ -137,7 +137,7 @@ fun OfflinePacksScreen(nav: Navigator) {
         items(repo.packs, key = { it.id }) { pack ->
             val cover = saved.firstOrNull { it.packId == pack.id }?.let { repo.savedFile(it.id)?.path }
             val online by produceState<String?>(null, pack.id, cover) {
-                if (cover == null) value = runCatching { repo.topFor(pack.query, 1).firstOrNull()?.gridThumb }.getOrNull()
+                if (cover == null) value = runCatching { repo.coverFor(pack.query)?.gridThumb }.getOrNull()
             }
             val p = progress[pack.id]
             WallTile(cover ?: online, aspect = 3f / 4f, targetPx = cellPx, onClick = { open = pack }) {

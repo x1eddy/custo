@@ -80,7 +80,7 @@ fun IconThemesScreen(nav: Navigator) {
 @Composable
 fun ThemeCard(name: String, style: IconStyle, apps: List<LaunchableApp>, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Column(modifier.clip(MaterialTheme.shapes.large).clickable(onClick = onClick), horizontalAlignment = Alignment.CenterHorizontally) {
-        MockHome(apps, { style }, Modifier.fillMaxWidth(), cols = 4, rows = 4, renderPx = 96, labels = false)
+        MockHomeGrid(apps, style, Modifier.fillMaxWidth(), cols = 4, rows = 4, renderPx = 96)
         Text(
             name, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = 6.dp, bottom = 4.dp),

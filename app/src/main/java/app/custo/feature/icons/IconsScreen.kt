@@ -90,7 +90,7 @@ fun IconsHubScreen(nav: Navigator, asTab: Boolean = false) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("glass", "candy", "luxe").forEach { id ->
                         val t = ICON_THEMES.first { it.id == id }
-                        MockHome(apps, { t.style }, Modifier.weight(1f), cols = 3, rows = 3, renderPx = 96, labels = false)
+                        MockHomeGrid(apps, t.style, Modifier.weight(1f), cols = 3, rows = 3, renderPx = 96)
                     }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {

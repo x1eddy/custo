@@ -46,8 +46,8 @@ object WhTags {
         "cute" to CUTE,
     ).filterValues { it > 0 }
 
-    /** Anime franchises (and cute art) whose pictures are expected to show characters. */
-    private val characterTerms = setOf("one piece", "jujutsu kaisen", "demon slayer", "naruto", "attack on titan", "genshin impact", "cute")
+    /** Anime franchises, Invincible (a cartoon: its pictures are its heroes) and cute art: pictures are expected to show characters. */
+    private val characterTerms = setOf("one piece", "jujutsu kaisen", "invincible", "demon slayer", "naruto", "attack on titan", "genshin impact", "cute")
 
     /**
      * Whether pictures for [term] may be about people/characters. Everything else (games like

@@ -228,7 +228,7 @@ private fun PackCover(pack: WallPack, onClick: () -> Unit) {
     val saved by repo.saved.collectAsStateWithLifecycle(emptyList())
     val local = saved.firstOrNull { it.packId == pack.id }?.let { repo.savedFile(it.id)?.path }
     val online by produceState<String?>(null, pack.id, local == null) {
-        if (local == null) value = runCatching { repo.topFor(pack.query, 1).firstOrNull()?.gridThumb }.getOrNull()
+        if (local == null) value = runCatching { repo.coverFor(pack.query)?.gridThumb }.getOrNull()
     }
     WallTile(local ?: online, Modifier.width(124.dp), aspect = 3f / 4f, targetPx = 360, onClick = onClick) {
         Box(Modifier.fillMaxSize().background(BottomScrim))
